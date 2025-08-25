@@ -1,6 +1,6 @@
 from pyexpat import model
 from django.db import models
-from account_and_entitys.models import XX_Entity
+from account_and_entitys.models import XX_Account, XX_Entity
 from user_management.models import xx_User
 # Removed encrypted fields import - using standard Django fields now
 import json
@@ -76,6 +76,50 @@ def get_entities_with_children(entity_ids):
                 queue.append(child)
 
     return entities
+
+def get_zero_level_accounts(accounts_queryset):
+    """
+    Given a queryset of XX_Account objects, return only Zero Level accounts
+    (accounts that are not parents to any other account).
+    """
+    # Convert queryset to list if it's not already
+    accounts = list(accounts_queryset)
+    
+    # Get all account numbers that are used as parents
+    parent_accounts = XX_Account.objects.exclude(parent__isnull=True).exclude(parent='')
+    parent_account_numbers = set(parent.parent for parent in parent_accounts)
+    
+    # Filter for accounts that are not parents
+    zero_level_accounts = [
+        account for account in accounts 
+        if account.account not in parent_account_numbers
+    ]
+    
+    return zero_level_accounts
+
+def get_level_zero_children(entity_ids):
+    """
+    Given a list of entity IDs, return only the Level 0 children 
+    (children that are not parents to any other entity).
+    """
+    # First get all entities including their children recursively
+    all_entities = get_entities_with_children(entity_ids)
+    
+    # Create a set of all entity numbers that are parents
+    parent_numbers = set()
+    for entity in all_entities:
+        if entity.parent:  # If this entity has a parent
+            parent_numbers.add(entity.parent)
+    
+    # Filter for entities that are not parents (level 0 children)
+    level_zero_children = []
+    for entity in all_entities:
+        # Check if this entity's number is NOT in parent_numbers
+        # and also make sure it's not one of the original entities (if needed)
+        if str(entity.entity) not in parent_numbers:
+            level_zero_children.append(entity)
+    
+    return level_zero_children
 
 def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit'):
     """

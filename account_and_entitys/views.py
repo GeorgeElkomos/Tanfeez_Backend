@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 
-from budget_management.models import get_entities_with_children
+from budget_management.models import get_entities_with_children, get_level_zero_children, get_zero_level_accounts
 from .models import XX_Account, XX_Entity, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT
 from .serializers import AccountSerializer, EntitySerializer, PivotFundSerializer, TransactionAuditSerializer, AccountEntityLimitSerializer
 from rest_framework.views import APIView
@@ -36,6 +36,8 @@ class AccountListView(APIView):
         search_query = request.query_params.get("search", None)
 
         accounts = XX_Account.objects.all().order_by("account")
+        
+        accounts = get_zero_level_accounts(accounts)
 
         if search_query:
             # Cast account (int) to string for filtering
@@ -145,19 +147,28 @@ class EntityListView(APIView):
     pagination_class = EntityPagination
     
     def get(self, request):
-        entities = XX_Entity.objects.all().order_by('entity')
-
         # 🔹 Apply permissions filter
         if request.user.abilities.count() > 0:
             entity_ids = [ability.Entity.id for ability in request.user.abilities.all() if ability.Entity]
-            # get_entities_with_children already returns XX_Entity objects
+            # Get all accessible entities including their children
             entities = get_entities_with_children(entity_ids)
-        # 🔹 Apply search filter (treat entity as string)
+        else:
+            # If no permissions filter, get all entities
+            entities = list(XX_Entity.objects.all().order_by('entity'))
+        
+        # 🔹 Get only level zero children from the accessible entities
+        level_zero_entities = get_level_zero_children([e.id for e in entities])
+        
+        # 🔹 Apply search filter
         search_query = request.query_params.get("search")
         if search_query:
-            entities = [e for e in entities if search_query.lower() in str(e.entity).lower()]
-
-        serializer = EntitySerializer(entities, many=True)
+            search_lower = search_query.lower()
+            level_zero_entities = [e for e in level_zero_entities if search_lower in str(e.entity).lower()]
+        
+        # 🔹 Sort the final results
+        level_zero_entities.sort(key=lambda x: x.entity)
+        
+        serializer = EntitySerializer(level_zero_entities, many=True)
         return Response({
             'message': 'Accounts retrieved successfully.',
             'data': serializer.data
