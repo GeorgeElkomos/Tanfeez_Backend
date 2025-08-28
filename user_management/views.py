@@ -78,6 +78,11 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
 
+        # XX_Account.objects.all().delete()
+        # XX_Entity.objects.all().delete()
+        # XX_PivotFund.objects.all().delete()
+        # XX_ACCOUNT_ENTITY_LIMIT.objects.all().delete()
+
         if serializer.is_valid():
             user = serializer.validated_data
             refresh = RefreshToken.for_user(user)
@@ -339,6 +344,7 @@ class UserLevelDeleteView(APIView):
             return Response({'message': 'User level not found.'}, status=status.HTTP_404_NOT_FOUND)
         level.delete()
         return Response({'message': 'User level deleted successfully.'}, status=status.HTTP_200_OK)
+    
 class UserLevelListView(APIView):
     """List all user levels"""
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -372,6 +378,7 @@ class UnRead_Notification(APIView):
             'notifications': data,
             'count': count
         })
+    
 class System_Notification(APIView):
     """Create and list system notifications for all users"""
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -386,6 +393,7 @@ class System_Notification(APIView):
         return Response({
             'Number_Of_Notifications': count,
         })
+    
 class Get_All_Notification(APIView):
     """Create and list system notifications for all users"""
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -406,6 +414,7 @@ class Get_All_Notification(APIView):
         return Response({
             'notifications': data
         })
+    
 class Read_Notification(APIView):
     """Mark a notification as read"""
     permission_classes = [IsAuthenticated]
@@ -419,6 +428,7 @@ class Read_Notification(APIView):
             return Response({'message': 'Notification marked as read.'})
         except xx_notification.DoesNotExist:
             return Response({'message': 'Notification not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
 class Read_All_Notification(APIView):
     """Mark a notification as read"""
     permission_classes = [IsAuthenticated]
@@ -432,6 +442,7 @@ class Read_All_Notification(APIView):
             return Response({'message': 'Notification marked as read.'})
         except xx_notification.DoesNotExist:
             return Response({'message': 'Notification not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
 class Delete_Nnotification(APIView):
     """Delete a specific notification"""
     permission_classes = [IsAuthenticated]

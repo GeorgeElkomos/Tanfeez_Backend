@@ -87,3 +87,14 @@ INFO 2025-08-24 16:45:33,162 budget_trasnfer 14204 12000 BudgetTransfer updated:
 INFO 2025-08-24 16:48:35,051 budget_trasnfer 14204 9696 BudgetTransfer updated: 124 - Dashboard updated
 INFO 2025-08-24 16:48:52,435 budget_trasnfer 14204 9696 Dashboard updated after deleting BudgetTransfer 124
 INFO 2025-08-24 16:48:58,464 budget_trasnfer 14204 9696 Dashboard updated after deleting BudgetTransfer 144
+INFO 2025-08-25 17:38:29,559 budget_trasnfer 31412 16452 New BudgetTransfer created: 415 - Dashboard updated
+INFO 2025-08-25 17:38:32,822 budget_trasnfer 31412 28668 New BudgetTransfer created: 416 - Dashboard updated
+INFO 2025-08-25 17:47:49,079 budget_trasnfer 31412 28668 BudgetTransfer updated: 416 - Dashboard updated
+INFO 2025-08-25 17:48:58,031 budget_trasnfer 31412 28668 New BudgetTransfer created: 417 - Dashboard updated
+INFO 2025-08-25 17:54:34,610 budget_trasnfer 31412 28112 BudgetTransfer updated: 417 - Dashboard updated
+INFO 2025-08-25 18:01:02,798 budget_trasnfer 31412 13628 New BudgetTransfer created: 418 - Dashboard updated
+INFO 2025-08-25 18:01:07,652 budget_trasnfer 31412 28112 New BudgetTransfer created: 419 - Dashboard updated
+INFO 2025-08-25 18:04:03,181 budget_trasnfer 31412 28112 BudgetTransfer updated: 416 - Dashboard updated
+INFO 2025-08-25 18:04:15,890 budget_trasnfer 31412 28112 BudgetTransfer updated: 417 - Dashboard updated
+INFO 2025-08-25 18:05:08,412 budget_trasnfer 31412 28112 BudgetTransfer updated: 416 - Dashboard updated
+INFO 2025-08-25 18:08:13,164 budget_trasnfer 31412 23956 New BudgetTransfer created: 420 - Dashboard updated
