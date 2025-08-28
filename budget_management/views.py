@@ -12,6 +12,7 @@ from django.db.models import CharField
 from user_management.models import xx_notification
 from .models import (
     filter_budget_transfers_all_in_entities,
+    get_costcenter_code,
     xx_BudgetTransfer,
     xx_BudgetTransferAttachment,
     xx_BudgetTransferRejectReason,
@@ -917,18 +918,19 @@ class DashboardBudgetTransferView(APIView):
             # Get dashboard type from query params (default to 'smart')
 
             return_data={}
+            DashBoard_filler_per_Project = []
+
             dashboard_type = request.query_params.get('type', 'smart')
             force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
-
+            user_type = request.query_params.get('user_type', 'edit')
 
 
 
             DashBoard_filler_per_Project_value = request.query_params.get('DashBoard_filler_per_Project', [])
-
-            DashBoard_filler_per_Project_value=DashBoard_filler_per_Project_value.split(',')
-            DashBoard_filler_per_Project = []
-            for i in DashBoard_filler_per_Project_value:
-                    DashBoard_filler_per_Project.append(int(i))
+            if isinstance(DashBoard_filler_per_Project_value, str) and DashBoard_filler_per_Project_value:
+                DashBoard_filler_per_Project_value=DashBoard_filler_per_Project_value.split(',')
+                for i in DashBoard_filler_per_Project_value:
+                        DashBoard_filler_per_Project.append(int(i))
 
 
             start_time = time.time()
@@ -943,7 +945,7 @@ class DashboardBudgetTransferView(APIView):
             )
             # if request.user.abilities.count() > 0:
             # print(transfers_queryset.count())
-            transfers_queryset = filter_budget_transfers_all_in_entities(transfers_queryset, request.user, 'edit',dashboard_filler_per_project=DashBoard_filler_per_Project)
+            transfers_queryset = filter_budget_transfers_all_in_entities(transfers_queryset, request.user, type=user_type,dashboard_filler_per_project=DashBoard_filler_per_Project)
             # print(transfers_queryset.count())
 
             if dashboard_type=="normal"  or dashboard_type=="all":
@@ -1046,9 +1048,12 @@ class DashboardBudgetTransferView(APIView):
                     )
                     
                     # Apply additional filters if provided
-                    if DashBoard_filler_per_Project:
-                        base_queryset = base_queryset.filter(cost_center_code__in=DashBoard_filler_per_Project)
+
                     
+                    codes=get_costcenter_code(user=request.user, Type=user_type,dashboard_filler_per_project=DashBoard_filler_per_Project)
+                    base_queryset = base_queryset.filter(cost_center_code__in=codes)
+
+
                     # Aggregate by cost center code (single database query)
                     cost_center_totals = list(base_queryset.values('cost_center_code').annotate(
                         total_from_center=Sum('from_center'),

@@ -121,7 +121,7 @@ def get_level_zero_children(entity_ids):
     
     return level_zero_children
 
-def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit',dashboard_filler_per_project=None):
+def filter_budget_transfers_all_in_entities(budget_transfers,user, Type = 'edit',dashboard_filler_per_project=None):
     """
     From a given queryset of BudgetTransfer objects,
     return only those where *all* related transactions
@@ -130,7 +130,7 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
     Modified to avoid Oracle NCLOB issues with complex annotations.
     """
     entity_ids = [ability.Entity.id for ability in user.abilities.all() if ability.Entity and ability.Type == Type]
-    if dashboard_filler_per_project is not None:
+    if len(dashboard_filler_per_project) > 0:
             if all(entity_id in entity_ids for entity_id in dashboard_filler_per_project):
                entity_ids = dashboard_filler_per_project
     entities = get_entities_with_children(entity_ids)
@@ -183,7 +183,23 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
             Q(adjd_transfers__cost_center_code__in=entity_codes) | Q(user_id=user.id)
         ).distinct()
 
+def get_costcenter_code(user, Type = 'edit',dashboard_filler_per_project=None):
+    """
+    From a given queryset of BudgetTransfer objects,
+    return only those where *all* related transactions
+    belong to the given entity_ids.
+    
+    Modified to avoid Oracle NCLOB issues with complex annotations.
+    """
+    entity_ids = [ability.Entity.id for ability in user.abilities.all() if ability.Entity and ability.Type == Type]
+    if len(dashboard_filler_per_project) > 0:
+            if all(entity_id in entity_ids for entity_id in dashboard_filler_per_project):
+               entity_ids = dashboard_filler_per_project
+    entities = get_entities_with_children(entity_ids)
+    entity_codes = [e.entity for e in entities]
+    return entity_codes
 
+    
 
 class xx_BudgetTransferAttachment(models.Model):
     """Model to store file attachments as BLOBs for budget transfers"""
