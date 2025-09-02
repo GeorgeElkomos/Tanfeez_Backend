@@ -12,7 +12,8 @@ from .views import (
     DeleteBudgetTransferAttachmentView,
     ListBudgetTransferAttachmentsView,
     list_budget_transfer_reject_reason,
-    DashboardBudgetTransferView
+    DashboardBudgetTransferView,
+    ListBudgetTransfer_approvels_MobileView
 )
 
 app_name = 'budget_management'
@@ -22,6 +23,8 @@ urlpatterns = [
     path('transfers/create/', CreateBudgetTransferView.as_view(), name='create-budget-transfer'),
     path('transfers/list/', ListBudgetTransferView.as_view(), name='list-budget-transfers'),
     path('transfers/list_underapprovel/', ListBudgetTransfer_approvels_View.as_view(), name='list-budget-transfersus_underapprovel'),
+    path('transfers/list_Mobile_underapprovel/', ListBudgetTransfer_approvels_MobileView.as_view(), name='list-budget-transfersus_underapprovel'),
+
 
     path('transfers/<int:transfer_id>/', GetBudgetTransferView.as_view(), name='get-budget-transfer'),
     path('transfers/<int:transfer_id>/update/', UpdateBudgetTransferView.as_view(), name='update-budget-transfer'),

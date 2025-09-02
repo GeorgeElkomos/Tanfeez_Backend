@@ -15,6 +15,7 @@ from .models import (
     xx_BudgetTransfer,
     xx_BudgetTransferAttachment,
     xx_BudgetTransferRejectReason,
+    xx_DashboardBudgetTransfer,
 )
 from account_and_entitys.models import XX_PivotFund, XX_Entity, XX_Account
 from adjd_transaction.models import xx_TransactionTransfer
@@ -47,6 +48,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q, Sum, Count, Case, When, Value, F
 
 
 class TransferPagination(PageNumberPagination):
@@ -55,7 +57,6 @@ class TransferPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
-
 class CreateBudgetTransferView(APIView):
     """Create budget transfers"""
 
@@ -137,39 +138,115 @@ class CreateBudgetTransferView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 class ListBudgetTransferView(APIView):
     """List budget transfers with pagination"""
 
     permission_classes = [IsAuthenticated]
     pagination_class = TransferPagination
 
-    def post(self, request):
-        code = request.data.get("code", None)
-        date = request.data.get("date", None)
-        start_date = request.data.get("start_date", None)
-        end_date = request.data.get("end_date", None)
-        search = request.data.get("search")
+    def get(self, request):
+        status_type = request.query_params.get("status_type", None)
+        search = request.query_params.get("search")
+        day = request.query_params.get("day")
+        month = request.query_params.get("month")
+        year = request.query_params.get("year")
+        sdate = request.query_params.get("start_date") or request.query_params.get("from_date")
+        edate = request.query_params.get("end_date") or request.query_params.get("to_date")
+        code = request.query_params.get("code", None)
 
-        # Simplify the query to avoid Oracle NCLOB issues
+
         if request.user.role == "admin":
-            transfers = xx_BudgetTransfer.objects.all()
+            if status_type:
+                transfers = xx_BudgetTransfer.objects.filter(status=status_type)
+            else:
+                transfers = xx_BudgetTransfer.objects.all()
         else:
-            transfers = xx_BudgetTransfer.objects.filter(user_id=request.user.id)
+            if status_type:
+                transfers = xx_BudgetTransfer.objects.filter(status=status_type,user_id=request.user.id)
+            else:
+                transfers = xx_BudgetTransfer.objects.filter(user_id=request.user.id)
 
-       
-        print(transfers.count())
-        # Skip complex entity filtering for now to avoid NCLOB issues
-        # TODO: Implement entity filtering without complex annotations
-        
-        if request.user.abilities.count() > 0:
-            transfers = filter_budget_transfers_all_in_entities(transfers, request.user, 'edit')
-        
-        print(transfers.count())
+        print(type(code))
+
 
         if code:
-            transfers = transfers.filter(code__icontains=code)
-        print(transfers.count())
+            # Coerce to string first and use upper() to avoid errors if a non-string is provided
+            code_upper = code.upper()
+            transfers = transfers.filter(type=code_upper)
+
+
+        if request.user.abilities.count() > 0:
+            transfers = filter_budget_transfers_all_in_entities(budget_transfers=transfers, user=request.user, Type='edit')
+
+        # Free-text search across common fields (icontains)
+        if search:
+            s = str(search).strip()
+            query = (
+                Q(code__icontains=s)
+                | Q(requested_by__icontains=s)
+                | Q(status__icontains=s)
+                | Q(transaction_date__icontains=s)
+                | Q(type__icontains=s)
+            )
+            if s.isdigit():
+                # Support numeric search on transaction_id
+                try:
+                    query |= Q(transaction_id=int(s))
+                except Exception:
+                    pass
+            transfers = transfers.filter(query)
+        
+        try:
+            from datetime import datetime as _dt
+
+            def _validate(fmt, value):
+                try:
+                    _dt.strptime(value, fmt)
+                    return True
+                except Exception:
+                    return False
+                
+            if day:
+                if not _validate("%Y-%m-%d", day):
+                    return Response({"error": "Invalid day format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+                transfers = transfers.filter(request_date__startswith=day)
+            elif month:
+                mval = str(month)
+                prefix = None
+                if _validate("%Y-%m", mval):
+                    prefix = mval
+                else:
+                    if year:
+                        try:
+                            yi = int(year)
+                            mi = int(mval)
+                            if 1 <= mi <= 12 and 1900 <= yi <= 2100:
+                                prefix = f"{yi}-{mi:02d}"
+                        except Exception:
+                            pass
+                if not prefix:
+                    return Response({"error": "Invalid month. Provide YYYY-MM or month with 'year'"}, status=status.HTTP_400_BAD_REQUEST)
+                transfers = transfers.filter(request_date__startswith=prefix)
+            elif year:
+                try:
+                    yi = int(year)
+                    if yi < 1900 or yi > 2100:
+                        raise ValueError()
+                except Exception:
+                    return Response({"error": "Invalid year. Use YYYY in range 1900-2100"}, status=status.HTTP_400_BAD_REQUEST)
+                transfers = transfers.filter(request_date__startswith=f"{int(year)}-")
+            elif sdate and edate:
+                sd = str(sdate)
+                ed = str(edate)
+                if not (_validate("%Y-%m-%d", sd) and _validate("%Y-%m-%d", ed)):
+                    return Response({"error": "Invalid date range. Use YYYY-MM-DD for start_date and end_date"}, status=status.HTTP_400_BAD_REQUEST)
+                if sd > ed:
+                    sd, ed = ed, sd
+                transfers = transfers.filter(request_date__gte=sd, request_date__lte=ed)
+        except Exception as _date_err:
+            return Response({"error": f"Failed to apply date filter: {_date_err}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
         # Use only safe fields for ordering to avoid Oracle NCLOB issues
         transfers = transfers.order_by("-transaction_id")
         
@@ -200,7 +277,6 @@ class ListBudgetTransferView(APIView):
             'next': f"?page={page + 1}&page_size={page_size}" if end_idx < len(transfer_list) else None,
             'previous': f"?page={page - 1}&page_size={page_size}" if page > 1 else None
         })
-
 class ListBudgetTransfer_approvels_View(APIView):
     """List budget transfers with pagination"""
 
@@ -212,6 +288,7 @@ class ListBudgetTransfer_approvels_View(APIView):
         date = request.data.get("date", None)
         start_date = request.data.get("start_date", None)
         end_date = request.data.get("end_date", None)
+
         if code is None:
             code = "FAR"
         status_level_val = (
@@ -220,7 +297,7 @@ class ListBudgetTransfer_approvels_View(APIView):
             else 0
         )
         transfers = xx_BudgetTransfer.objects.filter(
-            status_level=status_level_val, code__startswith=code,status= "pending"
+            status_level=status_level_val, type=code,status= "pending"
         )
         
         if request.user.abilities.count() > 0:
@@ -229,12 +306,12 @@ class ListBudgetTransfer_approvels_View(APIView):
         if code:
             transfers = transfers.filter(code__icontains=code)
 
-
-
         transfers = transfers.order_by("-request_date")
+
+        # Paginate results
         paginator = self.pagination_class()
-        paginated_transfers = paginator.paginate_queryset(transfers, request)
-        serializer = BudgetTransferSerializer(paginated_transfers, many=True)
+        page = paginator.paginate_queryset(transfers, request, view=self)
+        serializer = BudgetTransferSerializer(page, many=True)
 
         # Create a list of dictionaries with just the fields we want
         filtered_data = []
@@ -252,7 +329,6 @@ class ListBudgetTransfer_approvels_View(APIView):
             filtered_data.append(filtered_item)
 
         return paginator.get_paginated_response(filtered_data)
-
 class ApproveBudgetTransferView(APIView):
     """Approve or reject budget transfer requests (admin only)"""
 
@@ -299,7 +375,6 @@ class ApproveBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
 class GetBudgetTransferView(APIView):
     """Get a specific budget transfer by ID"""
 
@@ -331,7 +406,6 @@ class GetBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
 class UpdateBudgetTransferView(APIView):
     """Update a budget transfer"""
 
@@ -411,7 +485,6 @@ class UpdateBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
 class DeleteBudgetTransferView(APIView):
     """Delete a specific budget transfer by ID"""
 
@@ -436,10 +509,7 @@ class DeleteBudgetTransferView(APIView):
                 )
 
             transfer_code = transfer.code
-            if transfer.adjd_transfers.exists():
-                transfer.adjd_transfers.all().delete()
             transfer.delete()
-
 
             return Response(
                 {"message": f"Budget transfer {transfer_code} deleted successfully."},
@@ -450,7 +520,6 @@ class DeleteBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
 class Adjdtranscationtransferapprovel_reject(APIView):
     """Submit ADJD transaction transfers for approval"""
 
@@ -619,7 +688,6 @@ class Adjdtranscationtransferapprovel_reject(APIView):
             {"message": "Transfers processed", "results": results},
             status=status.HTTP_200_OK,
         )
-
 class BudgetTransferFileUploadView(APIView):
     """Upload files for a budget transfer and store as BLOBs"""
 
@@ -693,7 +761,6 @@ class BudgetTransferFileUploadView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
 class DeleteBudgetTransferAttachmentView(APIView):
     """Delete a specific file attachment from a budget transfer"""
 
@@ -777,7 +844,6 @@ class DeleteBudgetTransferAttachmentView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
 class ListBudgetTransferAttachmentsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -816,7 +882,6 @@ class ListBudgetTransferAttachmentsView(APIView):
             return Response(
                 {"error": "Transfer not found"}, status=status.HTTP_404_NOT_FOUND
             )
-
 class list_budget_transfer_reject_reason(APIView):
     """List all budget transfer reject reasons"""
 
@@ -842,8 +907,7 @@ class list_budget_transfer_reject_reason(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-class DashboardBudgetTransferView(APIView):
+class StaticDashboardView(APIView):
     """Optimized dashboard view for encrypted budget transfers"""
     permission_classes = [IsAuthenticated]
 
@@ -903,6 +967,302 @@ class DashboardBudgetTransferView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+class DashboardBudgetTransferView(APIView):
+
+    """Optimized dashboard view for encrypted budget transfers"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        try:
+            # Get dashboard type from query params (default to 'smart')
+
+            return_data={}
+            dashboard_type = request.query_params.get('type', 'smart')
+            force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
 
 
 
+
+            DashBoard_filler_per_Project = request.query_params.get('DashBoard_filler_per_Project', None)
+
+            start_time = time.time()
+            print("Starting optimized normal dashboard calculation...")
+
+            # PHASE 1: Database-level counting and aggregations
+            count_start = time.time()
+
+            # Get all transfers with minimal data loading
+            transfers_queryset = xx_BudgetTransfer.objects.only(
+            'code', 'status', 'status_level', 'request_date'
+            )
+            # if request.user.abilities.count() > 0:
+            print(len(transfers_queryset))
+            transfers_queryset = filter_budget_transfers_all_in_entities(transfers_queryset, request.user, 'edit',dashboard_filler_per_project=DashBoard_filler_per_Project)
+            print(len(transfers_queryset))
+
+            if dashboard_type=="normal"  or dashboard_type=="all":
+                # Use database aggregations for counting
+                try:
+
+                    total_count = transfers_queryset.count()
+
+                    # Count by status using database aggregation
+                    status_counts = transfers_queryset.aggregate(
+                        approved=Count('transaction_id', filter=Q(status='approved')),
+                        rejected=Count('transaction_id', filter=Q(status='rejected')),
+                        pending=Count('transaction_id', filter=Q(status='pending'))
+                    )
+
+                    # Count by status level using database aggregation
+                    level_counts = transfers_queryset.aggregate(
+                        level1=Count('transaction_id', filter=Q(status_level=1)),
+                        level2=Count('transaction_id', filter=Q(status_level=2)),
+                        level3=Count('transaction_id', filter=Q(status_level=3)),
+                        level4=Count('transaction_id', filter=Q(status_level=4))
+                    )
+
+                    # Count by code prefix using database functions
+                    code_counts = transfers_queryset.aggregate(
+                        far=Count('transaction_id', filter=Q(code__istartswith='FAR')),
+                        afr=Count('transaction_id', filter=Q(code__istartswith='AFR')),
+                        fad=Count('transaction_id', filter=Q(code__istartswith='FAD'))
+                    )
+
+                    # Get request dates efficiently (only non-null dates)
+                    request_dates = list(
+                        transfers_queryset.filter(request_date__isnull=False)
+                        .values_list('request_date', flat=True)
+                        .order_by('-request_date')[:1000]  # Limit to recent 1000 for performance
+                    )
+
+                    # Convert datetime objects to ISO format strings for JSON serialization
+                    request_dates_iso = [date.isoformat() for date in request_dates]
+
+                    print(f"Database counting completed in {time.time() - count_start:.2f}s")
+
+                    # PHASE 2: Format response data
+                    data = {
+                        "total_transfers": total_count,
+                        "total_transfers_far": code_counts['far'],
+                        "total_transfers_afr": code_counts['afr'],
+                        "total_transfers_fad": code_counts['fad'],
+                        "approved_transfers": status_counts['approved'],
+                        "rejected_transfers": status_counts['rejected'],
+                        "pending_transfers": status_counts['pending'],
+                        "pending_transfers_by_level": {
+                            "Level1": level_counts['level1'],
+                            "Level2": level_counts['level2'],
+                            "Level3": level_counts['level3'],
+                            "Level4": level_counts['level4'],
+                        },
+                        "request_dates": request_dates_iso,
+                        "performance_metrics": {
+                            "total_processing_time": round(time.time() - start_time, 2),
+                            "counting_time": round(time.time() - count_start, 2),
+                            "total_records_processed": total_count,
+                            "request_dates_retrieved": len(request_dates_iso)
+                        }
+                    }
+
+                    print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
+                    print(f"Processed {total_count} transfers")
+
+                    # Save dashboard data
+                    save_start = time.time()
+                    try:
+                        # Ensure a local container exists to store dashboard data
+                        return_data['normal'] = data
+
+                        # If only normal dashboard is requested, return now.
+                        if dashboard_type == "normal":
+                            return Response(return_data, status=status.HTTP_200_OK)
+                    except Exception as e:
+                        print(f"Error occurred while saving dashboard data: {str(e)}")
+                except Exception as e:
+                    print(f"Error occurred while saving dashboard data: {str(e)}")
+            if dashboard_type=="smart" or dashboard_type=="all":
+                try:
+                    start_time = time.time()
+
+                    print("Starting optimized smart dashboard calculation...")
+                    if DashBoard_filler_per_Project :
+                        print(f"Filters applied: cost_center={DashBoard_filler_per_Project}")
+                    # PHASE 1: Database-level aggregations for approved transfers
+                    aggregation_start = time.time()
+                    
+                    # Build base queryset with optimized filtering
+                    base_queryset = xx_TransactionTransfer.objects.select_related('transaction').filter(
+                        transaction__status="approved"
+                    )
+                    
+                    # Apply additional filters if provided
+                    if DashBoard_filler_per_Project:
+                        base_queryset = base_queryset.filter(cost_center_code=DashBoard_filler_per_Project)
+                    
+                    # Aggregate by cost center code (single database query)
+                    cost_center_totals = list(base_queryset.values('cost_center_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('cost_center_code'))
+
+                    # Aggregate by account code (single database query)
+                    account_code_totals = list(base_queryset.values('account_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('account_code'))
+
+                    # Aggregate by combination of cost center and account code (single database query)
+                    all_combinations = list(base_queryset.values('cost_center_code', 'account_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('cost_center_code', 'account_code'))
+
+                    # Get filtered individual records if filters are applied
+                    if DashBoard_filler_per_Project:
+                        filtered_combinations = list(base_queryset.values(
+                            'cost_center_code', 'account_code', 'from_center', 'to_center'
+                        ))
+                    else:
+                        # If no filters, use aggregated data to avoid large result sets
+                        filtered_combinations = all_combinations
+
+                    print(f"Database aggregations completed in {time.time() - aggregation_start:.2f}s")
+
+                    # PHASE 2: Format response data
+                    format_start = time.time()
+                    
+                    # Convert Decimal to float for JSON serialization
+                    for item in cost_center_totals:
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
+
+                    for item in account_code_totals:
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
+
+                    for item in all_combinations:
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
+
+                    # Convert filtered combinations
+                    for item in filtered_combinations:
+                        if 'from_center' in item:  # Individual records
+                            item['from_center'] = float(item['from_center'] or 0)
+                            item['to_center'] = float(item['to_center'] or 0)
+
+                    print(f"Data formatting completed in {time.time() - format_start:.2f}s")
+
+                    # Prepare final response
+                    data = {
+                        "filtered_combinations": filtered_combinations,
+                        "cost_center_totals": cost_center_totals,
+                        "account_code_totals": account_code_totals,
+                        "all_combinations": all_combinations,
+                        "applied_filters": {
+                            "cost_center_code": DashBoard_filler_per_Project,
+                        },
+                        "performance_metrics": {
+                            "total_processing_time": round(time.time() - start_time, 2),
+                            "aggregation_time": round(time.time() - aggregation_start, 2),
+                            "cost_center_groups": len(cost_center_totals),
+                            "account_code_groups": len(account_code_totals),
+                            "total_combinations": len(all_combinations)
+                        }
+                    }
+
+                    print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
+                    print(f"Found {len(cost_center_totals)} cost centers, {len(account_code_totals)} account codes")
+
+                    # Save dashboard data
+                    save_start = time.time()
+                    try:
+                        return_data['smart'] = data
+                        # If only smart dashboard is requested, return now.
+                        if dashboard_type == "smart":
+                            return Response(return_data, status=status.HTTP_200_OK)
+                    except Exception as save_error:
+                        print(f"Error saving dashboard data: {save_error}")
+                        return data
+
+
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+                        return Response(
+                            {"error": str(e)}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        )
+                except Exception as e:
+                    print(f"Error processing dashboard data: {e}")
+                    return Response(
+                        {"error": str(e)}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+            # If we reach here, and we have collected one or more sections (e.g., type=all), return them.
+            if return_data:
+                return Response(return_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+
+
+### mobile version #####
+
+class ListBudgetTransfer_approvels_MobileView(APIView):
+    """List budget transfers with pagination"""
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = TransferPagination
+
+    def get(self, request):
+        code = request.query_params.get("code", None)
+        date = request.data.get("date", None)
+        start_date = request.data.get("start_date", None)
+        end_date = request.data.get("end_date", None)
+        
+        if code is None:
+            code = "FAR"
+        status_level_val = (
+            request.user.user_level.level_order
+            if request.user.user_level.level_order
+            else 0
+        )
+        transfers = xx_BudgetTransfer.objects.filter(
+            status_level=status_level_val, type=code,status= "pending"
+        )
+        
+        if request.user.abilities.count() > 0:
+            transfers = filter_budget_transfers_all_in_entities(transfers, request.user, 'approve')
+        
+        if code:
+            transfers = transfers.filter(code__icontains=code)
+
+        transfers = transfers.order_by("-request_date")
+        # Return all results without pagination
+        serializer = BudgetTransferSerializer(transfers, many=True)
+
+        # Create a list of dictionaries with just the fields we want
+        filtered_data = []
+        for item in serializer.data:
+            filtered_item = {
+                "transaction_id": item.get("transaction_id"),
+                "amount": item.get("amount"),
+                "status": item.get("status"),
+                "status_level": item.get("status_level"),
+                "requested_by": item.get("requested_by"),
+                "request_date": item.get("request_date"),
+                "code": item.get("code"),
+                "transaction_date": item.get("transaction_date"),
+            }
+            filtered_data.append(filtered_item)
+
+        return Response(filtered_data, status=status.HTTP_200_OK)
