@@ -637,12 +637,14 @@ class Adjdtranscationtransferapprovel_reject(APIView):
                             # Extract the necessary data
                             item_cost_center = transfer.cost_center_code
                             item_account_code = transfer.account_code
+                            item_project_code = transfer.project_code
                             from_center = transfer.from_center or 0
                             to_center = transfer.to_center or 0
                             # Update the pivot fund
                             update_result = update_pivot_fund(
                                 item_cost_center,
                                 item_account_code,
+                                item_project_code,
                                 from_center,
                                 to_center,
                                 decide,
@@ -1211,8 +1213,6 @@ class DashboardBudgetTransferView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-
 
 
 ### mobile version #####

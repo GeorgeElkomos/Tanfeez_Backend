@@ -1,6 +1,6 @@
 from pyexpat import model
 from django.db import models
-from account_and_entitys.models import XX_Account, XX_Entity
+from account_and_entitys.models import XX_Account, XX_Entity, XX_Project
 from user_management.models import xx_User
 # Removed encrypted fields import - using standard Django fields now
 import json
@@ -45,8 +45,8 @@ class xx_BudgetTransfer(models.Model):
         return f"Transfer {self.transaction_id}: {self.amount} requested by {self.requested_by}"
 
 # SELECT * FROM XX_BUDGET_TRANSFER_XX
-# JOIN XX_Transaction_Transfer_XX ON XX_BUDGET_TRANSFER_XX.transaction_id = XX_Transaction_Transfer_XX.transaction_id 
-# JOIN XX_Entity_XX ON XX_Transaction_Transfer_XX.cost_center_code = XX_Entity_XX.entity 
+# JOIN XX_Transaction_Transfer_XX ON XX_BUDGET_TRANSFER_XX.transaction_id = XX_Transaction_Transfer_XX.transaction_id
+# JOIN XX_Entity_XX ON XX_Transaction_Transfer_XX.cost_center_code = XX_Entity_XX.entity
 # WHERE XX_Entity_XX.id IN (value1, value2, ...);
 
 from django.db.models import Q, Count, F
@@ -84,18 +84,30 @@ def get_zero_level_accounts(accounts_queryset):
     """
     # Convert queryset to list if it's not already
     accounts = list(accounts_queryset)
-    
+
     # Get all account numbers that are used as parents
     parent_accounts = XX_Account.objects.exclude(parent__isnull=True).exclude(parent='')
     parent_account_numbers = set(parent.parent for parent in parent_accounts)
-    
+
     # Filter for accounts that are not parents
     zero_level_accounts = [
-        account for account in accounts 
+        account for account in accounts
         if account.account not in parent_account_numbers
     ]
-    
+
     return zero_level_accounts
+
+
+def get_zero_level_projects(projects_queryset):
+    """
+    Given a queryset of XX_Project objects, return only Zero Level projects
+    (projects that are not parents to any other project).
+    """
+    projects = list(projects_queryset)
+    parent_projects = XX_Project.objects.exclude(parent__isnull=True).exclude(parent="")
+    parent_project_codes = set(p.parent for p in parent_projects)
+    return [proj for proj in projects if proj.project not in parent_project_codes]
+
 
 def get_level_zero_children(entity_ids):
     """
@@ -199,7 +211,6 @@ def get_costcenter_code(user, Type = 'edit',dashboard_filler_per_project=None):
     entity_codes = [e.entity for e in entities]
     return entity_codes
 
-    
 
 class xx_BudgetTransferAttachment(models.Model):
     """Model to store file attachments as BLOBs for budget transfers"""
@@ -242,8 +253,6 @@ class xx_BudgetTransferRejectReason(models.Model):
         
     def __str__(self):
         return f"Reject Reason for Transfer {self.budget_transfer_id}: {self.reason_text}"
-
-
 
 
 class xx_DashboardBudgetTransfer(models.Model):

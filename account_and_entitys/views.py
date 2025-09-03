@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 
-from budget_management.models import get_entities_with_children, get_level_zero_children, get_zero_level_accounts
-from .models import XX_Account, XX_Entity, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT
-from .serializers import AccountSerializer, EntitySerializer, PivotFundSerializer, TransactionAuditSerializer, AccountEntityLimitSerializer
+from budget_management.models import get_entities_with_children, get_level_zero_children, get_zero_level_accounts, get_zero_level_projects
+from .models import XX_Account, XX_Entity,XX_Project, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT
+from .serializers import AccountSerializer, EntitySerializer, PivotFundSerializer, ProjectSerializer, TransactionAuditSerializer, AccountEntityLimitSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
@@ -36,7 +36,7 @@ class AccountListView(APIView):
         search_query = request.query_params.get("search", None)
 
         accounts = XX_Account.objects.all().order_by("account")
-        
+
         accounts = get_zero_level_accounts(accounts)
 
         if search_query:
@@ -54,91 +54,230 @@ class AccountListView(APIView):
 
 class AccountCreateView(APIView):
     """Create a new account"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
         serializer = AccountSerializer(data=request.data)
         if serializer.is_valid():
             account = serializer.save()
-            return Response({
-                'message': 'Account created successfully.',
-                'data': AccountSerializer(account).data
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            'message': 'Failed to create account.',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "message": "Account created successfully.",
+                    "data": AccountSerializer(account).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {"message": "Failed to create account.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 class AccountDetailView(APIView):
     """Retrieve a specific account"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self, pk):
         try:
             return XX_Account.objects.get(pk=pk)
         except XX_Account.DoesNotExist:
             return None
-    
+
     def get(self, request, pk):
         account = self.get_object(pk)
         if account is None:
-            return Response({
-                'message': 'Account not found.'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Account not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         serializer = AccountSerializer(account)
-        return Response({
-            'message': 'Account details retrieved successfully.',
-            'data': serializer.data
-        })
+        return Response(
+            {
+                "message": "Account details retrieved successfully.",
+                "data": serializer.data,
+            }
+        )
 
 class AccountUpdateView(APIView):
     """Update a specific account"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self, pk):
         try:
             return XX_Account.objects.get(pk=pk)
         except XX_Account.DoesNotExist:
             return None
-    
+
     def put(self, request, pk):
         account = self.get_object(pk)
         if account is None:
-            return Response({
-                'message': 'Account not found.'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Account not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         serializer = AccountSerializer(account, data=request.data)
         if serializer.is_valid():
             updated_account = serializer.save()
-            return Response({
-                'message': 'Account updated successfully.',
-                'data': AccountSerializer(updated_account).data
-            })
-        return Response({
-            'message': 'Failed to update account.',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "message": "Account updated successfully.",
+                    "data": AccountSerializer(updated_account).data,
+                }
+            )
+        return Response(
+            {"message": "Failed to update account.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 class AccountDeleteView(APIView):
     """Delete a specific account"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self, pk):
         try:
             return XX_Account.objects.get(pk=pk)
         except XX_Account.DoesNotExist:
             return None
-    
+
     def delete(self, request, pk):
         account = self.get_object(pk)
         if account is None:
-            return Response({
-                'message': 'Account not found.'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "Account not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         account.delete()
-        return Response({
-            'message': 'Account deleted successfully.'
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Account deleted successfully."}, status=status.HTTP_200_OK
+        )
+
+# Project views
+class ProjectListView(APIView):
+    """List all Projects with optional search"""
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = EntityPagination
+
+    def get(self, request):
+        search_query = request.query_params.get("search", None)
+
+        projects = XX_Project.objects.all().order_by("project")
+
+        projects = get_zero_level_projects(projects)
+
+        if search_query:
+            # Cast project (int) to string for filtering
+            projects = projects.filter(
+                Q(
+                    project__icontains=search_query
+                )  # works because Django auto casts to text in SQL
+            )
+
+        serializer = ProjectSerializer(projects, many=True)
+
+        return Response(
+            {"message": "Projects retrieved successfully.", "data": serializer.data}
+        )
+
+class ProjectCreateView(APIView):
+    """Create a new project"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ProjectSerializer(data=request.data)
+        if serializer.is_valid():
+            project = serializer.save()
+            return Response(
+                {
+                    "message": "Project created successfully.",
+                    "data": ProjectSerializer(project).data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {"message": "Failed to create project.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+class ProjectDetailView(APIView):
+    """Retrieve a specific project"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return XX_Project.objects.get(pk=pk)
+        except XX_Project.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        project = self.get_object(pk)
+        if project is None:
+            return Response(
+                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ProjectSerializer(project)
+        return Response(
+            {
+                "message": "Project details retrieved successfully.",
+                "data": serializer.data,
+            }
+        )
+
+class ProjectUpdateView(APIView):
+    """Update a specific project"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return XX_Project.objects.get(pk=pk)
+        except XX_Project.DoesNotExist:
+            return None
+
+    def put(self, request, pk):
+        project = self.get_object(pk)
+        if project is None:
+            return Response(
+                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ProjectSerializer(project, data=request.data)
+        if serializer.is_valid():
+            updated_project = serializer.save()
+            return Response(
+                {
+                    "message": "Project updated successfully.",
+                    "data": ProjectSerializer(updated_project).data,
+                }
+            )
+        return Response(
+            {"message": "Failed to update project.", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+class ProjectDeleteView(APIView):
+    """Delete a specific project"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return XX_Project.objects.get(pk=pk)
+        except XX_Project.DoesNotExist:
+            return None
+
+    def delete(self, request, pk):
+        project = self.get_object(pk)
+        if project is None:
+            return Response(
+                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        project.delete()
+        return Response(
+            {"message": "Project deleted successfully."}, status=status.HTTP_200_OK
+        )
+
 
 # Entity views
 class EntityListView(APIView):
@@ -267,30 +406,33 @@ class PivotFundListView(APIView):
     """List all pivot funds"""
     permission_classes = [IsAuthenticated]
     pagination_class = EntityPagination
-    
+
     def get(self, request):
         # Allow filtering by entity, account, and year
         entity_id = request.query_params.get('entity')
         account_id = request.query_params.get('account')
+        project_id = request.query_params.get('project')
         year = request.query_params.get('year')
-        
+
         pivot_funds = XX_PivotFund.objects.all()
-        
+
         if entity_id:
             pivot_funds = pivot_funds.filter(entity=entity_id)
         if account_id:
             pivot_funds = pivot_funds.filter(account=account_id)
+        if project_id:
+            pivot_funds = pivot_funds.filter(project=project_id)
         if year:
             pivot_funds = pivot_funds.filter(year=year)
-        
+
         # Order by year, entity, account
-        pivot_funds = pivot_funds.order_by('-year', 'entity__entity', 'account__account')
-        
+        pivot_funds = pivot_funds.order_by('-year', 'entity__entity', 'account__account', 'project__project')
+
         # Handle pagination
         paginator = self.pagination_class()
         paginated_funds = paginator.paginate_queryset(pivot_funds, request)
         serializer = PivotFundSerializer(paginated_funds, many=True)
-        
+
         return paginator.get_paginated_response(serializer.data)
 
 class PivotFundCreateView(APIView):
@@ -345,23 +487,23 @@ class PivotFundCreateView(APIView):
 class PivotFundDetailView(APIView):
     """Retrieve a specific pivot fund"""
     permission_classes = [IsAuthenticated]
-    
-    def get_object(self, entity,account):
+
+    def get_object(self, entity, account, project):
         try:
-           
-            return XX_PivotFund.objects.get(entity=entity,account=account)
-        
+
+            return XX_PivotFund.objects.get(entity=entity,account=account, project=project)
+
         except XX_PivotFund.DoesNotExist:
-            
 
             return None
-    
+
     def get(self, request):
 
-        entity=request.query_params.get('entity_id')
-        account=request.query_params.get('account_id')
-        print(entity,account)
-        pivot_fund = self.get_object(entity,account)
+        entity = request.query_params.get('entity_id')
+        account = request.query_params.get("account_id")
+        project = request.query_params.get("project_id")
+        print(entity, account, project)
+        pivot_fund = self.get_object(entity, account, project)
 
         if pivot_fund is None:
             return Response({
@@ -421,8 +563,8 @@ class PivotFundDeleteView(APIView):
         return Response({
             'message': 'Pivot fund deleted successfully.'
         }, status=status.HTTP_200_OK)
-    
-# ADJD Transaction Audit views 
+
+# ADJD Transaction Audit views
 
 class AdjdTransactionAuditListView(APIView):
     """List all ADJD transaction audit records"""
@@ -528,46 +670,58 @@ class AdjdTransactionAuditDeleteView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
 class list_ACCOUNT_ENTITY_LIMIT(APIView):
     """List all ADJD transaction audit records"""
     permission_classes = [IsAuthenticated]
     pagination_class = EntityPagination
-    
+
     def get(self, request):
         # Change "enity_id" to "entity_id"
         entity_id = request.query_params.get('cost_center')
-        account_id = request.query_params.get('account_id')
+        account_id = request.query_params.get("account_id")
+        project_id = request.query_params.get("project_id")
 
         audit_records = XX_ACCOUNT_ENTITY_LIMIT.objects.filter(
             entity_id=entity_id
         ).order_by('-id')
-        audit_records = audit_records.annotate(account_id_str=Cast('account_id', CharField()))
+        audit_records = audit_records.annotate(
+            account_id_str=Cast("account_id", CharField())
+        )
+        audit_records = audit_records.annotate(
+            project_id_str=Cast("project_id", CharField())
+        )
 
         if account_id:
             audit_records = audit_records.filter(account_id_str__icontains=str(account_id))
-        
+        if project_id:
+            audit_records = audit_records.filter(
+                project_id_str__icontains=str(project_id)
+            )
+
         # Handle pagination
         paginator = self.pagination_class()
         paginated_records = paginator.paginate_queryset(audit_records, request)
         serializer = AccountEntityLimitSerializer(paginated_records, many=True)
 
         data = [
-            
             {
-                'id': record["id"],
-                'account': record["account_id"],
-                'is_transer_allowed_for_source': record["is_transer_allowed_for_source"],
-                'is_transer_allowed_for_target': record["is_transer_allowed_for_target"],
-                'is_transer_allowed': record["is_transer_allowed"],
-                'source_count': record["source_count"],
-                'target_count': record["target_count"],
+                "id": record["id"],
+                "account": record["account_id"],
+                "project": record["project_id"],
+                "is_transer_allowed_for_source": record[
+                    "is_transer_allowed_for_source"
+                ],
+                "is_transer_allowed_for_target": record[
+                    "is_transer_allowed_for_target"
+                ],
+                "is_transer_allowed": record["is_transer_allowed"],
+                "source_count": record["source_count"],
+                "target_count": record["target_count"],
             }
             for record in serializer.data
         ]
-        
-        return paginator.get_paginated_response(data)
 
+        return paginator.get_paginated_response(data)
 
 
 class AccountEntityLimitAPI(APIView):
@@ -582,31 +736,36 @@ class AccountEntityLimitAPI(APIView):
         audit_records = XX_ACCOUNT_ENTITY_LIMIT.objects.filter(
             entity_id=entity_id
         ).order_by('-id')
-        
+
         paginator = self.pagination_class()
         paginated_records = paginator.paginate_queryset(audit_records, request)
         serializer = AccountEntityLimitSerializer(paginated_records, many=True)
 
         data = [
             {
-                'id': record["id"],
-                'account': record["account_id"],
-                'is_transfer_allowed_for_source': record["is_transfer_allowed_for_source"],
-                'is_transfer_allowed_for_target': record["is_transfer_allowed_for_target"],
-                'is_transfer_allowed': record["is_transfer_allowed"],
-                'source_count': record["source_count"],
-                'target_count': record["target_count"],
+                "id": record["id"],
+                "account": record["account_id"],
+                "project": record["project_id"],
+                "is_transfer_allowed_for_source": record[
+                    "is_transfer_allowed_for_source"
+                ],
+                "is_transfer_allowed_for_target": record[
+                    "is_transfer_allowed_for_target"
+                ],
+                "is_transfer_allowed": record["is_transfer_allowed"],
+                "source_count": record["source_count"],
+                "target_count": record["target_count"],
             }
             for record in serializer.data
         ]
-        
+
         return paginator.get_paginated_response(data)
 
     def post(self, request):
         """Handle both single record creation and bulk upload via file"""
         # Check if file is present for bulk upload
         uploaded_file = request.FILES.get('file')
-        
+
         if uploaded_file:
             return self._handle_file_upload(uploaded_file)
         else:
@@ -617,18 +776,17 @@ class AccountEntityLimitAPI(APIView):
         try:
             # Read Excel file
             df = pd.read_excel(file)
-            
+
             # Clean column names (convert to lowercase and strip whitespace)
             df.columns = df.columns.str.strip().str.lower()
             df = df.replace([np.nan, pd.NA, pd.NaT, '', 'NULL', 'null'], None)
 
-
             # Convert to list of dictionaries
             records = df.to_dict('records')
-            
+
             created_count = 0
             errors = []
-            
+
             with transaction.atomic():
                 for idx, record in enumerate(records, start=1):
                     try:
@@ -648,16 +806,16 @@ class AccountEntityLimitAPI(APIView):
                             'error': str(e),
                             'data': record
                         })
-            
+
             response = {
                 'status': 'success',
                 'created_count': created_count,
                 'error_count': len(errors),
                 'errors': errors if errors else None
             }
-            
+
             return Response(response, status=status.HTTP_201_CREATED if created_count else status.HTTP_400_BAD_REQUEST)
-            
+
         except Exception as e:
             return Response(
                 {'status': 'error', 'message': str(e)},
@@ -667,17 +825,12 @@ class AccountEntityLimitAPI(APIView):
     def _handle_single_record(self, data):
         """Handle single record creation"""
         serializer = AccountEntityLimitSerializer(data=data)
-        
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
 
 
 class UpdateAccountEntityLimit(APIView):

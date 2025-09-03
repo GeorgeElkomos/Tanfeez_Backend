@@ -33,6 +33,7 @@ def validate_adjd_transaction(data, code=None):
         "actual",
         "cost_center_code",
         "account_code",
+        "project_code",
     ]
     if data["from_center"]=='':
         data["from_center"] = 0
@@ -47,7 +48,6 @@ def validate_adjd_transaction(data, code=None):
     if data["actual"]=='':
         data["actual"] = 0
 
-
     for field in required_fields:
         if field not in data or data[field] is None:
             errors.append(f"{field} is required")
@@ -55,7 +55,6 @@ def validate_adjd_transaction(data, code=None):
     # If basic required fields are missing, stop further validation
     if errors:
         return errors
-    
 
     # Validation 2: from_center or to_center must be positive
     if code[0:3] != "AFR":
@@ -81,6 +80,7 @@ def validate_adjd_transaction(data, code=None):
         transaction=data["transaction_id"],
         cost_center_code=data["cost_center_code"],
         account_code=data["account_code"],
+        project_code=data["project_code"],
     )
 
     # If we're validating an existing record, exclude it from the duplicate check
@@ -90,7 +90,7 @@ def validate_adjd_transaction(data, code=None):
     if existing_transfers.exists():
         duplicates = [f"ID: {t.transfer_id}" for t in existing_transfers[:3]]
         errors.append(
-            f"Duplicate transfer for account code {data['account_code']} and cost center {data['cost_center_code']} (Found: {', '.join(duplicates)})"
+            f"Duplicate transfer for account code {data['account_code']} and project code {data['project_code']} and cost center {data['cost_center_code']} (Found: {', '.join(duplicates)})"
         )
 
     return errors
@@ -99,41 +99,43 @@ def validate_adjd_transaction(data, code=None):
 def validate_adjd_transcation_transfer(data, code=None, errors=None):
     # Validation 1: Check for fund is available if not then no combination code
     existing_code_combintion = XX_PivotFund.objects.filter(
-        entity=data["cost_center_code"], account=data["account_code"]
+        entity=data["cost_center_code"], account=data["account_code"], project=data["project_code"]
     )
     if not existing_code_combintion.exists():
         errors.append(
-            f"Code combination not found for {data['cost_center_code']} and {data['account_code']}"
+            f"Code combination not found for {data['cost_center_code']} and {data['project_code']} and {data['account_code']}"
         )
-    print("existing_code_combintion", type(data["cost_center_code"]),":", type(data["account_code"]))
+    print("existing_code_combintion", type(data["cost_center_code"]),":", type(data["project_code"]),":", type(data["account_code"]))
     # Validation 2: Check if is allowed to make trasfer using this cost_center_code and account_code
     allowed_to_make_transfer = XX_ACCOUNT_ENTITY_LIMIT.objects.filter(
-        entity_id=str(data["cost_center_code"]), account_id=str(data["account_code"])
+        entity_id=str(data["cost_center_code"]),
+        account_id=str(data["account_code"]),
+        project_id=str(data["project_code"]),
     ).first()
     print("allowed_to_make_transfer", allowed_to_make_transfer)
-    
+
     # Check if no matching record found
     if allowed_to_make_transfer is None:
         errors.append(
-            f"No transfer rules found for account {data['account_code']} and cost center {data['cost_center_code']}"
+            f"No transfer rules found for account {data['account_code']} and project {data['project_code']} and cost center {data['cost_center_code']}"
         )
         return errors
     else:
         # Check transfer permissions if record exists
         if allowed_to_make_transfer.is_transer_allowed == "No":
             errors.append(
-                f"Not allowed to make transfer for {data['cost_center_code']} and {data['account_code']} according to the rules"
+                f"Not allowed to make transfer for {data['cost_center_code']} and {data['project_code']} and {data['account_code']} according to the rules"
             )
         elif allowed_to_make_transfer.is_transer_allowed == "Yes":
             if data["from_center"] > 0:
                 if allowed_to_make_transfer.is_transer_allowed_for_source != "Yes":
                     errors.append(
-                        f"Not allowed to make transfer for {data['cost_center_code']} and {data['account_code']} according to the rules (can't transfer from this account)"
+                        f"Not allowed to make transfer for {data['cost_center_code']} and {data['project_code']} and {data['account_code']} according to the rules (can't transfer from this account)"
                     )
             if data["to_center"] > 0:
                 if allowed_to_make_transfer.is_transer_allowed_for_target != "Yes":
                     errors.append(
-                        f"Not allowed to make transfer for {data['cost_center_code']} and {data['account_code']} according to the rules (can't transfer to this account)"
+                        f"Not allowed to make transfer for {data['cost_center_code']} and {data['project_code']} and {data['account_code']} according to the rules (can't transfer to this account)"
                     )
 
     return errors
@@ -232,13 +234,14 @@ class AdjdTransactionTransferCreateView(APIView):
                 to_center = 0
             cost_center_code = transfer_data.get("cost_center_code")
             account_code = transfer_data.get("account_code")
+            project_code = transfer_data.get("project_code")
             transfer_id = transfer_data.get("transfer_id")
             approved_budget = transfer_data.get("approved_budget")
             available_budget = transfer_data.get("available_budget")
             encumbrance = transfer_data.get("encumbrance")
             actual = transfer_data.get("actual")
 
-                # Prepare data for validation function
+            # Prepare data for validation function
             validation_data = {
                 "transaction_id": transaction_id,
                 "from_center": from_center,
@@ -249,9 +252,9 @@ class AdjdTransactionTransferCreateView(APIView):
                 "actual": actual,
                 "cost_center_code": cost_center_code,
                 "account_code": account_code,
+                "project_code": project_code,
                 "transfer_id": transfer_id,  # Fixed: was using 'transfer_id' instead of 'id'
             }
-
 
             serializer = AdjdTransactionTransferSerializer(data=validation_data)
             if serializer.is_valid():
@@ -324,6 +327,7 @@ class AdjdTransactionTransferListView(APIView):
             to_center = float(transfer_data.get("to_center", 0))
             cost_center_code = transfer_data.get("cost_center_code")
             account_code = transfer_data.get("account_code")
+            project_code = transfer_data.get("project_code")
             transfer_id = transfer_data.get("transfer_id")
             approved_budget = float(transfer_data.get("approved_budget", 0))
             available_budget = float(transfer_data.get("available_budget", 0))
@@ -341,6 +345,7 @@ class AdjdTransactionTransferListView(APIView):
                 "actual": actual,
                 "cost_center_code": cost_center_code,
                 "account_code": account_code,
+                "project_code": project_code,
                 "transfer_id": transfer_id,  # Fixed: was using 'transfer_id' instead of 'id'
             }
 
@@ -360,8 +365,6 @@ class AdjdTransactionTransferListView(APIView):
 
         # Also add transaction-wide validation summary
 
-
-
         all_related_transfers = xx_TransactionTransfer.objects.filter(
             transaction=transaction_id
         )
@@ -371,8 +374,6 @@ class AdjdTransactionTransferListView(APIView):
             to_center_values = all_related_transfers.values_list("to_center", flat=True)
             total_from_center = sum(float(value) if value not in [None, ''] else 0 for value in from_center_values)
             total_to_center = sum(float(value) if value not in [None, ''] else 0 for value in to_center_values)
-
-
 
             if total_from_center == total_to_center:
                 transaction_object.amount = total_from_center
@@ -565,6 +566,7 @@ class AdjdtranscationtransferSubmit(APIView):
                         pivot_fund = XX_PivotFund.objects.get(
                             entity=transfer.cost_center_code,
                             account=transfer.account_code,
+                            project=transfer.project_code,
                         )
                     except XX_PivotFund.DoesNotExist:
                         missing_pivot_funds.append(
@@ -572,6 +574,7 @@ class AdjdtranscationtransferSubmit(APIView):
                                 "transfer_id": transfer.transfer_id,
                                 "cost_center_code": transfer.cost_center_code,
                                 "account_code": transfer.account_code,
+                                "project_code": transfer.project_code,
                             }
                         )
 
@@ -592,6 +595,7 @@ class AdjdtranscationtransferSubmit(APIView):
                     update_result = update_pivot_fund(
                         transfer.cost_center_code,
                         transfer.account_code,
+                        transfer.project_code,
                         transfer.from_center,
                         transfer.to_center,
                         decide=1,
@@ -730,7 +734,7 @@ class AdjdTransactionTransferExcelUploadView(APIView):
     def post(self, request):
         # Check if file was uploaded
 
-         # Get transaction_id from the request
+        # Get transaction_id from the request
         transaction_id = request.data.get("transaction")
         transfer = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
 
@@ -741,8 +745,6 @@ class AdjdTransactionTransferExcelUploadView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
 
         if "file" not in request.FILES:
             return Response(
@@ -764,8 +766,6 @@ class AdjdTransactionTransferExcelUploadView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-       
 
         if not transaction_id:
             return Response(
@@ -807,6 +807,7 @@ class AdjdTransactionTransferExcelUploadView(APIView):
             errors = []
             print(df["cost_center_code"])
             print(df["account_code"])
+            print(df["project_code"])
 
             for index, row in df.iterrows():
                 try:
@@ -814,6 +815,7 @@ class AdjdTransactionTransferExcelUploadView(APIView):
                     transfer_data = {
                         "transaction": transaction_id,
                         "cost_center_code": str(row["cost_center_code"]),
+                        "project_code": str(row["project_code"]),
                         "account_code": str(row["account_code"]),
                         "from_center": (
                             float(row["from_center"])
