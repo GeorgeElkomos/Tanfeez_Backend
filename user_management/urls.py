@@ -9,7 +9,7 @@ urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
     path("change-password/", ChangePasswordView.as_view(), name="change_password"),
     path("token-expired/", TokenExpiredView.as_view(), name="token-expired"),
-    path("token-refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("token-refresh/", RefreshTokenView.as_view(), name="token_refresh"),
 
     # User management endpoints
 

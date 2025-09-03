@@ -150,8 +150,8 @@ class ListBudgetTransferView(APIView):
         day = request.query_params.get("day")
         month = request.query_params.get("month")
         year = request.query_params.get("year")
-        sdate = request.query_params.get("start_date") or request.query_params.get("from_date")
-        edate = request.query_params.get("end_date") or request.query_params.get("to_date")
+        sdate = request.query_params.get("start_date")
+        edate = request.query_params.get("end_date")
         code = request.query_params.get("code", None)
 
 
