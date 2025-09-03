@@ -40,21 +40,38 @@ from rest_framework import status
 
 
 class RefreshTokenView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         refresh_token = request.data.get('refresh')
+        user_id = request.data.get('user_id')
         if not refresh_token:
             return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            refresh = RefreshToken(refresh_token)
-            access_token = str(refresh.access_token)
+            # Validate the old refresh token
+            old_refresh = RefreshToken(refresh_token)
+            
+            # Get the user from the refresh token
+            # user_id = old_refresh.payload.get('user_id')
+            user = xx_User.objects.get(id=user_id)
+
+            # Create a completely new refresh token for the user
+            new_refresh = RefreshToken.for_user(user)
+            
+            # Optionally blacklist the old refresh token (if using token blacklisting)
+            # old_refresh.blacklist()
+            
             return Response({
-                'access': access_token,
-                'refresh': str(refresh)
-            }, status=status.HTTP_200_OK)
+                'access': str(new_refresh.access_token),
+                'refresh': str(new_refresh)
+            }, 
+            status=status.HTTP_200_OK)
         except TokenError:
             return Response({'error': 'Invalid or expired refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
+        except xx_User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        
 class RegisterView(APIView):
     """Register a new user"""
     def post(self, request):

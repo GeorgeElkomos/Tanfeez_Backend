@@ -16,7 +16,7 @@ urlpatterns = [
     path('create/', AdjdTransactionTransferCreateView.as_view(), name='adjd-transfer-create'),
     
     # Detail, update, delete endpoints
-    path('<int:pk>/', AdjdTransactionTransferDetailView.as_view(), name='adjd-transfer-detail'),
+    # path('<int:pk>/', AdjdTransactionTransferDetailView.as_view(), name='adjd-transfer-detail'),
     path('<int:pk>/update/', AdjdTransactionTransferUpdateView.as_view(), name='adjd-transfer-update'),
     path('<int:pk>/delete/', AdjdTransactionTransferDeleteView.as_view(), name='adjd-transfer-delete'),
     

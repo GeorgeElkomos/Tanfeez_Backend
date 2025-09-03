@@ -150,8 +150,8 @@ class ListBudgetTransferView(APIView):
         day = request.query_params.get("day")
         month = request.query_params.get("month")
         year = request.query_params.get("year")
-        sdate = request.query_params.get("start_date") or request.query_params.get("from_date")
-        edate = request.query_params.get("end_date") or request.query_params.get("to_date")
+        sdate = request.query_params.get("start_date")
+        edate = request.query_params.get("end_date")
         code = request.query_params.get("code", None)
 
 
@@ -166,11 +166,12 @@ class ListBudgetTransferView(APIView):
             else:
                 transfers = xx_BudgetTransfer.objects.filter(user_id=request.user.id)
 
-        print(type(code))
+        # print(type(code))
 
 
         if code:
             # Coerce to string first and use upper() to avoid errors if a non-string is provided
+            print(code)
             code_upper = code.upper()
             transfers = transfers.filter(type=code_upper)
 
