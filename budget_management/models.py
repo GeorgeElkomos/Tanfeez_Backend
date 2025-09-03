@@ -97,6 +97,98 @@ def get_zero_level_accounts(accounts_queryset):
     
     return zero_level_accounts
 
+def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit',dashboard_filler_per_project=None):
+    """
+    From a given queryset of BudgetTransfer objects,
+    return only those where *all* related transactions
+    belong to the given entity_ids.
+    
+    Modified to avoid Oracle NCLOB issues with complex annotations.
+    """
+    entity_ids = [ability.Entity.id for ability in user.abilities.all() if ability.Entity and ability.Type == Type]
+    if dashboard_filler_per_project is not None:
+        if int(dashboard_filler_per_project) in entity_ids:
+            entity_ids = [int(dashboard_filler_per_project)]
+    entities = get_entities_with_children(entity_ids)
+
+    # Collect allowed entity codes and convert to integers when possible to match numeric cost_center_code
+    raw_entity_codes = [e.entity for e in entities]
+    numeric_entity_codes = []
+    for code in raw_entity_codes:
+        try:
+            # Many entities are stored as strings but represent integers; convert safely
+            numeric_entity_codes.append(int(str(code).strip()))
+        except Exception:
+            # Skip non-numeric codes to avoid Oracle ORA-01722 when comparing to NUMBER columns
+            continue
+
+    # Simplified approach to avoid NCLOB issues
+    # Get transfer IDs that have all their transactions in allowed entities
+    from django.db import connection
+    
+    try:
+        # Use raw SQL to avoid NCLOB issues with complex annotations
+        with connection.cursor() as cursor:
+            if numeric_entity_codes:
+                # Build dynamic placeholders for IN clause
+                placeholders = ','.join(['%s'] * len(numeric_entity_codes))
+                sql = f"""
+                    SELECT bt.transaction_id
+                    FROM XX_BUDGET_TRANSFER_XX bt
+                    WHERE NOT EXISTS (
+                        SELECT 1 
+                        FROM XX_Transaction_Transfer_XX tt 
+                        WHERE tt.transaction_id = bt.transaction_id 
+                        AND tt.cost_center_code NOT IN ({placeholders})
+                    )
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM XX_Transaction_Transfer_XX tt2 
+                        WHERE tt2.transaction_id = bt.transaction_id
+                    )
+
+                    UNION
+
+                    SELECT bt.transaction_id
+                    FROM XX_BUDGET_TRANSFER_XX bt
+                    WHERE NOT EXISTS (
+                        SELECT 1 
+                        FROM XX_Transaction_Transfer_XX tt 
+                        WHERE tt.transaction_id = bt.transaction_id
+                    )
+                """
+                cursor.execute(sql, numeric_entity_codes)
+            else:
+                # No numeric entity codes; skip NOT IN check and just select those with no transactions
+                cursor.execute(
+                    """
+                    SELECT bt.transaction_id
+                    FROM XX_BUDGET_TRANSFER_XX bt
+                    WHERE NOT EXISTS (
+                        SELECT 1 
+                        FROM XX_Transaction_Transfer_XX tt 
+                        WHERE tt.transaction_id = bt.transaction_id
+                    )
+                    """
+                )
+
+            allowed_ids = [row[0] for row in cursor.fetchall()]
+        
+        combined = budget_transfers.filter(
+            Q(transaction_id__in=allowed_ids) | Q(user_id=user.id)
+        ).distinct()
+        return combined
+
+    except Exception as e:
+        # Fallback to simple filtering if raw SQL fails
+        print(f"Error occurred: {e}")
+        if numeric_entity_codes:
+            return budget_transfers.filter(
+                Q(adjd_transfers__cost_center_code__in=numeric_entity_codes) | Q(user_id=user.id)
+            ).distinct()
+        # If nothing numeric to filter on, just fall back to user-owned transfers
+        return budget_transfers.filter(Q(user_id=user.id)).distinct()
+
 def get_level_zero_children(entity_ids):
     """
     Given a list of entity IDs, return only the Level 0 children 
@@ -121,67 +213,9 @@ def get_level_zero_children(entity_ids):
     
     return level_zero_children
 
-def filter_budget_transfers_all_in_entities(budget_transfers,user, Type = 'edit',dashboard_filler_per_project=None):
-    """
-    From a given queryset of BudgetTransfer objects,
-    return only those where *all* related transactions
-    belong to the given entity_ids.
-    
-    Modified to avoid Oracle NCLOB issues with complex annotations.
-    """
-    entity_ids = [ability.Entity.id for ability in user.abilities.all() if ability.Entity and ability.Type == Type]
-    if len(dashboard_filler_per_project) > 0:
-            if all(entity_id in entity_ids for entity_id in dashboard_filler_per_project):
-               entity_ids = dashboard_filler_per_project
-    entities = get_entities_with_children(entity_ids)
-    entity_codes = [e.entity for e in entities]
-    
-    # Simplified approach to avoid NCLOB issues
-    # Get transfer IDs that have all their transactions in allowed entities
-    from django.db import connection
-    
-    try:
-        # Use raw SQL to avoid NCLOB issues with complex annotations
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT bt.transaction_id
-                FROM XX_BUDGET_TRANSFER_XX bt
-                WHERE NOT EXISTS (
-                    SELECT 1 
-                    FROM XX_Transaction_Transfer_XX tt 
-                    WHERE tt.transaction_id = bt.transaction_id 
-                    AND tt.cost_center_code NOT IN %s
-                )
-                AND EXISTS (
-                    SELECT 1 
-                    FROM XX_Transaction_Transfer_XX tt2 
-                    WHERE tt2.transaction_id = bt.transaction_id
-                )
 
-                UNION
 
-                SELECT bt.transaction_id
-                FROM XX_BUDGET_TRANSFER_XX bt
-                WHERE NOT EXISTS (
-                    SELECT 1 
-                    FROM XX_Transaction_Transfer_XX tt 
-                    WHERE tt.transaction_id = bt.transaction_id
-                )
-            """, [tuple(entity_codes) if entity_codes else ()])
 
-            allowed_ids = [row[0] for row in cursor.fetchall()]
-        
-        combined = budget_transfers.filter(
-            Q(transaction_id__in=allowed_ids) | Q(user_id=user.id)
-        ).distinct()
-        return combined
-
-    except Exception as e:
-        # Fallback to simple filtering if raw SQL fails
-        print(f"Error occurred: {e}")
-        return budget_transfers.filter(
-            Q(adjd_transfers__cost_center_code__in=entity_codes) | Q(user_id=user.id)
-        ).distinct()
 
 def get_costcenter_code(user, Type = 'edit',dashboard_filler_per_project=None):
     """

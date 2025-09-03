@@ -166,11 +166,12 @@ class ListBudgetTransferView(APIView):
             else:
                 transfers = xx_BudgetTransfer.objects.filter(user_id=request.user.id)
 
-        print(type(code))
+        # print(type(code))
 
 
         if code:
             # Coerce to string first and use upper() to avoid errors if a non-string is provided
+            print(code)
             code_upper = code.upper()
             transfers = transfers.filter(type=code_upper)
 

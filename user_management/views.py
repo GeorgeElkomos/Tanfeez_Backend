@@ -40,10 +40,11 @@ from rest_framework import status
 
 
 class RefreshTokenView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         refresh_token = request.data.get('refresh')
+        user_id = request.data.get('user_id')
         if not refresh_token:
             return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -51,9 +52,9 @@ class RefreshTokenView(APIView):
             old_refresh = RefreshToken(refresh_token)
             
             # Get the user from the refresh token
-            user_id = old_refresh.payload.get('user_id')
+            # user_id = old_refresh.payload.get('user_id')
             user = xx_User.objects.get(id=user_id)
-              
+
             # Create a completely new refresh token for the user
             new_refresh = RefreshToken.for_user(user)
             
