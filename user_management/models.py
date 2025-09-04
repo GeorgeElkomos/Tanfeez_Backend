@@ -8,10 +8,10 @@ class xx_UserManager(BaseUserManager):
     def create_user(self, username, password=None, role='user', user_level=None):
         if not username:
             raise ValueError('Username is required')
-        
+
         user = self.model(username=username, role=role)
         user.set_password(password)
-        
+
         # Assign user level if provided, otherwise use the default
         if user_level:
             user.user_level = user_level
@@ -26,23 +26,23 @@ class xx_UserManager(BaseUserManager):
                     print("Warning: No user levels found in the system. User created without a level.")
             except Exception as e:
                 print(f"Error assigning default user level: {e}")
-        
+
         user.save(using=self._db)
         return user
- 
+
     def create_superuser(self, username, password):
         # For superusers, try to get the highest level
         try:
             highest_level = xx_UserLevel.objects.order_by('-level_order').first()
         except:
             highest_level = None
-            
+
         user = self.create_user(username, password, role='admin', user_level=highest_level)
         user.is_superuser = True
         user.is_staff = True
         user.save(using=self._db)
         return user
- 
+
 
 class xx_UserLevel(models.Model):
     """Model to represent user levels/roles in the system."""
@@ -77,12 +77,12 @@ class xx_User(AbstractBaseUser, PermissionsMixin):
     )
 
     USERNAME_FIELD = 'username'
- 
+
     objects = xx_UserManager()
- 
+
     def __str__(self):
         return self.username
-    
+
     class Meta:
         # Use the exact name of the existing table in your Oracle database
         db_table = 'XX_USER_XX'

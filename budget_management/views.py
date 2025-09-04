@@ -196,7 +196,7 @@ class ListBudgetTransferView(APIView):
                 except Exception:
                     pass
             transfers = transfers.filter(query)
-        
+
         try:
             from datetime import datetime as _dt
 
@@ -206,7 +206,7 @@ class ListBudgetTransferView(APIView):
                     return True
                 except Exception:
                     return False
-                
+
             if day:
                 if not _validate("%Y-%m-%d", day):
                     return Response({"error": "Invalid day format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)

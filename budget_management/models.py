@@ -149,13 +149,13 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
                     FROM XX_BUDGET_TRANSFER_XX bt
                     WHERE NOT EXISTS (
                         SELECT 1 
-                        FROM XX_Transaction_Transfer_XX tt 
+                        FROM XX_TRANSACTION_TRANSFER_XX tt 
                         WHERE tt.transaction_id = bt.transaction_id 
                         AND tt.cost_center_code NOT IN ({placeholders})
                     )
                     AND EXISTS (
                         SELECT 1 
-                        FROM XX_Transaction_Transfer_XX tt2 
+                        FROM XX_TRANSACTION_TRANSFER_XX tt2 
                         WHERE tt2.transaction_id = bt.transaction_id
                     )
 
@@ -165,7 +165,7 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
                     FROM XX_BUDGET_TRANSFER_XX bt
                     WHERE NOT EXISTS (
                         SELECT 1 
-                        FROM XX_Transaction_Transfer_XX tt 
+                        FROM XX_TRANSACTION_TRANSFER_XX tt 
                         WHERE tt.transaction_id = bt.transaction_id
                     )
                 """
@@ -177,15 +177,15 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
                     SELECT bt.transaction_id
                     FROM XX_BUDGET_TRANSFER_XX bt
                     WHERE NOT EXISTS (
-                        SELECT 1 
-                        FROM XX_Transaction_Transfer_XX tt 
+                        SELECT 1
+                        FROM XX_TRANSACTION_TRANSFER_XX tt
                         WHERE tt.transaction_id = bt.transaction_id
                     )
                     """
                 )
 
             allowed_ids = [row[0] for row in cursor.fetchall()]
-        
+
         combined = budget_transfers.filter(
             Q(transaction_id__in=allowed_ids) | Q(user_id=user.id)
         ).distinct()
@@ -203,18 +203,18 @@ def filter_budget_transfers_all_in_entities(budget_transfers, user, Type = 'edit
 
 def get_level_zero_children(entity_ids):
     """
-    Given a list of entity IDs, return only the Level 0 children 
+    Given a list of entity IDs, return only the Level 0 children
     (children that are not parents to any other entity).
     """
     # First get all entities including their children recursively
     all_entities = get_entities_with_children(entity_ids)
-    
+
     # Create a set of all entity numbers that are parents
     parent_numbers = set()
     for entity in all_entities:
         if entity.parent:  # If this entity has a parent
             parent_numbers.add(entity.parent)
-    
+
     # Filter for entities that are not parents (level 0 children)
     level_zero_children = []
     for entity in all_entities:
@@ -222,7 +222,7 @@ def get_level_zero_children(entity_ids):
         # and also make sure it's not one of the original entities (if needed)
         if str(entity.entity) not in parent_numbers:
             level_zero_children.append(entity)
-    
+
     return level_zero_children
 
 

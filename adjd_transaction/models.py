@@ -31,7 +31,7 @@ class xx_TransactionTransfer(models.Model):
     file = models.FileField(upload_to='adjd_transfers/', null=True, blank=True)
     
     class Meta:
-        db_table = 'XX_Transaction_Transfer_XX'
+        db_table = 'XX_TRANSACTION_TRANSFER_XX'
     
     def __str__(self):
         return f"ADJD Transfer {self.transfer_id}"

@@ -13,7 +13,7 @@ class MainCurrency(models.Model):
     class Meta:
         verbose_name = 'Main Currency'
         verbose_name_plural = 'Main Currencies'
-        db_table = 'main_currency'
+        db_table = 'MAIN_CURRENCY'
 
 
 class MainRoutesName(models.Model):
@@ -28,4 +28,4 @@ class MainRoutesName(models.Model):
     class Meta:
         verbose_name = 'Main Route Name'
         verbose_name_plural = 'Main Routes Names'
-        db_table = 'main_routes_name'
+        db_table = 'MAIN_ROUTES_NAME'

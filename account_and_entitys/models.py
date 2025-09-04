@@ -3,7 +3,7 @@ from django.db import models
 
 class XX_Account(models.Model):
     """Model representing ADJD accounts"""
-    account = models.CharField(max_length=50, unique=True)
+    account = models.CharField(max_length=50, unique=False)
     parent = models.CharField(max_length=50, null=True, blank=True)  # Changed from EncryptedCharField
     alias_default = models.CharField(max_length=255, null=True, blank=True)  # Changed from EncryptedCharField
 
@@ -11,11 +11,11 @@ class XX_Account(models.Model):
         return str(self.account)
 
     class Meta:
-        db_table = 'XX_Account_XX'
+        db_table = 'XX_ACCOUNT_XX'
 
 class XX_Entity(models.Model):
     """Model representing ADJD entities"""
-    entity = models.CharField(max_length=50, unique=True)
+    entity = models.CharField(max_length=50, unique=False)
     parent = models.CharField(max_length=50, null=True, blank=True)  # Changed from EncryptedCharField
     alias_default = models.CharField(max_length=255, null=True, blank=True)  # Changed from EncryptedCharField
 
@@ -23,12 +23,12 @@ class XX_Entity(models.Model):
         return str(self.entity)
 
     class Meta:
-        db_table = 'XX_Entity_XX'
+        db_table = 'XX_ENTITY_XX'
 
 
 class XX_Project(models.Model):
     """Model representing ADJD entities"""
-    project = models.CharField(max_length=50, unique=True)
+    project = models.CharField(max_length=50, unique=False)
     parent = models.CharField(
         max_length=50, null=True, blank=True
     )  # Changed from EncryptedCharField
@@ -37,10 +37,10 @@ class XX_Project(models.Model):
     )  # Changed from EncryptedCharField
 
     def __str__(self):
-        return str(self.entity)
+        return str(self.project)
 
     class Meta:
-        db_table = "XX_Project_XX"
+        db_table = "XX_PROJECT_XX"
 
 
 class XX_PivotFund(models.Model):
@@ -62,7 +62,7 @@ class XX_PivotFund(models.Model):
                 name='unique_entity_account_year'
             )
         ]
-        db_table = 'XX_PivotFund_XX'
+        db_table = 'XX_PIVOTFUND_XX'
 
 class XX_TransactionAudit(models.Model):
     """Model representing ADJD transaction audit records"""
