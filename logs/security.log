@@ -13,3 +13,7 @@ WARNING 2025-08-12 11:21:20,007 Sqlinjection 36644 34140 SQL injection attempt d
 WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection in JSON string: <p>Enter your rekjason here...   </p><p><s><u>lkkk select * from user</u></s></p><p><br></p>
 WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection in JSON key 'notes' or value: <p>Enter your rekjason here...   </p><p><s><u>lkkk select * from user</u></s></p><p><br></p>
 WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection attempt detected from 127.0.0.1: /api/budget/transfers/create/
+WARNING 2025-09-09 00:42:45,826 Sqlinjection 20004 35852 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:42:53,344 Sqlinjection 20004 33344 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:44:19,158 Sqlinjection 33300 29804 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:45:11,232 Sqlinjection 33300 41376 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1

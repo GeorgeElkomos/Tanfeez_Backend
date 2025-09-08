@@ -104,20 +104,30 @@ WSGI_APPLICATION = 'budget_transfer.wsgi.application'
 # Database
 DATABASES = {
     'default':
-    {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': 'PROD',  # Oracle SID or service name
-        'USER': 'BUDGET_TRANSFER',  # Replace with your Oracle username
-        'PASSWORD': 'KgJyrx3$1',  # Replace with your Oracle password
-        'HOST': '185.197.251.203',  # Replace with your Oracle host
-        'PORT': '1521',  # Default Oracle port
-    }
     # {
-    #     "ENGINE": "django.db.backends.sqlite3",
-    #     "NAME": BASE_DIR / "db.sqlite3",   # file-based SQLite DB
+    #     'ENGINE': 'django.db.backends.oracle',
+    #     'NAME': 'PROD',  # Oracle SID or service name
+    #     'USER': 'BUDGET_TRANSFER',  # Replace with your Oracle username
+    #     'PASSWORD': 'KgJyrx3$1',  # Replace with your Oracle password
+    #     'HOST': '185.197.251.203',  # Replace with your Oracle host
+    #     'PORT': '1521',  # Default Oracle port
     # }
+    {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",   # file-based SQLite DB
+    }
 }
 
+CELERY_BEAT_SCHEDULE = {
+    "check-sla-breaches": {
+        "task": "approval.tasks.check_sla_breaches",
+        "schedule": 300.0,  # every 5 min
+    },
+    "cleanup-delegations": {
+        "task": "approval.tasks.cleanup_delegations",
+        "schedule": 600.0,  # every 10 min
+    },
+}
 
 # Password validation
 

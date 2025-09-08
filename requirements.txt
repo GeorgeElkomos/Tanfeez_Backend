@@ -11,3 +11,5 @@ django-encrypted-model-fields
 pyopenssl
 Werkzeug
 django_extensions
+celery
+psutil

@@ -73,9 +73,7 @@ class ApprovalWorkflowStageTemplate(models.Model):
 	quorum_count = models.PositiveIntegerField(null=True, blank=True)
 	required_user_level = models.ForeignKey(
 		xx_UserLevel,
-		null=True,
-		blank=True,
-		on_delete=models.SET_NULL,
+		on_delete=models.PROTECT,
 		related_name="stage_templates",
 		help_text="If set, assignments will include users with this level",
 	)
@@ -252,7 +250,15 @@ class ApprovalAction(models.Model):
     stage_instance = models.ForeignKey(
         ApprovalWorkflowStageInstance, related_name="actions", on_delete=models.CASCADE
     )
-    user = models.ForeignKey(xx_User, related_name="approval_actions", on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        xx_User,
+        related_name="approval_actions",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Null for system actions (auto-cancel, auto-skip, etc.)",
+    )
+
     assignment = models.OneToOneField(ApprovalAssignment, null=True, blank=True, on_delete=models.SET_NULL, related_name="action")
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
     comment = models.TextField(null=True, blank=True)
@@ -267,7 +273,7 @@ class ApprovalAction(models.Model):
         ]
 
     def __str__(self):
-        return f"Action {self.action} by {self.user_id} on StageInstance {self.stage_instance_id}"
+        return f"Action {self.action} by {self.user_id or 'SYSTEM'} on StageInstance {self.stage_instance_id}"
 
 class ApprovalDelegation(models.Model):
 	"""Optional delegation record (future extension)."""
