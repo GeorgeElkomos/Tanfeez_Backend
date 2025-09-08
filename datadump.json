@@ -1,6 +1,4 @@
-﻿Γ£ô Budget transfer signals imported successfully
-Budget management signals registered successfully
-[
+﻿[
 {
   "model": "user_management.xx_userlevel",
   "pk": 1,
@@ -8360,3 +8358,4 @@ Budget management signals registered successfully
     "target_count": 0
   }
 }
+]
