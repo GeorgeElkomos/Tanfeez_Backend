@@ -115,12 +115,7 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
     print("allowed_to_make_transfer", allowed_to_make_transfer)
 
     # Check if no matching record found
-    if allowed_to_make_transfer is None:
-        errors.append(
-            f"No transfer rules found for account {data['account_code']} and project {data['project_code']} and cost center {data['cost_center_code']}"
-        )
-        return errors
-    else:
+    if allowed_to_make_transfer is not None:
         # Check transfer permissions if record exists
         if allowed_to_make_transfer.is_transer_allowed == "No":
             errors.append(
@@ -137,7 +132,6 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
                     errors.append(
                         f"Not allowed to make transfer for {data['cost_center_code']} and {data['project_code']} and {data['account_code']} according to the rules (can't transfer to this account)"
                     )
-
     return errors
 
 
