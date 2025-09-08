@@ -154,24 +154,21 @@ class ListBudgetTransferView(APIView):
         edate = request.query_params.get("end_date")
         code = request.query_params.get("code", None)
 
-
-        if request.user.role == "admin":
-            if status_type:
-                transfers = xx_BudgetTransfer.objects.filter(status=status_type)
+        transfers = xx_BudgetTransfer.objects.all()
+        # Apply user restriction if not admin
+        if not IsAdmin().has_permission(request, self):
+            transfers = transfers.filter(user_id=request.user.id)
+        # Apply status restriction
+        if status_type:
+            if status_type == "finished":
+                transfers = transfers.filter(Q(status="approved") | Q(status="rejected"))
             else:
-                transfers = xx_BudgetTransfer.objects.all()
-        else:
-            if status_type:
-                transfers = xx_BudgetTransfer.objects.filter(status=status_type,user_id=request.user.id)
-            else:
-                transfers = xx_BudgetTransfer.objects.filter(user_id=request.user.id)
-
+                transfers = transfers.filter(status=status_type)
         # print(type(code))
 
 
         if code:
             # Coerce to string first and use upper() to avoid errors if a non-string is provided
-            print(code)
             code_upper = code.upper()
             transfers = transfers.filter(type=code_upper)
 
