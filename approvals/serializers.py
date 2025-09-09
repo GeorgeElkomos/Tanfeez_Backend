@@ -3,20 +3,43 @@ from .models import ApprovalWorkflowTemplate, ApprovalWorkflowStageTemplate
 
 
 class ApprovalWorkflowStageTemplateSerializer(serializers.ModelSerializer):
+    required_user_level_name = serializers.CharField(
+        source="required_user_level.name",
+        read_only=True,
+    )
+    workflow_template = serializers.PrimaryKeyRelatedField(
+        read_only=True  # <-- don't require it from input, only return it if you want
+    )
+
     class Meta:
         model = ApprovalWorkflowStageTemplate
-        fields = "__all__"
-        extra_kwargs = {
-            "workflow_template": {"read_only": True},  # handled by parent
-        }
+        exclude = []  # or list fields explicitly if you prefer
+        fields = "__all__"  # return ALL fields in stage
+        # if you want to exclude workflow_template from stage details, list fields manually
 
 
+# -------------------------------
+# For LIST view (no stages)
+# -------------------------------
 class ApprovalWorkflowTemplateSerializer(serializers.ModelSerializer):
-    stages = ApprovalWorkflowStageTemplateSerializer(many=True, required=False)
+    """Used for list view (all workflow fields, no stages)."""
 
     class Meta:
         model = ApprovalWorkflowTemplate
-        fields = "__all__"
+        fields = "__all__"  # return ALL workflow fields
+
+
+# -------------------------------
+# For DETAIL + CREATE/UPDATE (with stages)
+# -------------------------------
+class ApprovalWorkflowTemplateDetailSerializer(serializers.ModelSerializer):
+    """Used for retrieve view (all workflow fields + stages)."""
+
+    stages = ApprovalWorkflowStageTemplateSerializer(many=True)
+
+    class Meta:
+        model = ApprovalWorkflowTemplate
+        fields = "__all__"  # includes all workflow fields + stages
 
     def create(self, validated_data):
         stages_data = validated_data.pop("stages", [])
@@ -48,14 +71,12 @@ class ApprovalWorkflowTemplateSerializer(serializers.ModelSerializer):
             for stage_data in stages_data:
                 stage_id = stage_data.get("id", None)
                 if stage_id and stage_id in existing_stage_ids:
-                    # update existing stage
                     stage = ApprovalWorkflowStageTemplate.objects.get(id=stage_id)
                     for attr, value in stage_data.items():
                         if attr != "id":
                             setattr(stage, attr, value)
                     stage.save()
                 else:
-                    # create new stage
                     ApprovalWorkflowStageTemplate.objects.create(
                         workflow_template=instance, **stage_data
                     )

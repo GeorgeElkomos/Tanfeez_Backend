@@ -42,11 +42,12 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'user_management.xx_User'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,  # default page size
 }
-
 
 
 CHANNEL_LAYERS = {
@@ -57,7 +58,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
 
 
 FIELD_ENCRYPTION_KEY = 'G2g9Xb8qH-SZs-So5QEK1EXmf_lUqHuvdgFnitEtRB0='
@@ -96,9 +96,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'budget_transfer.wsgi.application'
-
-
-
 
 
 # Database
@@ -148,7 +145,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -183,7 +179,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
-#forward to https 
+# forward to https
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # CORS settings

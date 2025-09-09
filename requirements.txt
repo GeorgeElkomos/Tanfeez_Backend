@@ -13,3 +13,4 @@ Werkzeug
 django_extensions
 celery
 psutil
+django-filter
