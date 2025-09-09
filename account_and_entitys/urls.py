@@ -4,8 +4,8 @@ from .views import (
     EntityListView, EntityCreateView, EntityDetailView, EntityUpdateView, EntityDeleteView,
     PivotFundListView, PivotFundCreateView, PivotFundDetailView, PivotFundUpdateView, PivotFundDeleteView,
     AdjdTransactionAuditListView, AdjdTransactionAuditCreateView, AdjdTransactionAuditDetailView, 
-    AdjdTransactionAuditUpdateView, AdjdTransactionAuditDeleteView, ProjectCreateView, ProjectDeleteView, ProjectDetailView, ProjectListView, ProjectUpdateView, list_ACCOUNT_ENTITY_LIMIT,UpdateAccountEntityLimit,DeleteAccountEntityLimit,AccountEntityLimitAPI
-   
+    AdjdTransactionAuditUpdateView, AdjdTransactionAuditDeleteView, ProjectCreateView, ProjectDeleteView, ProjectDetailView, ProjectListView, ProjectUpdateView, list_ACCOUNT_ENTITY_LIMIT,UpdateAccountEntityLimit,DeleteAccountEntityLimit,AccountEntityLimitAPI,
+    RefreshBalanceReportView, BalanceReportListView, BalanceReportSegmentsView, BalanceReportFinancialDataView
 )
 
 urlpatterns = [
@@ -100,5 +100,12 @@ urlpatterns = [
         DeleteAccountEntityLimit.as_view(),
         name="delete_limit",
     ),
+    
+    # Balance Report URLs
+    path("balance-report/refresh/", RefreshBalanceReportView.as_view(), name="refresh-balance-report"),
+    path("balance-report/list/", BalanceReportListView.as_view(), name="list-balance-report"),
+    path("balance-report/segments/", BalanceReportSegmentsView.as_view(), name="balance-report-segments"),
+    path("balance-report/financial-data/", BalanceReportFinancialDataView.as_view(), name="balance-report-financial-data"),
+    
     # Main Currency URLs
 ]

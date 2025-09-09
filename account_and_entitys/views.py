@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 
 from budget_management.models import get_entities_with_children, get_level_zero_children, get_zero_level_accounts, get_zero_level_projects
-from .models import XX_Account, XX_Entity,XX_Project, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT
-from .serializers import AccountSerializer, EntitySerializer, PivotFundSerializer, ProjectSerializer, TransactionAuditSerializer, AccountEntityLimitSerializer
+from .models import XX_Account, XX_Entity,XX_Project, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT, XX_BalanceReport
+from .serializers import AccountSerializer, EntitySerializer, PivotFundSerializer, ProjectSerializer, TransactionAuditSerializer, AccountEntityLimitSerializer, BalanceReportSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
@@ -878,3 +878,352 @@ class DeleteAccountEntityLimit(APIView):
         return Response({'message': 'Limit record deleted successfully.'}, status=status.HTTP_200_OK)
 
 # MainCurrency views
+
+
+class RefreshBalanceReportView(APIView):
+    """API view to refresh balance report data from Oracle"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Trigger balance report refresh"""
+        from .utils import refresh_balance_report_data
+        
+        budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+        
+        try:
+            result = refresh_balance_report_data(budget_name)
+            
+            if result['success']:
+                return Response({
+                    'success': True,
+                    'message': result['message'],
+                    'data': {
+                        'created_count': result['details'].get('created_count', 0),
+                        'deleted_count': result['details'].get('deleted_count', 0),
+                        'error_count': result['details'].get('error_count', 0),
+                        'budget_name': budget_name
+                    }
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': result['message'],
+                    'errors': result.get('details', {}).get('errors', [])
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error refreshing balance report: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def get(self, request):
+        """Get balance report refresh status"""
+        from .models import XX_BalanceReport
+        
+        try:
+            total_records = XX_BalanceReport.objects.count()
+            latest_record = XX_BalanceReport.objects.order_by('-created_at').first()
+            periods = list(XX_BalanceReport.objects.values_list('as_of_period', flat=True).distinct())
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'total_records': total_records,
+                    'available_periods': periods,
+                    'latest_update': latest_record.created_at if latest_record else None,
+                    'last_period': latest_record.as_of_period if latest_record else None
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error getting balance report status: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BalanceReportListView(APIView):
+    """List balance report data with filtering"""
+    permission_classes = [IsAuthenticated]
+    pagination_class = EntityPagination
+    
+    def get(self, request):
+        """Get balance report data with optional filtering"""
+        from .models import XX_BalanceReport
+        from .serializers import BalanceReportSerializer
+        
+        try:
+            queryset = XX_BalanceReport.objects.all().order_by('-created_at')
+            
+            # Apply filters
+            control_budget = request.query_params.get('control_budget_name')
+            period = request.query_params.get('as_of_period')
+            segment1 = request.query_params.get('segment1')
+            segment2 = request.query_params.get('segment2')
+            segment3 = request.query_params.get('segment3')
+            
+            if control_budget:
+                queryset = queryset.filter(control_budget_name__icontains=control_budget)
+            if period:
+                queryset = queryset.filter(as_of_period=period)
+            if segment1:
+                queryset = queryset.filter(segment1__icontains=segment1)
+            if segment2:
+                queryset = queryset.filter(segment2__icontains=segment2)
+            if segment3:
+                queryset = queryset.filter(segment3__icontains=segment3)
+            
+            # Pagination
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(queryset, request)
+            
+            if page is not None:
+                serializer = BalanceReportSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            
+            serializer = BalanceReportSerializer(queryset, many=True)
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'count': queryset.count()
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error retrieving balance report data: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BalanceReportSegmentsView(APIView):
+    """API to get all unique segments from balance report"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get unique values for segment1, segment2, and segment3"""
+        from .models import XX_BalanceReport
+        
+        try:
+            # Get unique segments with filters
+            segment1_filter = request.query_params.get('segment1')
+            segment2_filter = request.query_params.get('segment2')
+            
+            queryset = XX_BalanceReport.objects.all()
+            
+            # Apply filters if provided
+            if segment1_filter:
+                queryset = queryset.filter(segment1=segment1_filter)
+            if segment2_filter:
+                queryset = queryset.filter(segment2=segment2_filter)
+            
+            # Get unique values for each segment
+            segment1_values = list(
+                XX_BalanceReport.objects.filter(segment1__isnull=False)
+                .values_list('segment1', flat=True)
+                .distinct()
+                .order_by('segment1')
+            )
+            
+            segment2_values = list(
+                queryset.filter(segment2__isnull=False)
+                .values_list('segment2', flat=True)
+                .distinct()
+                .order_by('segment2')
+            )
+            
+            segment3_values = list(
+                queryset.filter(segment3__isnull=False)
+                .values_list('segment3', flat=True)
+                .distinct()
+                .order_by('segment3')
+            )
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'segment1': segment1_values,
+                    'segment2': segment2_values,
+                    'segment3': segment3_values,
+                    'total_combinations': queryset.count()
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error retrieving segments: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BalanceReportFinancialDataView(APIView):
+    """API to get financial data for specific segment combination"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get financial data for a specific segment1, segment2, segment3 combination"""
+        from .models import XX_BalanceReport
+        from django.db.models import Sum, Avg, Count
+        
+        try:
+            # Get segments from query parameters
+            segment1 = request.query_params.get('segment1')
+            segment2 = request.query_params.get('segment2')
+            segment3 = request.query_params.get('segment3')
+            
+            # Validate that all segments are provided
+            if not all([segment1, segment2, segment3]):
+                return Response({
+                    'success': False,
+                    'message': 'All three segments (segment1, segment2, segment3) are required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Filter records by the segments
+            queryset = XX_BalanceReport.objects.filter(
+                segment1=segment1,
+                segment2=segment2,
+                segment3=segment3
+            )
+            
+            if not queryset.exists():
+                return Response({
+                    'success': False,
+                    'message': f'No data found for segments: {segment1}/{segment2}/{segment3}'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get the most recent record for this combination
+            latest_record = queryset.order_by('-created_at').first()
+            
+            # Calculate aggregated data if multiple records exist
+            aggregated_data = queryset.aggregate(
+                total_actual_ytd=Sum('actual_ytd'),
+                total_encumbrance_ytd=Sum('encumbrance_ytd'),
+                total_funds_available=Sum('funds_available_asof'),
+                total_other_ytd=Sum('other_ytd'),
+                total_budget_ytd=Sum('budget_ytd'),
+                avg_actual_ytd=Avg('actual_ytd'),
+                avg_encumbrance_ytd=Avg('encumbrance_ytd'),
+                avg_funds_available=Avg('funds_available_asof'),
+                record_count=Count('id')
+            )
+            
+            # Prepare response data
+            financial_data = {
+                'segments': {
+                    'segment1': segment1,
+                    'segment2': segment2,
+                    'segment3': segment3
+                },
+                'latest_record': {
+                    'control_budget_name': latest_record.control_budget_name,
+                    'ledger_name': latest_record.ledger_name,
+                    'as_of_period': latest_record.as_of_period,
+                    'actual_ytd': float(latest_record.actual_ytd) if latest_record.actual_ytd else 0,
+                    'encumbrance_ytd': float(latest_record.encumbrance_ytd) if latest_record.encumbrance_ytd else 0,
+                    'funds_available_asof': float(latest_record.funds_available_asof) if latest_record.funds_available_asof else 0,
+                    'other_ytd': float(latest_record.other_ytd) if latest_record.other_ytd else 0,
+                    'budget_ytd': float(latest_record.budget_ytd) if latest_record.budget_ytd else 0,
+                    'last_updated': latest_record.created_at
+                },
+                'aggregated_totals': {
+                    'total_actual_ytd': float(aggregated_data['total_actual_ytd'] or 0),
+                    'total_encumbrance_ytd': float(aggregated_data['total_encumbrance_ytd'] or 0),
+                    'total_funds_available': float(aggregated_data['total_funds_available'] or 0),
+                    'total_other_ytd': float(aggregated_data['total_other_ytd'] or 0),
+                    'total_budget_ytd': float(aggregated_data['total_budget_ytd'] or 0),
+                    'record_count': aggregated_data['record_count']
+                },
+                'calculated_metrics': {
+                    'budget_utilization_percent': round(
+                        (float(aggregated_data['total_actual_ytd'] or 0) / 
+                         float(aggregated_data['total_budget_ytd'] or 1)) * 100, 2
+                    ) if aggregated_data['total_budget_ytd'] else 0,
+                    'funds_remaining': float(aggregated_data['total_funds_available'] or 0),
+                    'total_committed': float(aggregated_data['total_actual_ytd'] or 0) + 
+                                    float(aggregated_data['total_encumbrance_ytd'] or 0)
+                }
+            }
+            
+            return Response({
+                'success': True,
+                'data': financial_data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error retrieving financial data: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        """Get financial data for multiple segment combinations"""
+        from .models import XX_BalanceReport
+        
+        try:
+            segment_combinations = request.data.get('segments', [])
+            
+            if not segment_combinations:
+                return Response({
+                    'success': False,
+                    'message': 'Please provide segment combinations in the format: [{"segment1": "10001", "segment2": "2205403", "segment3": "CTRLCE1"}]'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            results = []
+            
+            for combo in segment_combinations:
+                segment1 = combo.get('segment1')
+                segment2 = combo.get('segment2')
+                segment3 = combo.get('segment3')
+                
+                if not all([segment1, segment2, segment3]):
+                    results.append({
+                        'segments': combo,
+                        'success': False,
+                        'message': 'Missing segment values'
+                    })
+                    continue
+                
+                # Get data for this combination
+                record = XX_BalanceReport.objects.filter(
+                    segment1=segment1,
+                    segment2=segment2,
+                    segment3=segment3
+                ).order_by('-created_at').first()
+                
+                if record:
+                    results.append({
+                        'segments': {
+                            'segment1': segment1,
+                            'segment2': segment2,
+                            'segment3': segment3
+                        },
+                        'success': True,
+                        'data': {
+                            'actual_ytd': float(record.actual_ytd) if record.actual_ytd else 0,
+                            'encumbrance_ytd': float(record.encumbrance_ytd) if record.encumbrance_ytd else 0,
+                            'funds_available_asof': float(record.funds_available_asof) if record.funds_available_asof else 0,
+                            'other_ytd': float(record.other_ytd) if record.other_ytd else 0,
+                            'budget_ytd': float(record.budget_ytd) if record.budget_ytd else 0,
+                            'as_of_period': record.as_of_period,
+                            'last_updated': record.created_at
+                        }
+                    })
+                else:
+                    results.append({
+                        'segments': combo,
+                        'success': False,
+                        'message': 'No data found for this segment combination'
+                    })
+            
+            return Response({
+                'success': True,
+                'data': results,
+                'total_requested': len(segment_combinations),
+                'found': len([r for r in results if r['success']])
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error processing segment combinations: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
