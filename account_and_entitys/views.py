@@ -1066,6 +1066,18 @@ class BalanceReportFinancialDataView(APIView):
         from django.db.models import Sum, Avg, Count
         
         try:
+            from .utils import refresh_balance_report_data
+        
+            budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+        
+            try:
+                result = refresh_balance_report_data(budget_name)
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'message': f'Error refreshing balance report data: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             # Get segments from query parameters
             segment1 = request.query_params.get('segment1')
             segment2 = request.query_params.get('segment2')
