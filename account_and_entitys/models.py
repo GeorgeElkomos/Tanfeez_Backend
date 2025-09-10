@@ -97,3 +97,39 @@ class XX_ACCOUNT_ENTITY_LIMIT(models.Model):
     class Meta:
         db_table = 'XX_ACCOUNT_ENTITY_LIMIT_XX'
         unique_together = ('account_id', 'entity_id')
+
+
+class XX_BalanceReport(models.Model):
+    """Model representing balance report data from report.xlsx"""
+    id = models.AutoField(primary_key=True)
+    control_budget_name = models.CharField(max_length=100, null=True, blank=True, help_text="Control Budget Name")
+    ledger_name = models.CharField(max_length=100, null=True, blank=True, help_text="Ledger Name")
+    as_of_period = models.CharField(max_length=20, null=True, blank=True, help_text="As of Period (e.g., Sep-25)")
+    segment1 = models.CharField(max_length=50, null=True, blank=True, help_text="Segment 1 (Cost Center)")
+    segment2 = models.CharField(max_length=50, null=True, blank=True, help_text="Segment 2 (Account)")
+    segment3 = models.CharField(max_length=50, null=True, blank=True, help_text="Segment 3 (Project)")
+    encumbrance_ytd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Encumbrance Year to Date")
+    other_ytd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Other Year to Date")
+    actual_ytd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Actual Year to Date")
+    funds_available_asof = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Funds Available As Of")
+    budget_ytd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Budget Year to Date")
+    
+    # Additional metadata fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Balance Report: {self.control_budget_name} - {self.segment1}/{self.segment2}/{self.segment3}"
+    
+    class Meta:
+        db_table = 'XX_BALANCE_REPORT_XX'
+        verbose_name = "Balance Report"
+        verbose_name_plural = "Balance Reports"
+        indexes = [
+            models.Index(fields=['control_budget_name', 'as_of_period']),
+            models.Index(fields=['segment1', 'segment2', 'segment3']),
+            models.Index(fields=['as_of_period']),
+        ]
+
+
+
