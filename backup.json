@@ -203,6 +203,13 @@
   }
 },
 {
+  "model": "contenttypes.contenttype",
+  "fields": {
+    "app_label": "account_and_entitys",
+    "model": "xx_balancereport"
+  }
+},
+{
   "model": "user_management.xx_userlevel",
   "pk": 1,
   "fields": {
@@ -889,7 +896,7 @@
   "pk": 301,
   "fields": {
     "transaction_date": "",
-    "amount": "0.00",
+    "amount": "100.00",
     "status": "pending",
     "requested_by": "admin3",
     "user_id": 23,
@@ -1871,6 +1878,40 @@
   }
 },
 {
+  "model": "budget_management.xx_budgettransfer",
+  "pk": 505,
+  "fields": {
+    "transaction_date": "Aug",
+    "amount": "1000.00",
+    "status": "pending",
+    "requested_by": "george",
+    "user_id": 5,
+    "request_date": "2025-09-10T08:17:33.723Z",
+    "notes": "<p>GG</p>",
+    "code": "FAD-0043",
+    "gl_posting_status": null,
+    "approvel_1": null,
+    "approvel_2": null,
+    "approvel_3": null,
+    "approvel_4": null,
+    "approvel_1_date": null,
+    "approvel_2_date": null,
+    "approvel_3_date": null,
+    "approvel_4_date": null,
+    "status_level": 1,
+    "attachment": "No",
+    "fy": null,
+    "group_id": null,
+    "interface_id": null,
+    "reject_group_id": null,
+    "reject_interface_id": null,
+    "approve_group_id": null,
+    "approve_interface_id": null,
+    "report": null,
+    "type": "FAD"
+  }
+},
+{
   "model": "budget_management.xx_budgettransferattachment",
   "pk": 21,
   "fields": {
@@ -2244,7 +2285,7 @@
   "model": "budget_management.xx_dashboardbudgettransfer",
   "pk": 1,
   "fields": {
-    "data": "{\"normal\": {\"total_transfers\": 48, \"total_transfers_far\": 15, \"total_transfers_afr\": 12, \"total_transfers_fad\": 21, \"approved_transfers\": 1, \"rejected_transfers\": 8, \"pending_transfers\": 39, \"pending_transfers_by_level\": {\"Level1\": 30, \"Level2\": 1, \"Level3\": 8, \"Level4\": 0}, \"request_dates\": [\"2025-09-03T23:05:20.303179+00:00\", \"2025-09-03T20:25:18.832296+00:00\", \"2025-09-03T20:05:42.793843+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T16:07:33.964395+00:00\", \"2025-09-03T15:12:20.726047+00:00\", \"2025-09-03T15:11:33.265978+00:00\"], \"performance_metrics\": {\"total_processing_time\": 0.05, \"counting_time\": 0.05, \"total_records_processed\": 48, \"request_dates_retrieved\": 48}}, \"smart\": {\"filtered_combinations\": [{\"cost_center_code\": 11112, \"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"cost_center_code\": 11112, \"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"cost_center_totals\": [{\"cost_center_code\": 11112, \"total_from_center\": 1000.0, \"total_to_center\": 1000.0}], \"account_code_totals\": [{\"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"all_combinations\": [{\"cost_center_code\": 11112, \"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"cost_center_code\": 11112, \"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"applied_filters\": {\"cost_center_code\": null, \"account_code\": null}, \"performance_metrics\": {\"total_processing_time\": 0.19, \"aggregation_time\": 0.19, \"cost_center_groups\": 1, \"account_code_groups\": 2, \"total_combinations\": 2}}}",
+    "data": "{\"normal\": {\"total_transfers\": 49, \"total_transfers_far\": 15, \"total_transfers_afr\": 12, \"total_transfers_fad\": 22, \"approved_transfers\": 1, \"rejected_transfers\": 8, \"pending_transfers\": 40, \"pending_transfers_by_level\": {\"Level1\": 31, \"Level2\": 1, \"Level3\": 8, \"Level4\": 0}, \"request_dates\": [\"2025-09-10T08:17:33.723992+00:00\", \"2025-09-03T23:05:20.303000+00:00\", \"2025-09-03T20:25:18.832000+00:00\", \"2025-09-03T20:05:42.793000+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T18:10:29+00:00\", \"2025-09-03T16:07:33.964000+00:00\", \"2025-09-03T15:12:20.726000+00:00\", \"2025-09-03T15:11:33.265000+00:00\"], \"performance_metrics\": {\"total_processing_time\": 0.02, \"counting_time\": 0.02, \"total_records_processed\": 49, \"request_dates_retrieved\": 49}}, \"smart\": {\"filtered_combinations\": [{\"cost_center_code\": 11112, \"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"cost_center_code\": 11112, \"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"cost_center_totals\": [{\"cost_center_code\": 11112, \"total_from_center\": 1000.0, \"total_to_center\": 1000.0}], \"account_code_totals\": [{\"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"all_combinations\": [{\"cost_center_code\": 11112, \"account_code\": 51113, \"total_from_center\": 1000.0, \"total_to_center\": 0.0}, {\"cost_center_code\": 11112, \"account_code\": 51211, \"total_from_center\": 0.0, \"total_to_center\": 1000.0}], \"applied_filters\": {\"cost_center_code\": null, \"account_code\": null}, \"performance_metrics\": {\"total_processing_time\": 0.19, \"aggregation_time\": 0.19, \"cost_center_groups\": 1, \"account_code_groups\": 2, \"total_combinations\": 2}}}",
     "date": "2025-08-11T07:17:32.805Z"
   }
 },
@@ -5927,6 +5968,20 @@
   }
 },
 {
+  "model": "account_and_entitys.xx_pivotfund",
+  "pk": 26727,
+  "fields": {
+    "entity": "",
+    "account": "",
+    "project": "",
+    "year": 2024,
+    "actual": null,
+    "fund": null,
+    "budget": null,
+    "encumbrance": null
+  }
+},
+{
   "model": "account_and_entitys.xx_account_entity_limit",
   "pk": 1,
   "fields": {
@@ -7184,6 +7239,371 @@
     "is_transer_allowed": "Yes",
     "source_count": 0,
     "target_count": 0
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 531,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10001",
+    "segment2": "2205403",
+    "segment3": "CTRLCE1",
+    "encumbrance_ytd": "13000.00",
+    "other_ytd": "2.00",
+    "actual_ytd": "10000.00",
+    "funds_available_asof": "-23000.00",
+    "budget_ytd": "2.00",
+    "created_at": "2025-09-10T08:52:37.577Z",
+    "updated_at": "2025-09-10T08:52:37.577Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 532,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10001",
+    "segment2": "5041026",
+    "segment3": "0000000",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "50000.00",
+    "budget_ytd": "50000.00",
+    "created_at": "2025-09-10T08:52:37.579Z",
+    "updated_at": "2025-09-10T08:52:37.579Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 533,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10001",
+    "segment2": "5041026",
+    "segment3": "SIPCCE1",
+    "encumbrance_ytd": "13000.00",
+    "other_ytd": "2.00",
+    "actual_ytd": "10000.00",
+    "funds_available_asof": "9977000.00",
+    "budget_ytd": "10000002.00",
+    "created_at": "2025-09-10T08:52:37.580Z",
+    "updated_at": "2025-09-10T08:52:37.580Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 534,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10191",
+    "segment2": "5041025",
+    "segment3": "HRCE001",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "35000000.00",
+    "budget_ytd": "35000000.00",
+    "created_at": "2025-09-10T08:52:37.581Z",
+    "updated_at": "2025-09-10T08:52:37.581Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 535,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10191",
+    "segment2": "5041025",
+    "segment3": "IACE001",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "20000000.00",
+    "budget_ytd": "20000000.00",
+    "created_at": "2025-09-10T08:52:37.582Z",
+    "updated_at": "2025-09-10T08:52:37.582Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 536,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10191",
+    "segment2": "5041025",
+    "segment3": "SIPCCE1",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "20000000.00",
+    "budget_ytd": "20000000.00",
+    "created_at": "2025-09-10T08:52:37.583Z",
+    "updated_at": "2025-09-10T08:52:37.583Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 537,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10191",
+    "segment2": "5080004",
+    "segment3": "HRCE001",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "25000000.00",
+    "budget_ytd": "25000000.00",
+    "created_at": "2025-09-10T08:52:37.584Z",
+    "updated_at": "2025-09-10T08:52:37.584Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 538,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10334",
+    "segment2": "5080004",
+    "segment3": "CONSCE1",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "30000000.00",
+    "budget_ytd": "30000000.00",
+    "created_at": "2025-09-10T08:52:37.585Z",
+    "updated_at": "2025-09-10T08:52:37.585Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 539,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10334",
+    "segment2": "5090001",
+    "segment3": "CONSCE1",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "10000000.00",
+    "budget_ytd": "10000000.00",
+    "created_at": "2025-09-10T08:52:37.585Z",
+    "updated_at": "2025-09-10T08:52:37.586Z"
+  }
+},
+{
+  "model": "account_and_entitys.xx_balancereport",
+  "pk": 540,
+  "fields": {
+    "control_budget_name": "MIC_HQ_MONTHLY",
+    "ledger_name": "MIC HQ Primary Ledger",
+    "as_of_period": "Sep-25",
+    "segment1": "10334",
+    "segment2": "5090001",
+    "segment3": "IACE001",
+    "encumbrance_ytd": "0.00",
+    "other_ytd": "0.00",
+    "actual_ytd": "0.00",
+    "funds_available_asof": "40000000.00",
+    "budget_ytd": "40000000.00",
+    "created_at": "2025-09-10T08:52:37.586Z",
+    "updated_at": "2025-09-10T08:52:37.586Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowtemplate",
+  "pk": 1,
+  "fields": {
+    "code": "FAR_WF_01",
+    "transfer_type": "FAR",
+    "name": "Updated Workflow",
+    "description": "Modified description",
+    "is_active": true,
+    "version": 2,
+    "created_at": "2025-09-09T07:48:04.539Z",
+    "updated_at": "2025-09-09T07:50:17.313Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowtemplate",
+  "pk": 5,
+  "fields": {
+    "code": "AFR_WF_01",
+    "transfer_type": "AFR",
+    "name": "AFR Workflow V1",
+    "description": "Approval flow for AFR transfers",
+    "is_active": true,
+    "version": 1,
+    "created_at": "2025-09-09T09:28:59.233Z",
+    "updated_at": "2025-09-09T09:28:59.233Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowtemplate",
+  "pk": 6,
+  "fields": {
+    "code": "FAD_WF_01",
+    "transfer_type": "FAD",
+    "name": "FAD Workflow V1",
+    "description": "Approval flow for FAD transfers",
+    "is_active": true,
+    "version": 1,
+    "created_at": "2025-09-09T09:30:03.690Z",
+    "updated_at": "2025-09-09T09:30:03.690Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 3,
+  "fields": {
+    "workflow_template": 1,
+    "order_index": 1,
+    "name": "Manager Approval (Updated)",
+    "decision_policy": "ALL",
+    "quorum_count": null,
+    "required_user_level": 22,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 12,
+    "parallel_group": null,
+    "created_at": "2025-09-09T07:50:17.336Z",
+    "updated_at": "2025-09-09T07:50:17.336Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 4,
+  "fields": {
+    "workflow_template": 1,
+    "order_index": 2,
+    "name": "Finance Approval (New)",
+    "decision_policy": "ANY",
+    "quorum_count": null,
+    "required_user_level": 42,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 48,
+    "parallel_group": null,
+    "created_at": "2025-09-09T07:50:17.339Z",
+    "updated_at": "2025-09-09T07:50:17.339Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 5,
+  "fields": {
+    "workflow_template": 5,
+    "order_index": 1,
+    "name": "Manager Approval",
+    "decision_policy": "ALL",
+    "quorum_count": null,
+    "required_user_level": 41,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 24,
+    "parallel_group": null,
+    "created_at": "2025-09-09T09:28:59.239Z",
+    "updated_at": "2025-09-09T09:28:59.239Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 6,
+  "fields": {
+    "workflow_template": 5,
+    "order_index": 2,
+    "name": "Finance Approval",
+    "decision_policy": "ANY",
+    "quorum_count": null,
+    "required_user_level": 22,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 48,
+    "parallel_group": null,
+    "created_at": "2025-09-09T09:28:59.243Z",
+    "updated_at": "2025-09-09T09:28:59.243Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 7,
+  "fields": {
+    "workflow_template": 6,
+    "order_index": 1,
+    "name": "Manager Approval",
+    "decision_policy": "ALL",
+    "quorum_count": null,
+    "required_user_level": 42,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 24,
+    "parallel_group": null,
+    "created_at": "2025-09-09T09:30:03.695Z",
+    "updated_at": "2025-09-09T09:30:03.695Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowstagetemplate",
+  "pk": 8,
+  "fields": {
+    "workflow_template": 6,
+    "order_index": 2,
+    "name": "Finance Approval",
+    "decision_policy": "ANY",
+    "quorum_count": null,
+    "required_user_level": 41,
+    "required_role": null,
+    "dynamic_filter_json": null,
+    "allow_reject": true,
+    "allow_delegate": false,
+    "sla_hours": 48,
+    "parallel_group": null,
+    "created_at": "2025-09-09T09:30:03.699Z",
+    "updated_at": "2025-09-09T09:30:03.699Z"
+  }
+},
+{
+  "model": "approvals.approvalworkflowinstance",
+  "pk": 1,
+  "fields": {
+    "budget_transfer": 505,
+    "template": 6,
+    "current_stage_template": null,
+    "status": "pending",
+    "started_at": "2025-09-10T08:17:39.456Z",
+    "finished_at": null,
+    "completed_stage_count": 0
   }
 },
 {
@@ -8463,6 +8883,50 @@
   }
 },
 {
+  "model": "auth.permission",
+  "fields": {
+    "name": "Can add Balance Report",
+    "content_type": [
+      "account_and_entitys",
+      "xx_balancereport"
+    ],
+    "codename": "add_xx_balancereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "fields": {
+    "name": "Can change Balance Report",
+    "content_type": [
+      "account_and_entitys",
+      "xx_balancereport"
+    ],
+    "codename": "change_xx_balancereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "fields": {
+    "name": "Can delete Balance Report",
+    "content_type": [
+      "account_and_entitys",
+      "xx_balancereport"
+    ],
+    "codename": "delete_xx_balancereport"
+  }
+},
+{
+  "model": "auth.permission",
+  "fields": {
+    "name": "Can view Balance Report",
+    "content_type": [
+      "account_and_entitys",
+      "xx_balancereport"
+    ],
+    "codename": "view_xx_balancereport"
+  }
+},
+{
   "model": "user_management.xx_user",
   "fields": {
     "password": "pbkdf2_sha256$1000000$5JsCOwXnH9GAEGvGUzrNuy$itnMzZj8/I0sNVHo57oNdaC1hw1rhgD/99f/IxDvWa8=",
@@ -8657,7 +9121,7 @@
 {
   "model": "user_management.xx_user",
   "fields": {
-    "password": "pbkdf2_sha256$1000000$SAihLqnbEKPyEM9iGSIR2W$JGLLFwLj0Q8x/H8pLXH8MOiAEPCoj5kIeTDuxF9QAhk=",
+    "password": "pbkdf2_sha256$600000$UWXKrpxEB7qLjFEZwNzKFx$KOnO9PP3Bd5KoBuz1QNJnDP/F43dNDYFZ4FSHBIvk5s=",
     "last_login": null,
     "is_superuser": false,
     "username": "finance manager",
@@ -9968,6 +10432,20 @@
     "message": "New budget transfer request created with code FAR-0046",
     "is_read": false,
     "created_at": "2025-09-03T23:05:20.372Z",
+    "is_system_read": false,
+    "is_shown": true
+  }
+},
+{
+  "model": "user_management.xx_notification",
+  "pk": 562,
+  "fields": {
+    "user": [
+      "george"
+    ],
+    "message": "New budget transfer request created with code FAD-0043",
+    "is_read": false,
+    "created_at": "2025-09-10T08:17:41.463Z",
     "is_system_read": false,
     "is_shown": true
   }

@@ -20,7 +20,7 @@ class xx_TransactionTransfer(models.Model):
     reason = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries
     account_code = models.IntegerField(null=True, blank=True)
     account_name = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries
-    project_code = models.IntegerField(null=True, blank=True)
+    project_code = models.TextField(null=True, blank=True)
     project_name = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries
     cost_center_code = models.IntegerField(null=True, blank=True)
     cost_center_name = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries
@@ -29,9 +29,9 @@ class xx_TransactionTransfer(models.Model):
     actual = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)  # Changed from EncryptedTextField to DecimalField
     # Additional file field for attachments
     file = models.FileField(upload_to='adjd_transfers/', null=True, blank=True)
-    
+
     class Meta:
         db_table = 'XX_TRANSACTION_TRANSFER_XX'
-    
+
     def __str__(self):
         return f"ADJD Transfer {self.transfer_id}"

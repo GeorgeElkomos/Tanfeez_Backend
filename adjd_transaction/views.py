@@ -592,7 +592,7 @@ class AdjdtranscationtransferSubmit(APIView):
                         transfer.project_code,
                         transfer.from_center,
                         transfer.to_center,
-                        decide=1,
+                        decide="pending",
                     )
                     print(f"Update result: {update_result}")
 
@@ -611,7 +611,7 @@ class AdjdtranscationtransferSubmit(APIView):
 
                 # Update the budget transfer status
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
-                budget_transfer.status = "pending"
+                budget_transfer.status = "submitted"
                 budget_transfer.status_level = 2
                 budget_transfer.approvel_1 = request.user.username
                 budget_transfer.approvel_1_date = timezone.now()
@@ -680,7 +680,7 @@ class Adjdtranscationtransfer_Reopen(APIView):
                 transaction_id=transaction_id
             )
 
-            if adjd_transaction.status_level and adjd_transaction.status_level < 1:
+            if adjd_transaction.status_level and adjd_transaction.status_level < 3:  # Must be 1:
                 if action == "reopen":
                     # Update the single object
                     adjd_transaction.approvel_1 = None
@@ -694,7 +694,7 @@ class Adjdtranscationtransfer_Reopen(APIView):
                     adjd_transaction.status = "pending"
                     adjd_transaction.status_level = 1
                     adjd_transaction.save()
-
+                    
                     return Response(
                         {
                             "message": "transaction re-opened successfully",

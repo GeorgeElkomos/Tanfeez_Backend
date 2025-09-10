@@ -181,7 +181,7 @@ class ApprovalManager:
                     assignment=active_stages.first()
                     .assignments.filter(user=system_user)
                     .first(),
-                    action=ApprovalAction.ACTION_COMMENT,
+                    action=ApprovalAction.ACTION_REJECT,
                     comment=f"Workflow cancelled. Reason: {reason or 'No reason provided'}",
                     triggers_stage_completion=False,
                 )
@@ -200,7 +200,7 @@ class ApprovalManager:
         st = stage_instance.stage_template
         qs = xx_User.objects.filter(is_active=True)  # only active users
         if st.required_user_level:
-            qs = qs.filter(level=st.required_user_level)
+            qs = qs.filter(user_level=st.required_user_level)
         if st.required_role:
             qs = qs.filter(role=st.required_role)
 
@@ -211,7 +211,7 @@ class ApprovalManager:
                 user=user,
                 defaults={
                     "role_snapshot": getattr(user, "role", None),
-                    "level_snapshot": getattr(user.level, "name", None),
+                    "level_snapshot": getattr(user.user_level, "name", None),
                     "is_mandatory": True,
                 },
             )
@@ -253,12 +253,41 @@ class ApprovalManager:
                 status=ApprovalWorkflowStageInstance.STATUS_ACTIVE
             )
             if not active.exists():
-                # start first stage(s): find minimum order_index
-                next_template = instance.template.stages.order_by("order_index").first()
-                if not next_template:
-                    raise ValueError("Workflow template has no stages defined")
+                # Did workflow ever start?
+                completed = instance.stage_instances.filter(
+                    status=ApprovalWorkflowStageInstance.STATUS_COMPLETED
+                ).order_by("-stage_template__order_index")
 
-                next_order = next_template.order_index
+                if completed.exists():
+                    # continue after last completed
+                    last_order = completed.first().stage_template.order_index
+                    next_template = (
+                        instance.template.stages.filter(order_index__gt=last_order)
+                        .order_by("order_index")
+                        .first()
+                    )
+                    if not next_template:
+                        # no more stages -> mark workflow approved
+                        instance.status = ApprovalWorkflowInstance.STATUS_APPROVED
+                        instance.finished_at = timezone.now()
+                        instance.current_stage_template = None
+                        instance.save(
+                            update_fields=[
+                                "status",
+                                "finished_at",
+                                "current_stage_template",
+                            ]
+                        )
+                        return instance
+                    next_order = next_template.order_index
+                else:
+                    # truly first activation
+                    next_template = instance.template.stages.order_by(
+                        "order_index"
+                    ).first()
+                    if not next_template:
+                        raise ValueError("Workflow template has no stages defined")
+                    next_order = next_template.order_index
             else:
                 # mark existing active as completed if they are "done"
                 # (caller should have set them completed already; this path will just pick next order)
@@ -310,7 +339,7 @@ class ApprovalManager:
                         stage_instance=si,
                         user=system_user,
                         assignment=None,
-                        action=ApprovalAction.ACTION_COMMENT,
+                        action=ApprovalAction.ACTION_APPROVE,
                         comment="Stage auto-skipped: no eligible approvers.",
                         triggers_stage_completion=True,
                     )
@@ -421,7 +450,7 @@ class ApprovalManager:
 
     @classmethod
     def _complete_active_stage_group(
-        cls, instance: ApprovalWorkflowInstance, outcome: str
+        cls, instance: ApprovalWorkflowInstance, outcome: str, comment: str = None
     ):
         """
         Mark active group (lowest order_index) as completed/skipped according to outcome,
@@ -478,8 +507,8 @@ class ApprovalManager:
                 stage_instance=group_stages.first(),
                 user=system_user,
                 assignment=None,
-                action=ApprovalAction.ACTION_COMMENT,
-                comment="Workflow rejected by decision logic.",
+                action=ApprovalAction.ACTION_REJECT,
+                comment=comment or "Workflow rejected",
                 triggers_stage_completion=True,
             )
 
@@ -527,7 +556,6 @@ class ApprovalManager:
                 ApprovalAction.ACTION_APPROVE,
                 ApprovalAction.ACTION_REJECT,
                 ApprovalAction.ACTION_DELEGATE,
-                ApprovalAction.ACTION_COMMENT,
             }:
                 raise ValueError(f"Invalid action: {action}")
 
@@ -552,6 +580,7 @@ class ApprovalManager:
                         ApprovalAction.ACTION_APPROVE,
                         ApprovalAction.ACTION_REJECT,
                     ],
+                    comment=comment,
                 ).first()
                 if existing:
                     raise ValueError(
@@ -581,15 +610,11 @@ class ApprovalManager:
                 assignment.status = action
                 assignment.save(update_fields=["status"])
 
-            # If comment only -> no further evaluation
-            if action == ApprovalAction.ACTION_COMMENT:
-                return instance
-
             # Evaluate whether stage group has finished
             finished, outcome = cls.check_finished_stage(budget_transfer)
             if finished:
                 # mark stage(s) complete and progress
-                cls._complete_active_stage_group(instance, outcome)
+                cls._complete_active_stage_group(instance, outcome, comment=comment)
                 if outcome == "approved":
                     # progress to next stage(s)
                     cls._activate_next_stage_internal(
@@ -657,7 +682,7 @@ class ApprovalManager:
                 stage_instance=stage_instance,
                 user=to_user,
                 role_snapshot=getattr(to_user, "role", None),
-                level_snapshot=getattr(to_user.level, "name", None),
+                level_snapshot=getattr(to_user.user_level, "name", None),
                 is_mandatory=from_assignment.is_mandatory,
                 status=ApprovalAssignment.STATUS_PENDING,
             )
@@ -683,15 +708,36 @@ class ApprovalManager:
     # ----------------------
     @staticmethod
     def get_user_pending_approvals(user: xx_User):
-        return ApprovalAssignment.objects.filter(
-            user=user,
-            status=ApprovalAssignment.STATUS_PENDING,
-            stage_instance__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
-            stage_instance__workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS,
-        ).select_related(
-            "stage_instance__workflow_instance__budget_transfer",
-            "stage_instance__stage_template",
-        )
+        """
+        Return list of BudgetTransfer objects for which this user
+        has pending approval assignments in active workflow stages.
+        """
+        return xx_BudgetTransfer.objects.filter(
+            workflow_instance__stage_instances__assignments__user=user,
+            workflow_instance__stage_instances__assignments__status=ApprovalAssignment.STATUS_PENDING,
+            workflow_instance__stage_instances__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS,
+        ).distinct()
+
+    @staticmethod
+    def is_workflow_finished(budget_transfer: xx_BudgetTransfer):
+        """
+        Check if the entire workflow instance for a transfer is finished.
+        Returns: (is_finished_bool, status_str)
+        status_str in {"approved", "rejected", "cancelled", "pending", "in_progress"}
+        """
+        instance = getattr(budget_transfer, "workflow_instance", None)
+        if not instance:
+            return False, "no_instance"
+
+        if instance.status in {
+            ApprovalWorkflowInstance.STATUS_APPROVED,
+            ApprovalWorkflowInstance.STATUS_REJECTED,
+            ApprovalWorkflowInstance.STATUS_CANCELLED,
+        }:
+            return True, instance.status.lower()
+
+        return False, instance.status.lower()
 
     # ----------------------
     # Hooks (override or attach listeners)
