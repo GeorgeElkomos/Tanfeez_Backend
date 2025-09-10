@@ -611,6 +611,7 @@ class AdjdtranscationtransferSubmit(APIView):
 
                 # Update the budget transfer status
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
+                budget_transfer.status = "pending"
                 budget_transfer.status_level = 2
                 budget_transfer.approvel_1 = request.user.username
                 budget_transfer.approvel_1_date = timezone.now()

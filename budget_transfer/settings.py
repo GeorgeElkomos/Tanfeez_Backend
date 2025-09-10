@@ -19,24 +19,24 @@ ALLOWED_HOSTS = ['lightidea.org', 'localhost', '127.0.0.1','185.197.251.203','ww
 
 # Application definition
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.admindocs',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'channels',
-    'corsheaders',
-    'user_management',
-    'budget_management',
-    'adjd_transaction',  # Add the new app
-    'account_and_entitys',
-    'Admin_Panel',
-    'django_extensions',
-    'approvals'
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.admindocs",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "channels",
+    "corsheaders",
+    "user_management",
+    "budget_management.apps.BudgetManagementConfig",
+    "adjd_transaction",  # Add the new app
+    "account_and_entitys",
+    "Admin_Panel",
+    "django_extensions",
+    "approvals",
 ]
 
 AUTH_USER_MODEL = 'user_management.xx_User'

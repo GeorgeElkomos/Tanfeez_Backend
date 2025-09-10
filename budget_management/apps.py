@@ -11,10 +11,7 @@ class BudgetManagementConfig(AppConfig):
         This ensures signals are registered when Django starts
         """
         try:
-            # Import budget transfer signals to register them
-            from .signals import budget_trasnfer
-            print("Budget management signals registered successfully")
-        except ImportError as e:
-            print(f"Error importing budget management signals: {e}")
+            import budget_management.signals  # 👈
+            print("✅ Budget management signals registered")
         except Exception as e:
-            print(f"Error registering budget management signals: {e}")
+            print(f"❌ Error registering budget management signals: {e}")
