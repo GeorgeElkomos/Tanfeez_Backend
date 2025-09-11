@@ -23,8 +23,6 @@ from collections import defaultdict
 from decimal import Decimal
 
 
-
-
 def dashboard_smart(filter_cost_center=None, filter_account_code=None):
     """
     Optimized smart dashboard using database-level aggregations
@@ -45,12 +43,12 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
 
         # PHASE 1: Database-level aggregations for approved transfers
         aggregation_start = time.time()
-        
+
         # Build base queryset with optimized filtering
         base_queryset = xx_TransactionTransfer.objects.select_related('transaction').filter(
             transaction__status="approved"
         )
-        
+
         # Apply additional filters if provided
         if filter_cost_center:
             base_queryset = base_queryset.filter(cost_center_code=filter_cost_center)
@@ -88,7 +86,7 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
 
         # PHASE 2: Format response data
         format_start = time.time()
-        
+
         # Convert Decimal to float for JSON serialization
         for item in cost_center_totals:
             item['total_from_center'] = float(item['total_from_center'] or 0)
@@ -139,17 +137,17 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
                 Dashboard_id=1,
                 defaults={'data': '{}'}
             )
-            
+
             existing_data = dashboard.get_data() or {}
             existing_data['smart'] = data
-            
+
             dashboard.set_data(existing_data)
             dashboard.save()
-            
+
             print(f"Dashboard data saved in {time.time() - save_start:.2f}s")
             print(f"Smart dashboard data {'created' if created else 'updated'} successfully")
             return data
-            
+
         except Exception as save_error:
             print(f"Error saving dashboard data: {save_error}")
             return data
@@ -159,6 +157,64 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
         import traceback
         traceback.print_exc()
         return False
+from django.utils import timezone
+from datetime import date
+import calendar
+
+
+def get_approval_rate_change(transfers_queryset):
+    today = timezone.now().date()
+
+    # --- Current month start/end ---
+    cm_start = today.replace(day=1)
+    cm_end = date(
+        today.year, today.month, calendar.monthrange(today.year, today.month)[1]
+    )
+
+    # --- Previous month start/end ---
+    if today.month == 1:  # January edge case
+        pm_year = today.year - 1
+        pm_month = 12
+    else:
+        pm_year = today.year
+        pm_month = today.month - 1
+
+    pm_start = date(pm_year, pm_month, 1)
+    pm_end = date(pm_year, pm_month, calendar.monthrange(pm_year, pm_month)[1])
+
+    # --- Filter ---
+    pm_qs = transfers_queryset.filter(request_date__range=[pm_start, pm_end])
+    cm_qs = transfers_queryset.filter(request_date__range=[cm_start, cm_end])
+
+    # --- Counts ---
+    PM_submitted = pm_qs.count()
+    CM_submitted = cm_qs.count()
+
+    PM_approved = pm_qs.filter(status="Approved").count()
+    CM_approved = cm_qs.filter(status="Approved").count()
+
+    # --- Rates ---
+    PM_rate = PM_approved / PM_submitted if PM_submitted else 0
+    CM_rate = CM_approved / CM_submitted if CM_submitted else 0
+
+    # --- Relative change ---
+    if PM_rate > 0:
+        relative_change = ((CM_rate - PM_rate) / PM_rate) * 100
+    else:
+        relative_change = None  # undefined if no PM submissions
+
+    # --- Percentage points ---
+    pp_change = (CM_rate - PM_rate) * 100
+
+    return {
+        "PM_rate": round(PM_rate, 4),
+        "CM_rate": round(CM_rate, 4),
+        "relative_change_percent": (
+            round(relative_change, 2) if relative_change is not None else None
+        ),
+        "percentage_points_change": round(pp_change, 2),
+    }
+
 
 def dashboard_normal():
     """
@@ -178,7 +234,7 @@ def dashboard_normal():
 
         # Use database aggregations for counting
         total_count = transfers_queryset.count()
-        
+
         # Count by status using database aggregation
         status_counts = transfers_queryset.aggregate(
             approved=Count('transaction_id', filter=Q(status='approved')),
@@ -211,30 +267,34 @@ def dashboard_normal():
         # Convert datetime objects to ISO format strings for JSON serialization
         request_dates_iso = [date.isoformat() for date in request_dates]
 
+        # NEW: Approval rate analysis (last vs current month)
+        approval_rate_data = get_approval_rate_change(transfers_queryset)
+
         print(f"Database counting completed in {time.time() - count_start:.2f}s")
 
         # PHASE 2: Format response data
         data = {
             "total_transfers": total_count,
-            "total_transfers_far": code_counts['far'],
-            "total_transfers_afr": code_counts['afr'],
-            "total_transfers_fad": code_counts['fad'],
-            "approved_transfers": status_counts['approved'],
-            "rejected_transfers": status_counts['rejected'],
-            "pending_transfers": status_counts['pending'],
+            "total_transfers_far": code_counts["far"],
+            "total_transfers_afr": code_counts["afr"],
+            "total_transfers_fad": code_counts["fad"],
+            "approved_transfers": status_counts["approved"],
+            "rejected_transfers": status_counts["rejected"],
+            "pending_transfers": status_counts["pending"],
             "pending_transfers_by_level": {
-                "Level1": level_counts['level1'],
-                "Level2": level_counts['level2'],
-                "Level3": level_counts['level3'],
-                "Level4": level_counts['level4'],
+                "Level1": level_counts["level1"],
+                "Level2": level_counts["level2"],
+                "Level3": level_counts["level3"],
+                "Level4": level_counts["level4"],
             },
             "request_dates": request_dates_iso,
+            "approval_rate_analysis": approval_rate_data,
             "performance_metrics": {
                 "total_processing_time": round(time.time() - start_time, 2),
                 "counting_time": round(time.time() - count_start, 2),
                 "total_records_processed": total_count,
-                "request_dates_retrieved": len(request_dates_iso)
-            }
+                "request_dates_retrieved": len(request_dates_iso),
+            },
         }
 
         print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
@@ -247,17 +307,17 @@ def dashboard_normal():
                 Dashboard_id=1,
                 defaults={'data': '{}'}
             )
-            
+
             existing_data = dashboard.get_data() or {}
             existing_data['normal'] = data
-            
+
             dashboard.set_data(existing_data)
             dashboard.save()
-            
+
             print(f"Dashboard data saved in {time.time() - save_start:.2f}s")
             print(f"Normal dashboard data {'created' if created else 'updated'} successfully")
             return data
-            
+
         except Exception as save_error:
             print(f"Error saving normal dashboard data: {save_error}")
             return data
@@ -272,10 +332,10 @@ def dashboard_normal():
 def get_saved_dashboard_data(dashboard_type='smart'):
     """
     Retrieve saved dashboard data from database
-    
+
     Args:
         dashboard_type (str): 'smart' or 'normal'
-    
+
     Returns:
         dict: Dashboard data or None if not found
     """
@@ -294,7 +354,7 @@ def get_saved_dashboard_data(dashboard_type='smart'):
 def get_all_dashboard_data():
     """
     Retrieve all dashboard data (both smart and normal) from database
-    
+
     Returns:
         dict: All dashboard data or None if not found
     """
@@ -313,10 +373,10 @@ def get_all_dashboard_data():
 def refresh_dashboard_data(dashboard_type='smart'):
     """
     Refresh dashboard data by running the appropriate function and saving to database
-    
+
     Args:
         dashboard_type (str): 'smart' or 'normal'
-    
+
     Returns:
         dict: Updated dashboard data or False if error
     """
@@ -327,5 +387,3 @@ def refresh_dashboard_data(dashboard_type='smart'):
     else:
         print(f"Invalid dashboard type: {dashboard_type}")
         return False
-
-
