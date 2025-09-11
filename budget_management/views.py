@@ -25,6 +25,7 @@ from .serializers import BudgetTransferSerializer
 from user_management.permissions import IsAdmin, CanTransferBudget
 from budget_transfer.global_function.dashbaord import (
     get_all_dashboard_data,
+    get_approval_rate_change,
     get_saved_dashboard_data,
     refresh_dashboard_data,
 )
@@ -1135,6 +1136,9 @@ class DashboardBudgetTransferView(APIView):
                     # Convert datetime objects to ISO format strings for JSON serialization
                     request_dates_iso = [date.isoformat() for date in request_dates]
 
+                    # NEW: Approval rate analysis (last vs current month)
+                    approval_rate_data = get_approval_rate_change(transfers_queryset)
+
                     print(
                         f"Database counting completed in {time.time() - count_start:.2f}s"
                     )
@@ -1155,6 +1159,7 @@ class DashboardBudgetTransferView(APIView):
                             "Level4": level_counts["level4"],
                         },
                         "request_dates": request_dates_iso,
+                        "approval_rate_analysis": approval_rate_data,
                         "performance_metrics": {
                             "total_processing_time": round(time.time() - start_time, 2),
                             "counting_time": round(time.time() - count_start, 2),
