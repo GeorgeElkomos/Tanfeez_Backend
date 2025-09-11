@@ -121,7 +121,7 @@ class LoginView(APIView):
         # XX_ACCOUNT_ENTITY_LIMIT.objects.all().delete()
         # XX_Project.objects.all().delete()
         # XX_TransactionAudit.objects.all().delete()
-        
+
         if serializer.is_valid():
             user = serializer.validated_data
             refresh = RefreshToken.for_user(user)
@@ -141,6 +141,31 @@ class LoginView(APIView):
         return Response(
             {"message": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED
         )
+
+
+class LogoutView(APIView):
+    """Blacklist a refresh token on logout"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(
+                {"message": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT
+            )
+        except TokenError:
+            return Response(
+                {"message": "Invalid or expired token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            return Response(
+                {"message": "Something went wrong."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class TokenExpiredView(APIView):

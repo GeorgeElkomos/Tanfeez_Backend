@@ -10,7 +10,7 @@ from django.db.models import Q, Sum
 from django.db.models.functions import Cast
 from django.db.models import CharField
 from approvals.managers import ApprovalManager
-from approvals.models import ApprovalAction
+from approvals.models import ApprovalAction, ApprovalWorkflowInstance
 from user_management.models import xx_User, xx_notification
 from .models import (
     filter_budget_transfers_all_in_entities,
@@ -1397,3 +1397,125 @@ class ListBudgetTransfer_approvels_MobileView(APIView):
             filtered_data.append(filtered_item)
 
         return Response(filtered_data, status=status.HTTP_200_OK)
+
+class Approval_Status(APIView):
+    """Get approval status options"""
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        transaction_id = request.query_params.get("transaction_id", None)
+        if not transaction_id:
+            return Response({"detail": "transaction_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            transaction_obj = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
+        except xx_BudgetTransfer.DoesNotExist:
+            return Response({"detail": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        workflow = getattr(transaction_obj, "workflow_instance", None)
+        if not workflow:
+            return Response({"detail": "No workflow instance for this transaction"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Stage templates in order
+        stage_templates = workflow.template.stages.all().order_by("order_index")
+
+        # Map of stage_template_id -> stage_instance (if created)
+        stage_instances_qs = workflow.stage_instances.select_related("stage_template", "workflow_instance").all()
+        instances_by_tpl = {si.stage_template_id: si for si in stage_instances_qs}
+
+        # For rejected workflows, capture the latest reject per order_index to reflect group outcome
+        latest_reject_by_order = {}
+        if workflow.status == ApprovalWorkflowInstance.STATUS_REJECTED:
+            for si in stage_instances_qs:
+                order_idx = si.stage_template.order_index
+                r = (
+                    si.actions.filter(action=ApprovalAction.ACTION_REJECT)
+                    .order_by("-created_at")
+                    .first()
+                )
+                if r and (order_idx not in latest_reject_by_order or r.created_at > latest_reject_by_order[order_idx].created_at):
+                    latest_reject_by_order[order_idx] = r
+
+        results = []
+
+        for stpl in stage_templates:
+            si = instances_by_tpl.get(stpl.id)
+
+            stage_info = {
+                "order_index": stpl.order_index,
+                "name": stpl.name,
+                "decision_policy": stpl.decision_policy,
+            }
+
+            # Determine status for this stage
+            if si is None:
+                # Not yet instantiated -> pending (not started)
+                stage_info["status"] = "pending"
+                results.append(stage_info)
+                continue
+
+            # Map instance status to friendly label
+            inst_status = si.status
+            if inst_status == "active":
+                stage_info["status"] = "in_progress"
+            elif inst_status == "pending":
+                stage_info["status"] = "pending"
+            elif inst_status == "skipped":
+                stage_info["status"] = "skipped"
+            elif inst_status in ("completed", "cancelled"):
+                # Determine outcome based on actions
+                # If any reject action exists on this stage -> rejected else approved (or skipped above)
+                last_reject = (
+                    si.actions.filter(action=ApprovalAction.ACTION_REJECT)
+                    .order_by("-created_at")
+                    .first()
+                )
+                if last_reject:
+                    stage_info["status"] = "rejected"
+                    actor = last_reject.user
+                    stage_info["acted_by"] = {
+                        "id": getattr(actor, "id", None),
+                        "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
+                        "action_at": last_reject.created_at.isoformat() if getattr(last_reject, "created_at", None) else None,
+                    }
+                    stage_info["comment"] = last_reject.comment
+                else:
+                    # If workflow is rejected and another parallel stage in this order was rejected,
+                    # mark this stage as rejected to reflect the group outcome.
+                    group_reject = latest_reject_by_order.get(stpl.order_index)
+                    if group_reject:
+                        stage_info["status"] = "rejected"
+                        actor = group_reject.user
+                        stage_info["acted_by"] = {
+                            "id": getattr(actor, "id", None),
+                            "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
+                            "action_at": group_reject.created_at.isoformat() if getattr(group_reject, "created_at", None) else None,
+                        }
+                        stage_info["comment"] = group_reject.comment
+                        results.append(stage_info)
+                        continue
+                    # Approved if there is at least one approve action (user or system auto-skip approve)
+                    last_approve = (
+                        si.actions.filter(action=ApprovalAction.ACTION_APPROVE)
+                        .order_by("-created_at")
+                        .first()
+                    )
+                    stage_info["status"] = "approved" if last_approve else "completed"
+                    if last_approve:
+                        actor = last_approve.user
+                        stage_info["acted_by"] = {
+                            "id": getattr(actor, "id", None),
+                            "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
+                            "action_at": last_approve.created_at.isoformat() if getattr(last_approve, "created_at", None) else None,
+                        }
+                        stage_info["comment"] = last_approve.comment
+            else:
+                # Fallback
+                stage_info["status"] = inst_status
+
+            results.append(stage_info)
+
+        return Response({
+            "transaction_id": transaction_obj.transaction_id,
+            "workflow_status": workflow.status,
+            "stages": results,
+        }, status=status.HTTP_200_OK)
