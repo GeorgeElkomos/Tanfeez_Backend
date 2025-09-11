@@ -405,6 +405,7 @@ class AdjdTransactionTransferListView(APIView):
                 "balanced": True,
                 "status": status,
             }
+            status = {"status": status}
             return Response(
                 {"summary": summary, "transfers": response_data, "status": status}
             )
