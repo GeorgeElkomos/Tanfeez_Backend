@@ -1,0 +1,4 @@
+{
+  "SQLBuilderAgent": "XX_USER, XX_USER_LEVEL, XX_NOTIFICATION, XX_BUDGET_TRANSFER, XX_BUDGET_TRANSFER_ATTACHMENT, XX_BUDGET_TRANSFER_REJECT_REASON, xx_TransactionTransfer, XX_ACCOUNT, XX_ENTITY, XX_PIVOTFUND, XX_ADJD_TRANSACTION_AUDIT, XX_ACCOUNT_ENTITY_LIMIT",
+  "GeneralQAAgent": "The tables listed are: XX_USER, XX_USER_LEVEL, XX_NOTIFICATION, XX_BUDGET_TRANSFER, XX_BUDGET_TRANSFER_ATTACHMENT, XX_BUDGET_TRANSFER_REJECT_REASON, xx_TransactionTransfer, XX_ACCOUNT, XX_ENTITY, XX_PIVOTFUND, XX_ADJD_TRANSACTION_AUDIT, XX_ACCOUNT_ENTITY_LIMIT. These tables likely store information related to users, their access levels, notifications, budget transfers (including attachments and reasons for rejection), accounting transactions, account details, entity information, pivot funds, audit trails for adjusted transactions, and account entity limits."
+}

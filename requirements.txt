@@ -1,0 +1,16 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+oracledb
+channels
+pandas
+gunicorn
+openpyxl
+django-encrypted-model-fields
+pyopenssl
+Werkzeug
+django_extensions
+celery
+psutil
+django-filter

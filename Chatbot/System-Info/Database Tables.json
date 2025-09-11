@@ -1,0 +1,512 @@
+{
+  "tables": {
+    "XX_USER": {
+      "description": "Stores user account information, including username, password, role, user level, and authentication details. This table is the core of the authentication and authorization system.",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": ["PRIMARY KEY", "AUTOINCREMENT"],
+          "description": "Unique identifier for each user."
+        },
+        "password": {
+          "type": "VARCHAR(128)",
+          "constraints": ["NOT NULL"],
+          "description": "Hashed password for the user."
+        },
+        "last_login": {
+          "type": "DATETIME",
+          "constraints": ["NULLABLE"],
+          "description": "Timestamp of the user's last login."
+        },
+        "is_superuser": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Designates that this user has all permissions without explicitly assigning them."
+        },
+        "username": {
+          "type": "VARCHAR(255)",
+          "constraints": ["NOT NULL", "UNIQUE"],
+          "description": "Unique username for the user."
+        },
+        "role": {
+          "type": "VARCHAR(10)",
+          "constraints": ["NOT NULL"],
+          "description": "Role of the user, either 'admin' or 'user'."
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Indicates if the user account is active."
+        },
+        "is_staff": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Indicates if the user has staff privileges."
+        },
+        "can_transfer_budget": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Permission for budget transfer."
+        },
+        "user_level_id": {
+          "type": "BIGINT",
+          "constraints": ["NULLABLE", "FOREIGN KEY"],
+          "description": "References XX_USER_LEVEL. Indicates the user's level."
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "user_level_id",
+          "references": {
+            "table": "XX_USER_LEVEL",
+            "column": "id"
+          },
+          "on_delete": "SET NULL",
+          "description": "Links each user to a user level."
+        }
+      ],
+      "many_to_many": [
+        {
+          "table": "XX_USER_GROUPS",
+          "description": "Links users to groups for permission management. Many-to-many relationship with AUTH_GROUP.",
+          "columns": {
+            "id": {"type": "BIGINT", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier."},
+            "xx_user_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_USER."},
+            "group_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References AUTH_GROUP."}
+          }
+        },
+        {
+          "table": "XX_USER_USER_PERMISSIONS",
+          "description": "Links users to permissions. Many-to-many relationship with AUTH_PERMISSION.",
+          "columns": {
+            "id": {"type": "BIGINT", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier."},
+            "xx_user_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_USER."},
+            "permission_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References AUTH_PERMISSION."}
+          }
+        }
+      ],
+      "example": {
+        "id": 1,
+        "password": "pbkdf2_sha256$...",
+        "last_login": "2025-07-03T09:00:00",
+        "is_superuser": true,
+        "username": "admin",
+        "role": "admin",
+        "is_active": true,
+        "is_staff": true,
+        "can_transfer_budget": true,
+        "user_level_id": 1
+      }
+    },
+    "XX_USER_LEVEL": {
+      "description": "Defines user levels/roles in the system.",
+      "columns": {
+        "id": {
+          "type": "INTEGER",
+          "constraints": ["PRIMARY KEY", "AUTOINCREMENT"],
+          "description": "Unique identifier for each user level."
+        },
+        "name": {
+          "type": "VARCHAR(50)",
+          "constraints": ["NOT NULL", "UNIQUE"],
+          "description": "Name of the user level."
+        },
+        "description": {
+          "type": "TEXT",
+          "constraints": ["NULLABLE"],
+          "description": "Description of the user level."
+        },
+        "level_order": {
+          "type": "INTEGER",
+          "constraints": ["NOT NULL"],
+          "description": "Order of the level for hierarchy."
+        }
+      },
+      "foreign_keys": [],
+      "example": {
+        "id": 1,
+        "name": "Manager",
+        "description": "Manager level user.",
+        "level_order": 1
+      }
+    },
+    "XX_NOTIFICATION": {
+      "description": "Stores notifications for users.",
+      "columns": {
+        "id": {
+          "type": "INTEGER",
+          "constraints": ["PRIMARY KEY", "AUTOINCREMENT"],
+          "description": "Unique identifier for each notification."
+        },
+        "user_id": {
+          "type": "INTEGER",
+          "constraints": ["NOT NULL", "FOREIGN KEY"],
+          "description": "References XX_USER. The user who receives the notification."
+        },
+        "message": {
+          "type": "TEXT",
+          "constraints": ["NOT NULL"],
+          "description": "Notification message."
+        },
+        "is_read": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Whether the notification has been read."
+        },
+        "created_at": {
+          "type": "DATETIME",
+          "constraints": ["NOT NULL"],
+          "description": "Timestamp when the notification was created."
+        },
+        "is_system_read": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Whether the notification was read by the system."
+        },
+        "is_shown": {
+          "type": "BOOLEAN",
+          "constraints": ["NOT NULL"],
+          "description": "Whether the notification was shown to the user."
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references": {
+            "table": "XX_USER",
+            "column": "id"
+          },
+          "on_delete": "CASCADE",
+          "description": "Links each notification to a user."
+        }
+      ],
+      "example": {
+        "id": 1,
+        "user_id": 1,
+        "message": "Your transfer was approved.",
+        "is_read": false,
+        "created_at": "2025-07-03T12:00:00",
+        "is_system_read": false,
+        "is_shown": true
+      }
+    },
+    "XX_BUDGET_TRANSFER": {
+      "description": "Tracks budget transfers between users.",
+      "columns": {
+        "transaction_id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each transfer."},
+        "transaction_date": {"type": "VARCHAR(10)", "constraints": ["NOT NULL"], "description": "Date of the transaction."},
+        "amount": {"type": "FLOAT", "constraints": ["NOT NULL"], "description": "Amount transferred."},
+        "status": {"type": "VARCHAR(10)", "constraints": ["NOT NULL"], "description": "Status of the transfer."},
+        "requested_by": {"type": "VARCHAR(10)", "constraints": ["NOT NULL"], "description": "Who requested the transfer."},
+        "user_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "User ID related to the transfer."},
+        "request_date": {"type": "DATETIME", "constraints": ["NOT NULL"], "description": "Date/time the request was made."},
+        "notes": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Additional notes."},
+        "description_x": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Extra description."},
+        "code": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Code for the transfer."},
+        "gl_posting_status": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "GL posting status."},
+        "approvel_1": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "First approval."},
+        "approvel_2": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Second approval."},
+        "approvel_3": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Third approval."},
+        "approvel_4": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Fourth approval."},
+        "approvel_1_date": {"type": "DATETIME", "constraints": ["NULLABLE"], "description": "Date of first approval."},
+        "approvel_2_date": {"type": "DATETIME", "constraints": ["NULLABLE"], "description": "Date of second approval."},
+        "approvel_3_date": {"type": "DATETIME", "constraints": ["NULLABLE"], "description": "Date of third approval."},
+        "approvel_4_date": {"type": "DATETIME", "constraints": ["NULLABLE"], "description": "Date of fourth approval."},
+        "status_level": {"type": "INTEGER", "constraints": ["NOT NULL"], "description": "Approval status level."},
+        "attachment": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Attachment status."},
+        "fy": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Fiscal year."},
+        "group_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Group ID."},
+        "interface_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Interface ID."},
+        "reject_group_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Reject group ID."},
+        "reject_interface_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Reject interface ID."},
+        "approve_group_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Approve group ID."},
+        "approve_interface_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Approve interface ID."},
+        "report": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Report status."},
+        "type": {"type": "VARCHAR(10)", "constraints": ["NULLABLE"], "description": "Type of transfer."}
+      },
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references": {"table": "XX_USER", "column": "id"},
+          "on_delete": "SET NULL",
+          "description": "Links the transfer to a user if applicable."
+        }
+      ],
+      "example": {
+        "transaction_id": 1001,
+        "transaction_date": "2025-07-03",
+        "amount": 5000.0,
+        "status": "pending",
+        "requested_by": "admin",
+        "user_id": 1,
+        "request_date": "2025-07-03T10:00:00",
+        "notes": "Budget transfer for Q3.",
+        "description_x": "Urgent transfer.",
+        "code": "TRF001",
+        "gl_posting_status": "posted",
+        "approvel_1": "mgr1",
+        "approvel_2": null,
+        "approvel_3": null,
+        "approvel_4": null,
+        "approvel_1_date": "2025-07-03T11:00:00",
+        "approvel_2_date": null,
+        "approvel_3_date": null,
+        "approvel_4_date": null,
+        "status_level": 1,
+        "attachment": "No",
+        "fy": "2025",
+        "group_id": null,
+        "interface_id": null,
+        "reject_group_id": null,
+        "reject_interface_id": null,
+        "approve_group_id": null,
+        "approve_interface_id": null,
+        "report": null,
+        "type": "internal"
+      },
+      "notes": "The 'user_id' field is not a foreign key in the Django model, but is used to reference a user. If you want referential integrity, consider making it a foreign key."
+    },
+    "XX_BUDGET_TRANSFER_ATTACHMENT": {
+      "description": "Stores file attachments for budget transfers.",
+      "columns": {
+        "attachment_id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each attachment."},
+        "budget_transfer_id": {"type": "INTEGER", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_BUDGET_TRANSFER."},
+        "file_name": {"type": "VARCHAR(255)", "constraints": ["NOT NULL"], "description": "Name of the file."},
+        "file_type": {"type": "VARCHAR(100)", "constraints": ["NOT NULL"], "description": "Type of the file."},
+        "file_size": {"type": "INTEGER", "constraints": ["NOT NULL"], "description": "Size of the file in bytes."},
+        "file_data": {"type": "BLOB", "constraints": ["NOT NULL"], "description": "Binary data of the file."},
+        "upload_date": {"type": "DATETIME", "constraints": ["NOT NULL"], "description": "Date/time the file was uploaded."}
+      },
+      "foreign_keys": [
+        {
+          "column": "budget_transfer_id",
+          "references": {"table": "XX_BUDGET_TRANSFER", "column": "transaction_id"},
+          "on_delete": "CASCADE",
+          "description": "Links each attachment to a budget transfer."
+        }
+      ],
+      "example": {
+        "attachment_id": 1,
+        "budget_transfer_id": 1001,
+        "file_name": "invoice.pdf",
+        "file_type": "application/pdf",
+        "file_size": 204800,
+        "file_data": "<binary>",
+        "upload_date": "2025-07-03T10:30:00"
+      }
+    },
+    "XX_BUDGET_TRANSFER_REJECT_REASON": {
+      "description": "Stores reject reasons for budget transfers.",
+      "columns": {
+        "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each reject reason."},
+        "Transcation_id": {"type": "INTEGER", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_BUDGET_TRANSFER."},
+        "reason_text": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Reason for rejection."},
+        "reject_date": {"type": "DATETIME", "constraints": ["NOT NULL"], "description": "Date/time of rejection."},
+        "reject_by": {"type": "VARCHAR(25)", "constraints": ["NOT NULL"], "description": "Who rejected the transfer."}
+      },
+      "foreign_keys": [
+        {
+          "column": "Transcation_id",
+          "references": {"table": "XX_BUDGET_TRANSFER", "column": "transaction_id"},
+          "on_delete": "CASCADE",
+          "description": "Links each reject reason to a budget transfer."
+        }
+      ],
+      "example": {
+        "id": 1,
+        "Transcation_id": 1001,
+        "reason_text": "Insufficient funds.",
+        "reject_date": "2025-07-03T12:00:00",
+        "reject_by": "manager1"
+      }
+    },
+    "xx_TransactionTransfer": {
+      "description": "Tracks ADJD transaction transfers.",
+      "columns": {
+        "transfer_id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each transfer."},
+        "cost_center_code": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Cost center code."},
+        "account_name": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Account name."},
+        "approved_budget": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "Approved budget."},
+        "available_budget": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "Available budget."},
+        "from_center": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "From center amount."},
+        "to_center": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "To center amount."},
+        "transaction_id": {"type": "INTEGER", "constraints": ["NULLABLE", "FOREIGN KEY"], "description": "References XX_BUDGET_TRANSFER."},
+        "reason": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Reason for transfer."},
+        "account_code": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Account code."},
+        "cost_center_name": {"type": "TEXT", "constraints": ["NULLABLE"], "description": "Cost center name."},
+        "done": {"type": "INTEGER", "constraints": ["NOT NULL"], "description": "Done status."},
+        "encumbrance": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "Encumbrance amount."},
+        "actual": {"type": "FLOAT", "constraints": ["NULLABLE"], "description": "Actual amount."},
+        "file": {"type": "FILE", "constraints": ["NULLABLE"], "description": "File attachment."}
+      },
+      "foreign_keys": [
+        {
+          "column": "transaction_id",
+          "references": {"table": "XX_BUDGET_TRANSFER", "column": "transaction_id"},
+          "on_delete": "SET NULL",
+          "description": "Links each ADJD transfer to a budget transfer."
+        }
+      ],
+      "example": {
+        "transfer_id": 1,
+        "cost_center_code": "CC001",
+        "account_name": "Main Account",
+        "approved_budget": 10000.0,
+        "available_budget": 8000.0,
+        "from_center": 5000.0,
+        "to_center": 3000.0,
+        "transaction_id": 1001,
+        "reason": "Reallocation",
+        "account_code": "AC001",
+        "cost_center_name": "Operations",
+        "done": 1,
+        "encumbrance": 200.0,
+        "actual": 4800.0,
+        "file": null
+      }
+    },
+    "XX_ACCOUNT": {
+      "description": "Represents ADJD accounts.",
+      "columns": {
+        "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each account."},
+        "account": {"type": "VARCHAR(255)", "constraints": ["NOT NULL", "UNIQUE"], "description": "Account name."},
+        "parent": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Parent account."},
+        "alias_default": {"type": "VARCHAR(255)", "constraints": ["NULLABLE"], "description": "Default alias."}
+      },
+      "foreign_keys": [],
+      "example": {
+        "id": 1,
+        "account": "1000-01",
+        "parent": null,
+        "alias_default": "Main Account"
+      }
+    },
+    "XX_ENTITY": {
+      "description": "Represents ADJD entities.",
+      "columns": {
+        "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each entity."},
+        "entity": {"type": "VARCHAR(50)", "constraints": ["NOT NULL"], "description": "Entity name."},
+        "parent": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Parent entity."},
+        "alias_default": {"type": "VARCHAR(255)", "constraints": ["NULLABLE"], "description": "Default alias."}
+      },
+      "foreign_keys": [],
+      "example": {
+        "id": 1,
+        "entity": "Entity1",
+        "parent": null,
+        "alias_default": "Main Entity"
+      }
+    },
+    "XX_PIVOTFUND": {
+      "description": "Represents ADJD pivot funds.",
+      "columns": {
+        "id": {"type": "BIGINT", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each pivot fund."},
+        "entity_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_ENTITY."},
+        "account_id": {"type": "BIGINT", "constraints": ["NOT NULL", "FOREIGN KEY"], "description": "References XX_ACCOUNT."},
+        "year": {"type": "INTEGER", "constraints": ["NOT NULL"], "description": "Year."},
+        "actual": {"type": "DECIMAL(18,2)", "constraints": ["NULLABLE"], "description": "Actual value."},
+        "fund": {"type": "DECIMAL(18,2)", "constraints": ["NULLABLE"], "description": "Fund value."},
+        "budget": {"type": "DECIMAL(18,2)", "constraints": ["NULLABLE"], "description": "Budget value."},
+        "encumbrance": {"type": "DECIMAL(18,2)", "constraints": ["NULLABLE"], "description": "Encumbrance value."}
+      },
+      "foreign_keys": [
+        {
+          "column": "entity_id",
+          "references": {"table": "XX_ENTITY", "column": "id"},
+          "on_delete": "CASCADE",
+          "description": "Links each pivot fund to an entity."
+        },
+        {
+          "column": "account_id",
+          "references": {"table": "XX_ACCOUNT", "column": "id"},
+          "on_delete": "CASCADE",
+          "description": "Links each pivot fund to an account."
+        }
+      ],
+      "example": {
+        "id": 1,
+        "entity_id": 1,
+        "account_id": 1,
+        "year": 2025,
+        "actual": 10000.00,
+        "fund": 5000.00,
+        "budget": 15000.00,
+        "encumbrance": 200.00
+      },
+      "constraints": [
+        {
+          "type": "UNIQUE",
+          "columns": ["entity_id", "account_id", "year"],
+          "description": "Ensures that each (entity, account, year) combination is unique."
+        }
+      ]
+    },
+    "XX_ADJD_TRANSACTION_AUDIT": {
+      "description": "Represents ADJD transaction audit records.",
+      "columns": {
+        "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each audit record."},
+        "type": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Type of audit."},
+        "transfer_id": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Transfer ID."},
+        "transcation_code": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Transaction code."},
+        "cost_center_code": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Cost center code."},
+        "account_code": {"type": "VARCHAR(50)", "constraints": ["NULLABLE"], "description": "Account code."}
+      },
+      "foreign_keys": [],
+      "example": {
+        "id": 1,
+        "type": "audit",
+        "transfer_id": 1,
+        "transcation_code": "TRF001",
+        "cost_center_code": "CC001",
+        "account_code": "AC001"
+      }
+    },
+    "XX_ACCOUNT_ENTITY_LIMIT": {
+      "description": "Represents ADJD account entity limits.",
+      "columns": {
+        "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each limit."},
+        "account_id": {"type": "VARCHAR(255)", "constraints": ["NOT NULL"], "description": "Account ID."},
+        "entity_id": {"type": "VARCHAR(255)", "constraints": ["NOT NULL"], "description": "Entity ID."},
+        "is_transer_allowed_for_source": {"type": "VARCHAR(255)", "constraints": ["NULLABLE"], "description": "Is transfer allowed for source."},
+        "is_transer_allowed_for_target": {"type": "VARCHAR(255)", "constraints": ["NULLABLE"], "description": "Is transfer allowed for target."},
+        "is_transer_allowed": {"type": "VARCHAR(255)", "constraints": ["NULLABLE"], "description": "Is transfer allowed."},
+        "source_count": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Source count."},
+        "target_count": {"type": "INTEGER", "constraints": ["NULLABLE"], "description": "Target count."}
+      },
+      "constraints": [
+        {
+          "type": "UNIQUE",
+          "columns": ["account_id", "entity_id"],
+          "description": "Ensures that each (account_id, entity_id) combination is unique."
+        }
+      ],
+      "foreign_keys": [],
+      "example": {
+        "id": 1,
+        "account_id": "1000-01",
+        "entity_id": "Entity1",
+        "is_transer_allowed_for_source": "Yes",
+        "is_transer_allowed_for_target": "No",
+        "is_transer_allowed": "Yes",
+        "source_count": 2,
+        "target_count": 1
+      }
+    }
+  },
+  "views": {},
+  "triggers": {},
+  "constraints": {
+    "XX_USER": [
+      {
+        "description": "username must be unique",
+        "example": "Cannot have two users with username 'admin'."
+      }
+    ],
+    "XX_USER_LEVEL": [
+      {
+        "description": "name must be unique",
+        "example": "Cannot have two user levels with name 'Manager'."
+      }
+    ]
+  }
+}
