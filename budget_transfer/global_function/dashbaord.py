@@ -26,11 +26,11 @@ from decimal import Decimal
 def dashboard_smart(filter_cost_center=None, filter_account_code=None):
     """
     Optimized smart dashboard using database-level aggregations
-    
+
     Args:
         filter_cost_center (int, optional): Filter by specific cost center code
         filter_account_code (int, optional): Filter by specific account code
-    
+
     Returns:
         dict: Dashboard data with optional filters applied
     """
@@ -39,15 +39,17 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
 
         print("Starting optimized smart dashboard calculation...")
         if filter_cost_center or filter_account_code:
-            print(f"Filters applied: cost_center={filter_cost_center}, account_code={filter_account_code}")
+            print(
+                f"Filters applied: cost_center={filter_cost_center}, account_code={filter_account_code}"
+            )
 
         # PHASE 1: Database-level aggregations for approved transfers
         aggregation_start = time.time()
 
         # Build base queryset with optimized filtering
-        base_queryset = xx_TransactionTransfer.objects.select_related('transaction').filter(
-            transaction__status="approved"
-        )
+        base_queryset = xx_TransactionTransfer.objects.select_related(
+            "transaction"
+        ).filter(transaction__status="approved")
 
         # Apply additional filters if provided
         if filter_cost_center:
@@ -56,55 +58,68 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
             base_queryset = base_queryset.filter(account_code=filter_account_code)
 
         # Aggregate by cost center code (single database query)
-        cost_center_totals = list(base_queryset.values('cost_center_code').annotate(
-            total_from_center=Sum('from_center'),
-            total_to_center=Sum('to_center')
-        ).order_by('cost_center_code'))
+        cost_center_totals = list(
+            base_queryset.values("cost_center_code")
+            .annotate(
+                total_from_center=Sum("from_center"), total_to_center=Sum("to_center")
+            )
+            .order_by("cost_center_code")
+        )
 
         # Aggregate by account code (single database query)
-        account_code_totals = list(base_queryset.values('account_code').annotate(
-            total_from_center=Sum('from_center'),
-            total_to_center=Sum('to_center')
-        ).order_by('account_code'))
+        account_code_totals = list(
+            base_queryset.values("account_code")
+            .annotate(
+                total_from_center=Sum("from_center"), total_to_center=Sum("to_center")
+            )
+            .order_by("account_code")
+        )
 
         # Aggregate by combination of cost center and account code (single database query)
-        all_combinations = list(base_queryset.values('cost_center_code', 'account_code').annotate(
-            total_from_center=Sum('from_center'),
-            total_to_center=Sum('to_center')
-        ).order_by('cost_center_code', 'account_code'))
+        all_combinations = list(
+            base_queryset.values("cost_center_code", "account_code")
+            .annotate(
+                total_from_center=Sum("from_center"), total_to_center=Sum("to_center")
+            )
+            .order_by("cost_center_code", "account_code")
+        )
 
         # Get filtered individual records if filters are applied
         if filter_cost_center or filter_account_code:
-            filtered_combinations = list(base_queryset.values(
-                'cost_center_code', 'account_code', 'from_center', 'to_center'
-            ))
+            filtered_combinations = list(
+                base_queryset.values(
+                    "cost_center_code", "account_code", "from_center", "to_center"
+                )
+            )
         else:
             # If no filters, use aggregated data to avoid large result sets
             filtered_combinations = all_combinations
 
-        print(f"Database aggregations completed in {time.time() - aggregation_start:.2f}s")
+        print(
+            f"Database aggregations completed in {time.time() - aggregation_start:.2f}s"
+        )
 
         # PHASE 2: Format response data
         format_start = time.time()
 
         # Convert Decimal to float for JSON serialization
         for item in cost_center_totals:
-            item['total_from_center'] = float(item['total_from_center'] or 0)
-            item['total_to_center'] = float(item['total_to_center'] or 0)
+            item["total_from_center"] = float(item["total_from_center"] or 0)
+            item["total_to_center"] = float(item["total_to_center"] or 0)
 
         for item in account_code_totals:
-            item['total_from_center'] = float(item['total_from_center'] or 0)
-            item['total_to_center'] = float(item['total_to_center'] or 0)
+            item["total_from_center"] = float(item["total_from_center"] or 0)
+            item["total_to_center"] = float(item["total_to_center"] or 0)
 
         for item in all_combinations:
-            item['total_from_center'] = float(item['total_from_center'] or 0)
-            item['total_to_center'] = float(item['total_to_center'] or 0)
+            item["total_from_center"] = float(item["total_from_center"] or 0)
+            item["total_to_center"] = float(item["total_to_center"] or 0)
 
         # Convert filtered combinations
         for item in filtered_combinations:
-            if 'from_center' in item:  # Individual records
-                item['from_center'] = float(item['from_center'] or 0)
-                item['to_center'] = float(item['to_center'] or 0)
+            if "from_center" in item:  # Individual records
+                item["from_center"] = float(item["from_center"] or 0)
+                item["to_center"] = float(item["to_center"] or 0)
 
         print(f"Data formatting completed in {time.time() - format_start:.2f}s")
 
@@ -123,29 +138,32 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
                 "aggregation_time": round(time.time() - aggregation_start, 2),
                 "cost_center_groups": len(cost_center_totals),
                 "account_code_groups": len(account_code_totals),
-                "total_combinations": len(all_combinations)
-            }
+                "total_combinations": len(all_combinations),
+            },
         }
 
         print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
-        print(f"Found {len(cost_center_totals)} cost centers, {len(account_code_totals)} account codes")
+        print(
+            f"Found {len(cost_center_totals)} cost centers, {len(account_code_totals)} account codes"
+        )
 
         # Save dashboard data
         save_start = time.time()
         try:
             dashboard, created = xx_DashboardBudgetTransfer.objects.get_or_create(
-                Dashboard_id=1,
-                defaults={'data': '{}'}
+                Dashboard_id=1, defaults={"data": "{}"}
             )
 
             existing_data = dashboard.get_data() or {}
-            existing_data['smart'] = data
+            existing_data["smart"] = data
 
             dashboard.set_data(existing_data)
             dashboard.save()
 
             print(f"Dashboard data saved in {time.time() - save_start:.2f}s")
-            print(f"Smart dashboard data {'created' if created else 'updated'} successfully")
+            print(
+                f"Smart dashboard data {'created' if created else 'updated'} successfully"
+            )
             return data
 
         except Exception as save_error:
@@ -155,8 +173,10 @@ def dashboard_smart(filter_cost_center=None, filter_account_code=None):
     except Exception as e:
         print(f"Error in optimized dashboard_smart: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 from django.utils import timezone
 from datetime import date
@@ -230,7 +250,7 @@ def dashboard_normal():
 
         # Get all transfers with minimal data loading
         transfers_queryset = xx_BudgetTransfer.objects.only(
-            'code', 'status', 'status_level', 'request_date'
+            "code", "status", "status_level", "request_date"
         )
 
         # Use database aggregations for counting
@@ -238,31 +258,31 @@ def dashboard_normal():
 
         # Count by status using database aggregation
         status_counts = transfers_queryset.aggregate(
-            approved=Count('transaction_id', filter=Q(status='approved')),
-            rejected=Count('transaction_id', filter=Q(status='rejected')),
-            pending=Count('transaction_id', filter=Q(status='pending'))
+            approved=Count("transaction_id", filter=Q(status="approved")),
+            rejected=Count("transaction_id", filter=Q(status="rejected")),
+            pending=Count("transaction_id", filter=Q(status="pending")),
         )
 
         # Count by status level using database aggregation
         level_counts = transfers_queryset.aggregate(
-            level1=Count('transaction_id', filter=Q(status_level=1)),
-            level2=Count('transaction_id', filter=Q(status_level=2)),
-            level3=Count('transaction_id', filter=Q(status_level=3)),
-            level4=Count('transaction_id', filter=Q(status_level=4))
+            level1=Count("transaction_id", filter=Q(status_level=1)),
+            level2=Count("transaction_id", filter=Q(status_level=2)),
+            level3=Count("transaction_id", filter=Q(status_level=3)),
+            level4=Count("transaction_id", filter=Q(status_level=4)),
         )
 
         # Count by code prefix using database functions
         code_counts = transfers_queryset.aggregate(
-            far=Count('transaction_id', filter=Q(code__istartswith='FAR')),
-            afr=Count('transaction_id', filter=Q(code__istartswith='AFR')),
-            fad=Count('transaction_id', filter=Q(code__istartswith='FAD'))
+            far=Count("transaction_id", filter=Q(code__istartswith="FAR")),
+            afr=Count("transaction_id", filter=Q(code__istartswith="AFR")),
+            fad=Count("transaction_id", filter=Q(code__istartswith="FAD")),
         )
 
         # Get request dates efficiently (only non-null dates)
         request_dates = list(
             transfers_queryset.filter(request_date__isnull=False)
-            .values_list('request_date', flat=True)
-            .order_by('-request_date')[:1000]  # Limit to recent 1000 for performance
+            .values_list("request_date", flat=True)
+            .order_by("-request_date")[:1000]  # Limit to recent 1000 for performance
         )
 
         # Convert datetime objects to ISO format strings for JSON serialization
@@ -305,18 +325,19 @@ def dashboard_normal():
         save_start = time.time()
         try:
             dashboard, created = xx_DashboardBudgetTransfer.objects.get_or_create(
-                Dashboard_id=1,
-                defaults={'data': '{}'}
+                Dashboard_id=1, defaults={"data": "{}"}
             )
 
             existing_data = dashboard.get_data() or {}
-            existing_data['normal'] = data
+            existing_data["normal"] = data
 
             dashboard.set_data(existing_data)
             dashboard.save()
 
             print(f"Dashboard data saved in {time.time() - save_start:.2f}s")
-            print(f"Normal dashboard data {'created' if created else 'updated'} successfully")
+            print(
+                f"Normal dashboard data {'created' if created else 'updated'} successfully"
+            )
             return data
 
         except Exception as save_error:
@@ -326,17 +347,18 @@ def dashboard_normal():
     except Exception as e:
         print(f"Error in optimized dashboard_normal: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
-def get_saved_dashboard_data(dashboard_type='smart'):
+def get_saved_dashboard_data(dashboard_type="smart"):
     """
     Retrieve saved dashboard data from database
-    
+
     Args:
         dashboard_type (str): 'smart' or 'normal'
-    
+
     Returns:
         dict: Dashboard data or None if not found
     """
@@ -355,7 +377,7 @@ def get_saved_dashboard_data(dashboard_type='smart'):
 def get_all_dashboard_data():
     """
     Retrieve all dashboard data (both smart and normal) from database
-    
+
     Returns:
         dict: All dashboard data or None if not found
     """
@@ -371,19 +393,19 @@ def get_all_dashboard_data():
         return {}
 
 
-def refresh_dashboard_data(dashboard_type='smart'):
+def refresh_dashboard_data(dashboard_type="smart"):
     """
     Refresh dashboard data by running the appropriate function and saving to database
-    
+
     Args:
         dashboard_type (str): 'smart' or 'normal'
-    
+
     Returns:
         dict: Updated dashboard data or False if error
     """
-    if dashboard_type == 'smart':
+    if dashboard_type == "smart":
         return dashboard_smart()
-    elif dashboard_type == 'normal':
+    elif dashboard_type == "normal":
         return dashboard_normal()
     else:
         print(f"Invalid dashboard type: {dashboard_type}")

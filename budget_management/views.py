@@ -1371,9 +1371,7 @@ class ListBudgetTransfer_approvels_MobileView(APIView):
             if request.user.user_level.level_order
             else 0
         )
-        transfers = xx_BudgetTransfer.objects.filter(
-            status_level=status_level_val, type=code, status="pending"
-        )
+        transfers = ApprovalManager.get_user_pending_approvals(request.user)
 
         if request.user.abilities.count() > 0:
             transfers = filter_budget_transfers_all_in_entities(
