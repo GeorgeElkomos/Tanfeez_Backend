@@ -31,7 +31,7 @@ def safe_decimal_convert(value):
         return None
 
 
-def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="report.xlsx"):
+def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", period_name="sep-25", save_path="report.xlsx"):
     """
     Download balance report from Oracle service
     
@@ -48,6 +48,10 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
         password = "Mubadala345"
 
         escaped_param = escape(control_budget_name)
+        escaped_param2 = escape(period_name)
+
+        
+
 
         soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
         <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
@@ -56,7 +60,7 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
            <soap12:Body>
               <pub:runReport>
                  <pub:reportRequest>
-                    <pub:reportAbsolutePath>/API/balancess_report.xdo</pub:reportAbsolutePath>
+                    <pub:reportAbsolutePath>/API/period_balance_report.xdo</pub:reportAbsolutePath>
                     <pub:attributeFormat>xlsx</pub:attributeFormat>
                     <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
                     <pub:parameterNameValues>
@@ -64,6 +68,12 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
                           <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
                           <pub:values>
                              <pub:item>{escaped_param}</pub:item>
+                          </pub:values>
+                       </pub:item>
+                       <pub:item>
+                          <pub:name>P_PERIOD_NAME</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_param2}</pub:item>
                           </pub:values>
                        </pub:item>
                     </pub:parameterNameValues>
@@ -154,8 +164,8 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
             # Expected columns
             expected_columns = [
                 'CONTROL_BUDGET_NAME', 'LEDGER_NAME', 'AS_OF_PERIOD', 'SEGMENT1', 
-                'SEGMENT2', 'SEGMENT3', 'ENCUMBRANCE_YTD', 'OTHER_YTD', 'ACTUAL_YTD', 
-                'FUNDS_AVAILABLE_ASOF', 'BUDGET_YTD'
+                'SEGMENT2', 'SEGMENT3', 'ENCUMBRANCE_PTD', 'OTHER_PTD', 'ACTUAL_PTD', 
+                'FUNDS_AVAILABLE_ASOF', 'BUDGET_PTD'
             ]
             
             # Check if required columns exist
@@ -187,11 +197,11 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
                         segment1=str(row['SEGMENT1']).strip() if pd.notna(row['SEGMENT1']) else None,
                         segment2=str(row['SEGMENT2']).strip() if pd.notna(row['SEGMENT2']) else None,
                         segment3=str(row['SEGMENT3']).strip() if pd.notna(row['SEGMENT3']) else None,
-                        encumbrance_ytd=safe_decimal_convert(row['ENCUMBRANCE_YTD']),
-                        other_ytd=safe_decimal_convert(row['OTHER_YTD']),
-                        actual_ytd=safe_decimal_convert(row['ACTUAL_YTD']),
+                        encumbrance_ytd=safe_decimal_convert(row['ENCUMBRANCE_PTD']),
+                        other_ytd=safe_decimal_convert(row['OTHER_PTD']),
+                        actual_ytd=safe_decimal_convert(row['ACTUAL_PTD']),
                         funds_available_asof=safe_decimal_convert(row['FUNDS_AVAILABLE_ASOF']),
-                        budget_ytd=safe_decimal_convert(row['BUDGET_YTD'])
+                        budget_ytd=safe_decimal_convert(row['BUDGET_PTD'])
                     )
                     
                     balance_report.save()
@@ -228,7 +238,7 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
         return result
 
 
-def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY"):
+def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="sep-25"):
     """
     Complete process: Download report from Oracle and load into database
     
@@ -247,10 +257,10 @@ def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY"):
     }
     
     try:
-        print(f"🚀 Starting report refresh for: {control_budget_name}")
+        print(f"🚀 Starting report refresh for: {control_budget_name} (Period: {period_name})")
         
         # Step 1: Download the report
-        download_success = download_oracle_report(control_budget_name)
+        download_success = download_oracle_report(control_budget_name, period_name, "report.xlsx")
         result['download_success'] = download_success
         
         if not download_success:

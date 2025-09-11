@@ -30,20 +30,20 @@ def update_pivot_fund(cost_center_code, account_code, project_code, from_center,
 
         # decide =1 when sent for approvel
         print(f"decide: {decide}")
-        if decide == "pending":
+        if decide == 1:
             print(f"from_center_dec: {from_center_dec}")
             print(f"encumbrance: {pivot_fund.encumbrance}")
             pivot_fund.encumbrance += from_center_dec
         # decide = 2 when approved
-        elif decide == "approved":
+        elif decide == 2:
             if from_center_dec > 0:
                 print(f"from_center_dec: {from_center_dec}")
                 print(f"encumbrance: {pivot_fund.encumbrance}")
                 pivot_fund.encumbrance -= from_center_dec
             elif to_center_dec > 0:
                 pivot_fund.actual += to_center_dec
-        # decide = 3 when rejected
-        elif decide == "rejected":  # Changed to elif to avoid multiple executions
+        # decide = 3 when rejcted
+        elif decide == 3:  # Changed to elif to avoid multiple executions
             if from_center_dec > 0:
                 pivot_fund.encumbrance += from_center_dec
 

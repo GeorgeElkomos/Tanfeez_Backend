@@ -78,10 +78,3 @@ def create_workflow_instance(sender, instance, created, **kwargs):
         ApprovalManager.create_instance(
             transfer_type=instance.type.upper(), budget_transfer=instance
         )
-    else:
-        if instance.status == "submitted":
-            instance.status = "pending"
-            instance.save(update_fields=["status"])
-            ApprovalManager.start_workflow(
-                transfer_type=instance.type.lower(), budget_transfer=instance
-            )

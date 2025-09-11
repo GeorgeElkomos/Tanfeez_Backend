@@ -9,9 +9,7 @@ from django.utils import timezone
 from django.db.models import Q, Sum
 from django.db.models.functions import Cast
 from django.db.models import CharField
-from approvals.managers import ApprovalManager
-from approvals.models import ApprovalAction
-from user_management.models import xx_User, xx_notification
+from user_management.models import xx_notification
 from .models import (
     filter_budget_transfers_all_in_entities,
     xx_BudgetTransfer,
@@ -24,9 +22,9 @@ from adjd_transaction.models import xx_TransactionTransfer
 from .serializers import BudgetTransferSerializer
 from user_management.permissions import IsAdmin, CanTransferBudget
 from budget_transfer.global_function.dashbaord import (
-    get_all_dashboard_data,
-    get_saved_dashboard_data,
-    refresh_dashboard_data,
+    get_all_dashboard_data, 
+    get_saved_dashboard_data, 
+    refresh_dashboard_data
 )
 from public_funtion.update_pivot_fund import update_pivot_fund
 import base64
@@ -59,8 +57,6 @@ class TransferPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
-
-
 class CreateBudgetTransferView(APIView):
     """Create budget transfers"""
 
@@ -95,12 +91,14 @@ class CreateBudgetTransferView(APIView):
         else:
 
             prefix = "FAR-"
+            
 
         last_transfer = (
-            xx_BudgetTransfer.objects.filter(code__startswith=prefix)
-            .order_by("-code")
-            .first()
-        )
+                xx_BudgetTransfer.objects
+                .filter(code__startswith=prefix)
+                .order_by("-code")
+                .first()
+            )
 
         if last_transfer and last_transfer.code:
             try:
@@ -140,8 +138,6 @@ class CreateBudgetTransferView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class ListBudgetTransferView(APIView):
     """List budget transfers with pagination"""
 
@@ -165,22 +161,20 @@ class ListBudgetTransferView(APIView):
         # Apply status restriction
         if status_type:
             if status_type == "finished":
-                transfers = transfers.filter(
-                    Q(status="approved") | Q(status="rejected")
-                )
+                transfers = transfers.filter(Q(status="approved") | Q(status="rejected"))
             else:
                 transfers = transfers.filter(status=status_type)
         # print(type(code))
+
 
         if code:
             # Coerce to string first and use upper() to avoid errors if a non-string is provided
             code_upper = code.upper()
             transfers = transfers.filter(type=code_upper)
 
+
         if request.user.abilities.count() > 0:
-            transfers = filter_budget_transfers_all_in_entities(
-                budget_transfers=transfers, user=request.user, Type="edit"
-            )
+            transfers = filter_budget_transfers_all_in_entities(budget_transfers=transfers, user=request.user, Type='edit')
 
         # Free-text search across common fields (icontains)
         if search:
@@ -212,10 +206,7 @@ class ListBudgetTransferView(APIView):
 
             if day:
                 if not _validate("%Y-%m-%d", day):
-                    return Response(
-                        {"error": "Invalid day format. Use YYYY-MM-DD"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    return Response({"error": "Invalid day format. Use YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
                 transfers = transfers.filter(request_date__startswith=day)
             elif month:
                 mval = str(month)
@@ -232,12 +223,7 @@ class ListBudgetTransferView(APIView):
                         except Exception:
                             pass
                 if not prefix:
-                    return Response(
-                        {
-                            "error": "Invalid month. Provide YYYY-MM or month with 'year'"
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    return Response({"error": "Invalid month. Provide YYYY-MM or month with 'year'"}, status=status.HTTP_400_BAD_REQUEST)
                 transfers = transfers.filter(request_date__startswith=prefix)
             elif year:
                 try:
@@ -245,93 +231,50 @@ class ListBudgetTransferView(APIView):
                     if yi < 1900 or yi > 2100:
                         raise ValueError()
                 except Exception:
-                    return Response(
-                        {"error": "Invalid year. Use YYYY in range 1900-2100"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    return Response({"error": "Invalid year. Use YYYY in range 1900-2100"}, status=status.HTTP_400_BAD_REQUEST)
                 transfers = transfers.filter(request_date__startswith=f"{int(year)}-")
             elif sdate and edate:
                 sd = str(sdate)
                 ed = str(edate)
                 if not (_validate("%Y-%m-%d", sd) and _validate("%Y-%m-%d", ed)):
-                    return Response(
-                        {
-                            "error": "Invalid date range. Use YYYY-MM-DD for start_date and end_date"
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    return Response({"error": "Invalid date range. Use YYYY-MM-DD for start_date and end_date"}, status=status.HTTP_400_BAD_REQUEST)
                 if sd > ed:
                     sd, ed = ed, sd
                 transfers = transfers.filter(request_date__gte=sd, request_date__lte=ed)
         except Exception as _date_err:
-            return Response(
-                {"error": f"Failed to apply date filter: {_date_err}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": f"Failed to apply date filter: {_date_err}"}, status=status.HTTP_400_BAD_REQUEST)
+
 
         # Use only safe fields for ordering to avoid Oracle NCLOB issues
         transfers = transfers.order_by("-transaction_id")
-
+        
         # Convert to list to avoid lazy evaluation issues with Oracle
         # Exclude TextField columns that become NCLOB in Oracle
-        transfer_list = list(
-            transfers.values(
-                "transaction_id",
-                "transaction_date",
-                "amount",
-                "status",
-                "requested_by",
-                "user_id",
-                "request_date",
-                "code",
-                "gl_posting_status",
-                "approvel_1",
-                "approvel_2",
-                "approvel_3",
-                "approvel_4",
-                "approvel_1_date",
-                "approvel_2_date",
-                "approvel_3_date",
-                "approvel_4_date",
-                "status_level",
-                "attachment",
-                "fy",
-                "group_id",
-                "interface_id",
-                "reject_group_id",
-                "reject_interface_id",
-                "approve_group_id",
-                "approve_interface_id",
-                "report",
-                "type",
-                # Excluding 'notes' field as it's TextField/NCLOB in Oracle
-            )
-        )
-
+        transfer_list = list(transfers.values(
+            'transaction_id', 'transaction_date', 'amount', 'status', 
+            'requested_by', 'user_id', 'request_date', 'code', 
+            'gl_posting_status', 'approvel_1', 'approvel_2', 'approvel_3', 'approvel_4',
+            'approvel_1_date', 'approvel_2_date', 'approvel_3_date', 'approvel_4_date',
+            'status_level', 'attachment', 'fy', 'group_id', 'interface_id',
+            'reject_group_id', 'reject_interface_id', 'approve_group_id', 'approve_interface_id',
+            'report', 'type'
+            # Excluding 'notes' field as it's TextField/NCLOB in Oracle
+        ))
+        
         # Manual pagination to avoid Oracle issues
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
-
+        
         paginated_data = transfer_list[start_idx:end_idx]
-
-        return Response(
-            {
-                "results": paginated_data,
-                "count": len(transfer_list),
-                "next": (
-                    f"?page={page + 1}&page_size={page_size}"
-                    if end_idx < len(transfer_list)
-                    else None
-                ),
-                "previous": (
-                    f"?page={page - 1}&page_size={page_size}" if page > 1 else None
-                ),
-            }
-        )
-
-
+        
+        return Response({
+            'results': paginated_data,
+            'count': len(transfer_list),
+            'next': f"?page={page + 1}&page_size={page_size}" if end_idx < len(transfer_list) else None,
+            'previous': f"?page={page - 1}&page_size={page_size}" if page > 1 else None
+        })
 class ListBudgetTransfer_approvels_View(APIView):
     """List budget transfers with pagination"""
 
@@ -351,16 +294,13 @@ class ListBudgetTransfer_approvels_View(APIView):
             if request.user.user_level.level_order
             else 0
         )
-        # transfers = xx_BudgetTransfer.objects.filter(
-        #     status_level=status_level_val, type=code, status="pending"
-        # )
-        transfers = ApprovalManager.get_user_pending_approvals(request.user)
-
+        transfers = xx_BudgetTransfer.objects.filter(
+            status_level=status_level_val, type=code,status= "pending"
+        )
+        
         if request.user.abilities.count() > 0:
-            transfers = filter_budget_transfers_all_in_entities(
-                transfers, request.user, "approve"
-            )
-
+            transfers = filter_budget_transfers_all_in_entities(transfers, request.user, 'approve')
+        
         if code:
             transfers = transfers.filter(code__icontains=code)
 
@@ -387,8 +327,6 @@ class ListBudgetTransfer_approvels_View(APIView):
             filtered_data.append(filtered_item)
 
         return paginator.get_paginated_response(filtered_data)
-
-
 class ApproveBudgetTransferView(APIView):
     """Approve or reject budget transfer requests (admin only)"""
 
@@ -435,8 +373,6 @@ class ApproveBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
-
 class GetBudgetTransferView(APIView):
     """Get a specific budget transfer by ID"""
 
@@ -468,8 +404,6 @@ class GetBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
-
 class UpdateBudgetTransferView(APIView):
     """Update a budget transfer"""
 
@@ -480,7 +414,7 @@ class UpdateBudgetTransferView(APIView):
         try:
 
             transfer = xx_BudgetTransfer.objects.get(transaction_id=transfer_id)
-            # Get transaction_id from the request
+             # Get transaction_id from the request
             transaction_id = request.data.get("transaction")
             transfer = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
 
@@ -549,8 +483,6 @@ class UpdateBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
-
 class DeleteBudgetTransferView(APIView):
     """Delete a specific budget transfer by ID"""
 
@@ -586,8 +518,6 @@ class DeleteBudgetTransferView(APIView):
             return Response(
                 {"message": "Transfer not found."}, status=status.HTTP_404_NOT_FOUND
             )
-
-
 class Adjdtranscationtransferapprovel_reject(APIView):
     """Submit ADJD transaction transfers for approval"""
 
@@ -617,9 +547,6 @@ class Adjdtranscationtransferapprovel_reject(APIView):
             decide = item.get("decide")[0]
             if item.get("reason") is not None:
                 reson = item.get("reason")[0]
-            if item.get("other_user_id") is not None:
-                OtherUserId = item.get("other_user_id")[0]
-            OtherUser = None
             # Validate required fields
             if not transaction_id:
                 return Response(
@@ -629,16 +556,15 @@ class Adjdtranscationtransferapprovel_reject(APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if decide not in dict(ApprovalAction.ACTION_CHOICES):
+            if decide not in [2, 3]:
                 return Response(
                     {
                         "error": "Invalid decision value",
-                        "message": "Decision value must be One from "
-                        + str(ApprovalAction.ACTION_CHOICES),
+                        "message": "Decision value must be 2 (approve) or 3 (reject)",
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if decide == ApprovalAction.ACTION_REJECT and not reson:
+            if decide == 3 and not reson:
                 return Response(
                     {
                         "error": "Reason is required for rejection",
@@ -646,52 +572,61 @@ class Adjdtranscationtransferapprovel_reject(APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if decide == ApprovalAction.ACTION_DELEGATE:
-                if not OtherUserId:
-                    return Response(
-                        {
-                            "error": "Other user is required for delegation",
-                            "message": "Please provide a user to delegate the approval to",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                elif not xx_User.objects.filter(id=OtherUserId).exists():
-                    return Response(
-                        {
-                            "error": "Selected user does not exist",
-                            "message": "Please select a valid user for delegation",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                else:
-                    OtherUser = xx_User.objects.get(id=OtherUserId)
-                    if not OtherUser.is_active:
-                        return Response(
-                            {
-                                "error": "Selected user is inactive",
-                                "message": "Please select an active user for delegation",
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
             try:
                 # Get the transfer record - use get() for single record
                 trasncation = xx_BudgetTransfer.objects.get(
                     transaction_id=transaction_id
                 )
-                ApprovalManager.process_action(
-                    trasncation,
-                    request.user,
-                    decide,
-                    comment=reson,
-                    target_user=OtherUser,
-                )
+                # Get the transfer type code
+                code = trasncation.code.split("-")[0]
+                # Handle approval flow based on transfer type
+                if code == "FAR" or code == "AFR":
+                    max_level = 4
+                else:
+                    max_level = 3
+                # Update approval based on decision
+                if decide == 2 and trasncation.status_level <= max_level:  # Approve
+                    level = trasncation.status_level
+                    # Set the appropriate approval fields
+                    if level == 2:
+                        trasncation.approvel_2 = request.user.username
+                        trasncation.approvel_2_date = timezone.now()
+                    elif level == 3:
+                        trasncation.approvel_3 = request.user.username
+                        trasncation.approvel_3_date = timezone.now()
+                    elif level == 4:
+                        trasncation.approvel_4 = request.user.username
+                        trasncation.approvel_4_date = timezone.now()
+                    if trasncation.status_level == max_level:
+                        trasncation.status = "approved"
+                    trasncation.status_level += 1
+                elif decide == 3:  # Reject
+                    # Record who rejected it at the current level
+                    level = trasncation.status_level
+                    if level == 2:
+                        trasncation.approvel_2 = request.user.username
+                        trasncation.approvel_2_date = timezone.now()
+                    elif level == 3:
+                        trasncation.approvel_3 = request.user.username
+                        trasncation.approvel_3_date = timezone.now()
+                    elif level == 4:
+                        trasncation.approvel_4 = request.user.username
+                        trasncation.approvel_4_date = timezone.now()
+                    trasncation.status_level = -1
+                    Reson_object = xx_BudgetTransferRejectReason.objects.create(
+                        Transcation_id=trasncation,
+                        reason_text=reson,
+                        reject_by=request.user.username,
+                    )
+                    Reson_object.save()
+                    trasncation.status = "rejected"
+                # Save changes to the transfer
+                trasncation.save()
                 # Update pivot fund if final approval or rejection
                 pivot_updates = []
-                trasncation = xx_BudgetTransfer.objects.get(
-                    transaction_id=transaction_id
-                )
-                isFinal, Status = ApprovalManager.is_workflow_finished(trasncation)
-                if isFinal:
+                if (
+                    max_level == trasncation.status_level and decide == 2
+                ) or decide == 3:
                     trasfers = xx_TransactionTransfer.objects.filter(
                         transaction_id=transaction_id
                     )
@@ -710,35 +645,27 @@ class Adjdtranscationtransferapprovel_reject(APIView):
                                 item_project_code,
                                 from_center,
                                 to_center,
-                                Status,
+                                decide,
                             )
                             if update_result:
                                 pivot_updates.append(update_result)
                         except Exception as e:
-                            pivot_updates.append(
+                            return Response(
                                 {
-                                    "cost_center_code": transfer.cost_center_code,
-                                    "account_code": transfer.account_code,
-                                    "project_code": transfer.project_code,
-                                    "status": "error",
+                                    "error": "Error updating pivot fund",
                                     "message": str(e),
-                                }
+                                },
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             )
-                            continue
-
                         # Add the result for this transaction
-                    results.append(
-                        {
-                            "transaction_id": transaction_id,
-                            "status": Status,
-                            "status_level": trasncation.status_level,
-                            "pivot_updates": pivot_updates,
-                        }
-                    )
-                    trasncation.status = (
-                        "rejected" if Status == "rejected" else "approved"
-                    )
-                    trasncation.save()
+                        results.append(
+                            {
+                                "transaction_id": transaction_id,
+                                "status": "approved" if decide == 2 else "rejected",
+                                "status_level": trasncation.status_level,
+                                "pivot_updates": pivot_updates,
+                            }
+                        )
             except xx_BudgetTransfer.DoesNotExist:
                 results.append(
                     {
@@ -761,8 +688,6 @@ class Adjdtranscationtransferapprovel_reject(APIView):
             {"message": "Transfers processed", "results": results},
             status=status.HTTP_200_OK,
         )
-
-
 class BudgetTransferFileUploadView(APIView):
     """Upload files for a budget transfer and store as BLOBs"""
 
@@ -836,8 +761,6 @@ class BudgetTransferFileUploadView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-
 class DeleteBudgetTransferAttachmentView(APIView):
     """Delete a specific file attachment from a budget transfer"""
 
@@ -921,8 +844,6 @@ class DeleteBudgetTransferAttachmentView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-
 class ListBudgetTransferAttachmentsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -961,8 +882,6 @@ class ListBudgetTransferAttachmentsView(APIView):
             return Response(
                 {"error": "Transfer not found"}, status=status.HTTP_404_NOT_FOUND
             )
-
-
 class list_budget_transfer_reject_reason(APIView):
     """List all budget transfer reject reasons"""
 
@@ -988,23 +907,18 @@ class list_budget_transfer_reject_reason(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
 class StaticDashboardView(APIView):
     """Optimized dashboard view for encrypted budget transfers"""
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             # Get dashboard type from query params (default to 'smart')
-            dashboard_type = request.query_params.get("type", "smart")
-
+            dashboard_type = request.query_params.get('type', 'smart')
+            
             # Check if user wants to force refresh
-            force_refresh = (
-                request.query_params.get("refresh", "false").lower() == "true"
-            )
-
+            force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
+            
             if force_refresh:
                 # Only refresh when explicitly requested
                 data = refresh_dashboard_data(dashboard_type)
@@ -1012,12 +926,12 @@ class StaticDashboardView(APIView):
                     return Response(data, status=status.HTTP_200_OK)
                 else:
                     return Response(
-                        {"error": "Failed to refresh dashboard data"},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        {"error": "Failed to refresh dashboard data"}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
             else:
                 # Always try to get existing cached data first
-                if dashboard_type == "all":
+                if dashboard_type == 'all':
                     # Get all dashboard data (both smart and normal)
                     data = get_all_dashboard_data()
                     if data:
@@ -1027,9 +941,9 @@ class StaticDashboardView(APIView):
                         return Response(
                             {
                                 "message": "No dashboard data available yet. Data will be generated in background.",
-                                "data": {},
-                            },
-                            status=status.HTTP_200_OK,
+                                "data": {}
+                            }, 
+                            status=status.HTTP_200_OK
                         )
                 else:
                     # Get specific dashboard type (smart or normal)
@@ -1041,23 +955,21 @@ class StaticDashboardView(APIView):
                         return Response(
                             {
                                 "message": f"No {dashboard_type} dashboard data available yet. Data will be generated in background.",
-                                "data": {},
-                            },
-                            status=status.HTTP_200_OK,
+                                "data": {}
+                            }, 
+                            status=status.HTTP_200_OK
                         )
 
         except Exception as e:
             import traceback
-
             traceback.print_exc()
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
 class DashboardBudgetTransferView(APIView):
-    """Optimized dashboard view for encrypted budget transfers"""
 
+    """Optimized dashboard view for encrypted budget transfers"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -1065,15 +977,14 @@ class DashboardBudgetTransferView(APIView):
         try:
             # Get dashboard type from query params (default to 'smart')
 
-            return_data = {}
-            dashboard_type = request.query_params.get("type", "smart")
-            force_refresh = (
-                request.query_params.get("refresh", "false").lower() == "true"
-            )
+            return_data={}
+            dashboard_type = request.query_params.get('type', 'smart')
+            force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
 
-            DashBoard_filler_per_Project = request.query_params.get(
-                "DashBoard_filler_per_Project", None
-            )
+
+
+
+            DashBoard_filler_per_Project = request.query_params.get('DashBoard_filler_per_Project', None)
 
             start_time = time.time()
             print("Starting optimized normal dashboard calculation...")
@@ -1083,19 +994,14 @@ class DashboardBudgetTransferView(APIView):
 
             # Get all transfers with minimal data loading
             transfers_queryset = xx_BudgetTransfer.objects.only(
-                "code", "status", "status_level", "request_date"
+            'code', 'status', 'status_level', 'request_date'
             )
             # if request.user.abilities.count() > 0:
             print(len(transfers_queryset))
-            transfers_queryset = filter_budget_transfers_all_in_entities(
-                transfers_queryset,
-                request.user,
-                "edit",
-                dashboard_filler_per_project=DashBoard_filler_per_Project,
-            )
+            transfers_queryset = filter_budget_transfers_all_in_entities(transfers_queryset, request.user, 'edit',dashboard_filler_per_project=DashBoard_filler_per_Project)
             print(len(transfers_queryset))
 
-            if dashboard_type == "normal" or dashboard_type == "all":
+            if dashboard_type=="normal"  or dashboard_type=="all":
                 # Use database aggregations for counting
                 try:
 
@@ -1103,76 +1009,70 @@ class DashboardBudgetTransferView(APIView):
 
                     # Count by status using database aggregation
                     status_counts = transfers_queryset.aggregate(
-                        approved=Count("transaction_id", filter=Q(status="approved")),
-                        rejected=Count("transaction_id", filter=Q(status="rejected")),
-                        pending=Count("transaction_id", filter=Q(status="pending")),
+                        approved=Count('transaction_id', filter=Q(status='approved')),
+                        rejected=Count('transaction_id', filter=Q(status='rejected')),
+                        pending=Count('transaction_id', filter=Q(status='pending'))
                     )
 
                     # Count by status level using database aggregation
                     level_counts = transfers_queryset.aggregate(
-                        level1=Count("transaction_id", filter=Q(status_level=1)),
-                        level2=Count("transaction_id", filter=Q(status_level=2)),
-                        level3=Count("transaction_id", filter=Q(status_level=3)),
-                        level4=Count("transaction_id", filter=Q(status_level=4)),
+                        level1=Count('transaction_id', filter=Q(status_level=1)),
+                        level2=Count('transaction_id', filter=Q(status_level=2)),
+                        level3=Count('transaction_id', filter=Q(status_level=3)),
+                        level4=Count('transaction_id', filter=Q(status_level=4))
                     )
 
                     # Count by code prefix using database functions
                     code_counts = transfers_queryset.aggregate(
-                        far=Count("transaction_id", filter=Q(code__istartswith="FAR")),
-                        afr=Count("transaction_id", filter=Q(code__istartswith="AFR")),
-                        fad=Count("transaction_id", filter=Q(code__istartswith="FAD")),
+                        far=Count('transaction_id', filter=Q(code__istartswith='FAR')),
+                        afr=Count('transaction_id', filter=Q(code__istartswith='AFR')),
+                        fad=Count('transaction_id', filter=Q(code__istartswith='FAD'))
                     )
 
                     # Get request dates efficiently (only non-null dates)
                     request_dates = list(
                         transfers_queryset.filter(request_date__isnull=False)
-                        .values_list("request_date", flat=True)
-                        .order_by("-request_date")[
-                            :1000
-                        ]  # Limit to recent 1000 for performance
+                        .values_list('request_date', flat=True)
+                        .order_by('-request_date')[:1000]  # Limit to recent 1000 for performance
                     )
 
                     # Convert datetime objects to ISO format strings for JSON serialization
                     request_dates_iso = [date.isoformat() for date in request_dates]
 
-                    print(
-                        f"Database counting completed in {time.time() - count_start:.2f}s"
-                    )
+                    print(f"Database counting completed in {time.time() - count_start:.2f}s")
 
                     # PHASE 2: Format response data
                     data = {
                         "total_transfers": total_count,
-                        "total_transfers_far": code_counts["far"],
-                        "total_transfers_afr": code_counts["afr"],
-                        "total_transfers_fad": code_counts["fad"],
-                        "approved_transfers": status_counts["approved"],
-                        "rejected_transfers": status_counts["rejected"],
-                        "pending_transfers": status_counts["pending"],
+                        "total_transfers_far": code_counts['far'],
+                        "total_transfers_afr": code_counts['afr'],
+                        "total_transfers_fad": code_counts['fad'],
+                        "approved_transfers": status_counts['approved'],
+                        "rejected_transfers": status_counts['rejected'],
+                        "pending_transfers": status_counts['pending'],
                         "pending_transfers_by_level": {
-                            "Level1": level_counts["level1"],
-                            "Level2": level_counts["level2"],
-                            "Level3": level_counts["level3"],
-                            "Level4": level_counts["level4"],
+                            "Level1": level_counts['level1'],
+                            "Level2": level_counts['level2'],
+                            "Level3": level_counts['level3'],
+                            "Level4": level_counts['level4'],
                         },
                         "request_dates": request_dates_iso,
                         "performance_metrics": {
                             "total_processing_time": round(time.time() - start_time, 2),
                             "counting_time": round(time.time() - count_start, 2),
                             "total_records_processed": total_count,
-                            "request_dates_retrieved": len(request_dates_iso),
-                        },
+                            "request_dates_retrieved": len(request_dates_iso)
+                        }
                     }
 
-                    print(
-                        f"Total optimized processing time: {time.time() - start_time:.2f}s"
-                    )
+                    print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
                     print(f"Processed {total_count} transfers")
 
                     # Save dashboard data
                     save_start = time.time()
                     try:
                         # Ensure a local container exists to store dashboard data
-                        return_data["normal"] = data
+                        return_data['normal'] = data
 
                         # If only normal dashboard is requested, return now.
                         if dashboard_type == "normal":
@@ -1181,108 +1081,77 @@ class DashboardBudgetTransferView(APIView):
                         print(f"Error occurred while saving dashboard data: {str(e)}")
                 except Exception as e:
                     print(f"Error occurred while saving dashboard data: {str(e)}")
-            if dashboard_type == "smart" or dashboard_type == "all":
+            if dashboard_type=="smart" or dashboard_type=="all":
                 try:
                     start_time = time.time()
 
                     print("Starting optimized smart dashboard calculation...")
-                    if DashBoard_filler_per_Project:
-                        print(
-                            f"Filters applied: cost_center={DashBoard_filler_per_Project}"
-                        )
+                    if DashBoard_filler_per_Project :
+                        print(f"Filters applied: cost_center={DashBoard_filler_per_Project}")
                     # PHASE 1: Database-level aggregations for approved transfers
                     aggregation_start = time.time()
-
+                    
                     # Build base queryset with optimized filtering
-                    base_queryset = xx_TransactionTransfer.objects.select_related(
-                        "transaction"
-                    ).filter(transaction__status="approved")
-
+                    base_queryset = xx_TransactionTransfer.objects.select_related('transaction').filter(
+                        transaction__status="approved"
+                    )
+                    
                     # Apply additional filters if provided
                     if DashBoard_filler_per_Project:
-                        base_queryset = base_queryset.filter(
-                            cost_center_code=DashBoard_filler_per_Project
-                        )
-
+                        base_queryset = base_queryset.filter(cost_center_code=DashBoard_filler_per_Project)
+                    
                     # Aggregate by cost center code (single database query)
-                    cost_center_totals = list(
-                        base_queryset.values("cost_center_code")
-                        .annotate(
-                            total_from_center=Sum("from_center"),
-                            total_to_center=Sum("to_center"),
-                        )
-                        .order_by("cost_center_code")
-                    )
+                    cost_center_totals = list(base_queryset.values('cost_center_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('cost_center_code'))
 
                     # Aggregate by account code (single database query)
-                    account_code_totals = list(
-                        base_queryset.values("account_code")
-                        .annotate(
-                            total_from_center=Sum("from_center"),
-                            total_to_center=Sum("to_center"),
-                        )
-                        .order_by("account_code")
-                    )
+                    account_code_totals = list(base_queryset.values('account_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('account_code'))
 
                     # Aggregate by combination of cost center and account code (single database query)
-                    all_combinations = list(
-                        base_queryset.values("cost_center_code", "account_code")
-                        .annotate(
-                            total_from_center=Sum("from_center"),
-                            total_to_center=Sum("to_center"),
-                        )
-                        .order_by("cost_center_code", "account_code")
-                    )
+                    all_combinations = list(base_queryset.values('cost_center_code', 'account_code').annotate(
+                        total_from_center=Sum('from_center'),
+                        total_to_center=Sum('to_center')
+                    ).order_by('cost_center_code', 'account_code'))
 
                     # Get filtered individual records if filters are applied
                     if DashBoard_filler_per_Project:
-                        filtered_combinations = list(
-                            base_queryset.values(
-                                "cost_center_code",
-                                "account_code",
-                                "from_center",
-                                "to_center",
-                            )
-                        )
+                        filtered_combinations = list(base_queryset.values(
+                            'cost_center_code', 'account_code', 'from_center', 'to_center'
+                        ))
                     else:
                         # If no filters, use aggregated data to avoid large result sets
                         filtered_combinations = all_combinations
 
-                    print(
-                        f"Database aggregations completed in {time.time() - aggregation_start:.2f}s"
-                    )
+                    print(f"Database aggregations completed in {time.time() - aggregation_start:.2f}s")
 
                     # PHASE 2: Format response data
                     format_start = time.time()
-
+                    
                     # Convert Decimal to float for JSON serialization
                     for item in cost_center_totals:
-                        item["total_from_center"] = float(
-                            item["total_from_center"] or 0
-                        )
-                        item["total_to_center"] = float(item["total_to_center"] or 0)
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
 
                     for item in account_code_totals:
-                        item["total_from_center"] = float(
-                            item["total_from_center"] or 0
-                        )
-                        item["total_to_center"] = float(item["total_to_center"] or 0)
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
 
                     for item in all_combinations:
-                        item["total_from_center"] = float(
-                            item["total_from_center"] or 0
-                        )
-                        item["total_to_center"] = float(item["total_to_center"] or 0)
+                        item['total_from_center'] = float(item['total_from_center'] or 0)
+                        item['total_to_center'] = float(item['total_to_center'] or 0)
 
                     # Convert filtered combinations
                     for item in filtered_combinations:
-                        if "from_center" in item:  # Individual records
-                            item["from_center"] = float(item["from_center"] or 0)
-                            item["to_center"] = float(item["to_center"] or 0)
+                        if 'from_center' in item:  # Individual records
+                            item['from_center'] = float(item['from_center'] or 0)
+                            item['to_center'] = float(item['to_center'] or 0)
 
-                    print(
-                        f"Data formatting completed in {time.time() - format_start:.2f}s"
-                    )
+                    print(f"Data formatting completed in {time.time() - format_start:.2f}s")
 
                     # Prepare final response
                     data = {
@@ -1295,26 +1164,20 @@ class DashboardBudgetTransferView(APIView):
                         },
                         "performance_metrics": {
                             "total_processing_time": round(time.time() - start_time, 2),
-                            "aggregation_time": round(
-                                time.time() - aggregation_start, 2
-                            ),
+                            "aggregation_time": round(time.time() - aggregation_start, 2),
                             "cost_center_groups": len(cost_center_totals),
                             "account_code_groups": len(account_code_totals),
-                            "total_combinations": len(all_combinations),
-                        },
+                            "total_combinations": len(all_combinations)
+                        }
                     }
 
-                    print(
-                        f"Total optimized processing time: {time.time() - start_time:.2f}s"
-                    )
-                    print(
-                        f"Found {len(cost_center_totals)} cost centers, {len(account_code_totals)} account codes"
-                    )
+                    print(f"Total optimized processing time: {time.time() - start_time:.2f}s")
+                    print(f"Found {len(cost_center_totals)} cost centers, {len(account_code_totals)} account codes")
 
                     # Save dashboard data
                     save_start = time.time()
                     try:
-                        return_data["smart"] = data
+                        return_data['smart'] = data
                         # If only smart dashboard is requested, return now.
                         if dashboard_type == "smart":
                             return Response(return_data, status=status.HTTP_200_OK)
@@ -1322,18 +1185,19 @@ class DashboardBudgetTransferView(APIView):
                         print(f"Error saving dashboard data: {save_error}")
                         return data
 
+
                     except Exception as e:
                         import traceback
-
                         traceback.print_exc()
                         return Response(
-                            {"error": str(e)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            {"error": str(e)}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR
                         )
                 except Exception as e:
                     print(f"Error processing dashboard data: {e}")
                     return Response(
-                        {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        {"error": str(e)}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
             # If we reach here, and we have collected one or more sections (e.g., type=all), return them.
@@ -1342,15 +1206,14 @@ class DashboardBudgetTransferView(APIView):
 
         except Exception as e:
             import traceback
-
             traceback.print_exc()
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
 ### mobile version #####
-
 
 class ListBudgetTransfer_approvels_MobileView(APIView):
     """List budget transfers with pagination"""
@@ -1363,7 +1226,7 @@ class ListBudgetTransfer_approvels_MobileView(APIView):
         date = request.data.get("date", None)
         start_date = request.data.get("start_date", None)
         end_date = request.data.get("end_date", None)
-
+        
         if code is None:
             code = "FAR"
         status_level_val = (
@@ -1372,14 +1235,12 @@ class ListBudgetTransfer_approvels_MobileView(APIView):
             else 0
         )
         transfers = xx_BudgetTransfer.objects.filter(
-            status_level=status_level_val, type=code, status="pending"
+            status_level=status_level_val, type=code,status= "pending"
         )
-
+        
         if request.user.abilities.count() > 0:
-            transfers = filter_budget_transfers_all_in_entities(
-                transfers, request.user, "approve"
-            )
-
+            transfers = filter_budget_transfers_all_in_entities(transfers, request.user, 'approve')
+        
         if code:
             transfers = transfers.filter(code__icontains=code)
 

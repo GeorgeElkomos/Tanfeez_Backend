@@ -889,10 +889,13 @@ class RefreshBalanceReportView(APIView):
         from .utils import refresh_balance_report_data
         
         budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+        period_name = request.data.get('Period_name', 'sep-25')
+
         
         try:
-            result = refresh_balance_report_data(budget_name)
-            
+            print("Starting balance report refresh...")
+            print(f"Budget: {budget_name}, Period: {period_name}")
+            result = refresh_balance_report_data(budget_name, period_name)
             if result['success']:
                 return Response({
                     'success': True,
@@ -1069,6 +1072,8 @@ class BalanceReportFinancialDataView(APIView):
             from .utils import refresh_balance_report_data
         
             budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+            period_name = request.data.get('Period_name', 'sep-25')
+
         
             try:
                 result = refresh_balance_report_data(budget_name)
