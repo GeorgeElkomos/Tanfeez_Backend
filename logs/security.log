@@ -1,0 +1,19 @@
+WARNING 2025-08-02 02:26:55,423 Sqlinjection 45468 42204 SQL injection in JSON string: ';select * from xx_user where id =1 
+WARNING 2025-08-02 02:26:55,423 Sqlinjection 45468 42204 SQL injection in JSON key 'username' or value: ';select * from xx_user where id =1 
+WARNING 2025-08-02 02:26:55,423 Sqlinjection 45468 42204 SQL injection attempt detected from 127.0.0.1: /api/auth/login/
+WARNING 2025-08-04 04:23:14,077 Sqlinjection 27716 24124 SQL injection in JSON string: ';select * from xx_user where id =1 
+WARNING 2025-08-04 04:23:14,077 Sqlinjection 27716 24124 SQL injection in JSON key 'username' or value: ';select * from xx_user where id =1 
+WARNING 2025-08-04 04:23:14,077 Sqlinjection 27716 24124 SQL injection attempt detected from 127.0.0.1: /api/auth/login/
+WARNING 2025-08-12 11:21:14,070 Sqlinjection 36644 18028 SQL injection in JSON string: <p>select * from user </p>
+WARNING 2025-08-12 11:21:14,073 Sqlinjection 36644 18028 SQL injection in JSON key 'notes' or value: <p>select * from user </p>
+WARNING 2025-08-12 11:21:14,073 Sqlinjection 36644 18028 SQL injection attempt detected from 127.0.0.1: /api/budget/transfers/create/
+WARNING 2025-08-12 11:21:20,006 Sqlinjection 36644 34140 SQL injection in JSON string: <p>select * from user </p>
+WARNING 2025-08-12 11:21:20,006 Sqlinjection 36644 34140 SQL injection in JSON key 'notes' or value: <p>select * from user </p>
+WARNING 2025-08-12 11:21:20,007 Sqlinjection 36644 34140 SQL injection attempt detected from 127.0.0.1: /api/budget/transfers/create/
+WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection in JSON string: <p>Enter your rekjason here...   </p><p><s><u>lkkk select * from user</u></s></p><p><br></p>
+WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection in JSON key 'notes' or value: <p>Enter your rekjason here...   </p><p><s><u>lkkk select * from user</u></s></p><p><br></p>
+WARNING 2025-08-12 11:23:37,179 Sqlinjection 40296 21168 SQL injection attempt detected from 127.0.0.1: /api/budget/transfers/create/
+WARNING 2025-09-09 00:42:45,826 Sqlinjection 20004 35852 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:42:53,344 Sqlinjection 20004 33344 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:44:19,158 Sqlinjection 33300 29804 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
+WARNING 2025-09-09 00:45:11,232 Sqlinjection 33300 41376 SQL injection attempt detected from 127.0.0.1: /api/auth/levels/update/?pk=1
