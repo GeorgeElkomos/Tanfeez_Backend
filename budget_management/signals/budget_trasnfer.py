@@ -57,7 +57,7 @@ def budget_transfer_post_delete(sender, instance, **kwargs):
     """
     try:
         dashboard_smart()
-
+        dashboard_normal()
         logger.info(
             f"Dashboard updated after deleting BudgetTransfer {instance.transaction_id}"
         )
