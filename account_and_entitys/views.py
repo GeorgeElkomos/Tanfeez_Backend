@@ -20,6 +20,7 @@ from .serializers import AccountEntityLimitSerializer
 from django.db.models import CharField
 from django.db.models.functions import Cast
 from django.db.models import Q
+from .utils import get_oracle_report_data
 class EntityPagination(PageNumberPagination):
     """Pagination class for entities and accounts"""
     page_size = 10
@@ -889,10 +890,13 @@ class RefreshBalanceReportView(APIView):
         from .utils import refresh_balance_report_data
         
         budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+        period_name = request.data.get('Period_name', 'sep-25')
+
         
         try:
-            result = refresh_balance_report_data(budget_name)
-            
+            print("Starting balance report refresh...")
+            print(f"Budget: {budget_name}, Period: {period_name}")
+            result = refresh_balance_report_data(budget_name, period_name)
             if result['success']:
                 return Response({
                     'success': True,
@@ -1069,9 +1073,11 @@ class BalanceReportFinancialDataView(APIView):
             from .utils import refresh_balance_report_data
         
             budget_name = request.data.get('control_budget_name', 'MIC_HQ_MONTHLY')
+            period_name = request.data.get('Period_name', 'sep-25')
+
         
             try:
-                result = refresh_balance_report_data(budget_name)
+                result = refresh_balance_report_data(budget_name, period_name=period_name)
             except Exception as e:
                 return Response({
                     'success': False,
@@ -1239,3 +1245,30 @@ class BalanceReportFinancialDataView(APIView):
                 'success': False,
                 'message': f'Error processing segment combinations: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class Single_BalanceReportView(APIView):
+    """Retrieve a specific balance report record by ID"""
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request):
+        control_budget_name = request.query_params.get('control_budget_name')
+        period_name = request.query_params.get('as_of_period')
+        segment1 = request.query_params.get('segment1')
+        segment2 = request.query_params.get('segment2')
+        segment3 = request.query_params.get('segment3')
+
+        data = get_oracle_report_data(control_budget_name, period_name, segment1, segment2, segment3)
+
+
+        if data is None:
+            return Response({
+                'message': 'Balance report record not found.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({
+            'message': 'Balance report record details retrieved successfully.',
+            'data': data
+        })

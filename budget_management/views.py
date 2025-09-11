@@ -305,7 +305,7 @@ class ListBudgetTransferView(APIView):
                 "approve_interface_id",
                 "report",
                 "type",
-                # Excluding 'notes' field as it's TextField/NCLOB in Oracle
+                "notes",
             )
         )
 
@@ -471,77 +471,68 @@ class GetBudgetTransferView(APIView):
             )
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+
+from budget_management.models import xx_BudgetTransfer
+from budget_management.serializers import BudgetTransferSerializer
+
+
 class UpdateBudgetTransferView(APIView):
     """Update a budget transfer"""
 
     permission_classes = [IsAuthenticated]
 
     def put(self, request, transfer_id):
-
         try:
-
+            # Fetch by URL parameter
             transfer = xx_BudgetTransfer.objects.get(transaction_id=transfer_id)
-            # Get transaction_id from the request
-            transaction_id = request.data.get("transaction")
-            transfer = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
 
+            # Only pending transfers can be updated
             if transfer.status != "pending":
                 return Response(
                     {
-                        "message": f'Cannot upload files for transfer with status "{transfer.status}". Only pending transfers can have files uploaded.'
+                        "message": f'Cannot update transfer with status "{transfer.status}". '
+                        f"Only pending transfers can be updated."
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if not request.user.role == "admin" and transfer.user_id != request.user.id:
-
+            # Permission check
+            if (
+                not getattr(request.user, "role", None) == "admin"
+                and transfer.user_id != request.user.id
+            ):
                 return Response(
                     {"message": "You do not have permission to update this transfer."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            if transfer.status != "pending":
+            # Allow only specific fields to be updated
+            allowed_fields = {"notes", "description_x", "amount", "transaction_date"}
+            update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+            if not update_data:
                 return Response(
-                    {
-                        "message": f'Cannot update transfer with status "{transfer.status}". Only pending transfers can be updated.'
-                    },
+                    {"message": "No valid fields to update."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Use serializer for validation + saving
             serializer = BudgetTransferSerializer(
-                transfer, data=request.data, partial=True
+                transfer, data=update_data, partial=True
             )
 
             if serializer.is_valid():
-
-                allowed_fields = [
-                    "notes",
-                    "description_x",
-                    "amount",
-                    "transaction_date",
-                ]
-
-                update_data = {}
-                for field in allowed_fields:
-                    if field in request.data:
-                        update_data[field] = request.data[field]
-
-                if not update_data:
-                    return Response(
-                        {"message": "No valid fields to update."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                for key, value in update_data.items():
-                    setattr(transfer, key, value)
-
-                transfer.save()
-
+                serializer.save()
                 return Response(
                     {
                         "message": "Budget transfer updated successfully.",
-                        "data": BudgetTransferSerializer(transfer).data,
-                    }
+                        "data": serializer.data,
+                    },
+                    status=status.HTTP_200_OK,
                 )
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

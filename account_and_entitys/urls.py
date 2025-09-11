@@ -5,7 +5,7 @@ from .views import (
     PivotFundListView, PivotFundCreateView, PivotFundDetailView, PivotFundUpdateView, PivotFundDeleteView,
     AdjdTransactionAuditListView, AdjdTransactionAuditCreateView, AdjdTransactionAuditDetailView, 
     AdjdTransactionAuditUpdateView, AdjdTransactionAuditDeleteView, ProjectCreateView, ProjectDeleteView, ProjectDetailView, ProjectListView, ProjectUpdateView, list_ACCOUNT_ENTITY_LIMIT,UpdateAccountEntityLimit,DeleteAccountEntityLimit,AccountEntityLimitAPI,
-    RefreshBalanceReportView, BalanceReportListView, BalanceReportSegmentsView, BalanceReportFinancialDataView
+    RefreshBalanceReportView, BalanceReportListView, BalanceReportSegmentsView, BalanceReportFinancialDataView,Single_BalanceReportView
 )
 
 urlpatterns = [
@@ -106,6 +106,8 @@ urlpatterns = [
     path("balance-report/list/", BalanceReportListView.as_view(), name="list-balance-report"),
     path("balance-report/segments/", BalanceReportSegmentsView.as_view(), name="balance-report-segments"),
     path("balance-report/financial-data/", BalanceReportFinancialDataView.as_view(), name="balance-report-financial-data"),
-    
+
+    path("balance-report/single_balance/", Single_BalanceReportView.as_view(), name="balance-report"),
+
     # Main Currency URLs
 ]

@@ -9,6 +9,8 @@ import pandas as pd
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from .models import XX_BalanceReport
+import json
+import io
 
 
 def safe_decimal_convert(value):
@@ -31,7 +33,7 @@ def safe_decimal_convert(value):
         return None
 
 
-def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="report.xlsx"):
+def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", period_name="sep-25", save_path="report.xlsx"):
     """
     Download balance report from Oracle service
     
@@ -48,6 +50,10 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
         password = "Mubadala345"
 
         escaped_param = escape(control_budget_name)
+        escaped_param2 = escape(period_name)
+
+        
+
 
         soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
         <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
@@ -56,7 +62,7 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
            <soap12:Body>
               <pub:runReport>
                  <pub:reportRequest>
-                    <pub:reportAbsolutePath>/API/balancess_report.xdo</pub:reportAbsolutePath>
+                    <pub:reportAbsolutePath>/API/period_balance_report.xdo</pub:reportAbsolutePath>
                     <pub:attributeFormat>xlsx</pub:attributeFormat>
                     <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
                     <pub:parameterNameValues>
@@ -64,6 +70,12 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
                           <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
                           <pub:values>
                              <pub:item>{escaped_param}</pub:item>
+                          </pub:values>
+                       </pub:item>
+                       <pub:item>
+                          <pub:name>P_PERIOD_NAME</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_param2}</pub:item>
                           </pub:values>
                        </pub:item>
                     </pub:parameterNameValues>
@@ -103,6 +115,201 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", save_path="repo
     except Exception as e:
         print(f"❌ Error downloading report: {str(e)}")
         return False
+
+
+def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="sep-25", 
+                          segment1=None, segment2=None, segment3=None):
+    """
+    Get balance report data directly from Oracle service for specific segment combination
+    Returns data as dict/JSON without saving to file
+    
+    Args:
+        control_budget_name (str): Budget name parameter for the report
+        period_name (str): Period name parameter
+        segment1 (str): Segment 1 filter parameter
+        segment2 (str): Segment 2 filter parameter  
+        segment3 (str): Segment 3 filter parameter
+        
+    Returns:
+        dict: Response with success status and data
+              Format: {
+                  'success': bool,
+                  'data': list of dict records or None,
+                  'message': str,
+                  'total_records': int
+              }
+    """
+    result = {
+        'success': False,
+        'data': None,
+        'message': '',
+        'total_records': 0
+    }
+    
+    try:
+        url = "https://hcbg-dev4.fa.ocs.oraclecloud.com:443/xmlpserver/services/ExternalReportWSSService"
+        username = "AFarghaly"
+        password = "Mubadala345"
+
+        escaped_param = escape(control_budget_name)
+        escaped_param2 = escape(period_name)
+        
+        # Build parameter list - add segment filters if provided
+        parameters = []
+        
+        # Always include the main parameters
+        parameters.append(f"""
+                       <pub:item>
+                          <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_param}</pub:item>
+                          </pub:values>
+                       </pub:item>""")
+        
+        parameters.append(f"""
+                       <pub:item>
+                          <pub:name>P_PERIOD_NAME</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_param2}</pub:item>
+                          </pub:values>
+                       </pub:item>""")
+        
+        # Add segment filters if provided
+        if segment1:
+            escaped_segment1 = escape(str(segment1))
+            parameters.append(f"""
+                       <pub:item>
+                          <pub:name>P_SEGMENT1</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_segment1}</pub:item>
+                          </pub:values>
+                       </pub:item>""")
+        
+        if segment2:
+            escaped_segment2 = escape(str(segment2))
+            parameters.append(f"""
+                       <pub:item>
+                          <pub:name>P_SEGMENT2</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_segment2}</pub:item>
+                          </pub:values>
+                       </pub:item>""")
+        
+        if segment3:
+            escaped_segment3 = escape(str(segment3))
+            parameters.append(f"""
+                       <pub:item>
+                          <pub:name>P_SEGMENT3</pub:name>
+                          <pub:values>
+                             <pub:item>{escaped_segment3}</pub:item>
+                          </pub:values>
+                       </pub:item>""")
+
+        parameters_xml = "".join(parameters)
+
+        soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
+        <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
+                       xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">
+           <soap12:Header/>
+           <soap12:Body>
+              <pub:runReport>
+                 <pub:reportRequest>
+                    <pub:reportAbsolutePath>/API/get_single_balance_report.xdo</pub:reportAbsolutePath>
+                    <pub:attributeFormat>xlsx</pub:attributeFormat>
+                    <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
+                    <pub:parameterNameValues>{parameters_xml}
+                    </pub:parameterNameValues>
+                 </pub:reportRequest>
+              </pub:runReport>
+           </soap12:Body>
+        </soap12:Envelope>
+        """
+
+        headers = {
+           "Content-Type": "application/soap+xml;charset=UTF-8"
+        }
+
+        print(f"🔍 Fetching Oracle report data for segments: {segment1}, {segment2}, {segment3}")
+        response = requests.post(url, data=soap_body, headers=headers, auth=(username, password))
+
+        if response.status_code == 200:
+           ns = {
+              "soap12": "http://www.w3.org/2003/05/soap-envelope",
+              "pub": "http://xmlns.oracle.com/oxp/service/PublicReportService"
+           }
+           root = ET.fromstring(response.text)
+           report_bytes_element = root.find(".//pub:reportBytes", ns)
+           
+           if report_bytes_element is not None and report_bytes_element.text:
+              # Decode the Excel data (binary, don't decode as UTF-8)
+              excel_data = base64.b64decode(report_bytes_element.text)
+              
+              # Parse Excel data into DataFrame using BytesIO
+              excel_reader = pd.read_excel(io.BytesIO(excel_data), engine='openpyxl')
+              
+              # Check if the first row contains column headers or if we need to skip rows
+              if len(excel_reader) > 0:
+                  # Check if first row has the expected columns
+                  if 'CONTROL_BUDGET_NAME' not in excel_reader.columns:
+                      # Try reading again, skipping the first few rows which might be title/header rows
+                      for skip_rows in range(1, 5):
+                          try:
+                              excel_reader = pd.read_excel(io.BytesIO(excel_data), engine='openpyxl', skiprows=skip_rows)
+                              if 'CONTROL_BUDGET_NAME' in excel_reader.columns:
+                                  break
+                          except:
+                              continue
+              
+              # Clean column names
+              excel_reader.columns = excel_reader.columns.str.strip()
+              
+              # Convert DataFrame to list of dictionaries
+              data_list = []
+              for index, row in excel_reader.iterrows():
+                  # Skip empty rows or summary rows
+                  if pd.isna(row.get('CONTROL_BUDGET_NAME')) or str(row.get('CONTROL_BUDGET_NAME', '')).strip() == '':
+                      continue
+                  
+                  # Skip rows that might be totals or summaries
+                  if str(row.get('CONTROL_BUDGET_NAME', '')).strip() in ['Total', 'TOTAL', '']:
+                      continue
+                  
+                  record = {
+                      'control_budget_name': str(row.get('CONTROL_BUDGET_NAME', '')).strip() if pd.notna(row.get('CONTROL_BUDGET_NAME')) else None,
+                      'ledger_name': str(row.get('LEDGER_NAME', '')).strip() if pd.notna(row.get('LEDGER_NAME')) else None,
+                      'as_of_period': str(row.get('AS_OF_PERIOD', '')).strip() if pd.notna(row.get('AS_OF_PERIOD')) else None,
+                      'segment1': str(row.get('SEGMENT1', '')).strip() if pd.notna(row.get('SEGMENT1')) else None,
+                      'segment2': str(row.get('SEGMENT2', '')).strip() if pd.notna(row.get('SEGMENT2')) else None,
+                      'segment3': str(row.get('SEGMENT3', '')).strip() if pd.notna(row.get('SEGMENT3')) else None,
+                      'encumbrance_ytd': float(row.get('ENCUMBRANCE_PTD', 0)) if pd.notna(row.get('ENCUMBRANCE_PTD')) and str(row.get('ENCUMBRANCE_PTD', '')).strip() != '' else 0.0,
+                      'other_ytd': float(row.get('OTHER_PTD', 0)) if pd.notna(row.get('OTHER_PTD')) and str(row.get('OTHER_PTD', '')).strip() != '' else 0.0,
+                      'actual_ytd': float(row.get('ACTUAL_PTD', 0)) if pd.notna(row.get('ACTUAL_PTD')) and str(row.get('ACTUAL_PTD', '')).strip() != '' else 0.0,
+                      'funds_available_asof': float(row.get('FUNDS_AVAILABLE_ASOF', 0)) if pd.notna(row.get('FUNDS_AVAILABLE_ASOF')) and str(row.get('FUNDS_AVAILABLE_ASOF', '')).strip() != '' else 0.0,
+                      'budget_ytd': float(row.get('BUDGET_PTD', 0)) if pd.notna(row.get('BUDGET_PTD')) and str(row.get('BUDGET_PTD', '')).strip() != '' else 0.0
+                  }
+                  data_list.append(record)
+              
+              result['success'] = True
+              result['data'] = data_list
+              result['total_records'] = len(data_list)
+              result['message'] = f"Successfully retrieved {len(data_list)} records"
+              
+              print(f"✅ Successfully retrieved {len(data_list)} records from Oracle")
+              return result
+              
+           else:
+              result['message'] = "No <reportBytes> found in response"
+              print("❌ No <reportBytes> found in response")
+              return result
+        else:
+           result['message'] = f"HTTP Error {response.status_code}"
+           print(f"❌ HTTP Error {response.status_code}")
+           return result
+           
+    except Exception as e:
+        result['message'] = f"Error fetching report data: {str(e)}"
+        print(f"❌ Error fetching report data: {str(e)}")
+        return result
 
 
 def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_existing=True):
@@ -154,8 +361,8 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
             # Expected columns
             expected_columns = [
                 'CONTROL_BUDGET_NAME', 'LEDGER_NAME', 'AS_OF_PERIOD', 'SEGMENT1', 
-                'SEGMENT2', 'SEGMENT3', 'ENCUMBRANCE_YTD', 'OTHER_YTD', 'ACTUAL_YTD', 
-                'FUNDS_AVAILABLE_ASOF', 'BUDGET_YTD'
+                'SEGMENT2', 'SEGMENT3', 'ENCUMBRANCE_PTD', 'OTHER_PTD', 'ACTUAL_PTD', 
+                'FUNDS_AVAILABLE_ASOF', 'BUDGET_PTD'
             ]
             
             # Check if required columns exist
@@ -187,11 +394,11 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
                         segment1=str(row['SEGMENT1']).strip() if pd.notna(row['SEGMENT1']) else None,
                         segment2=str(row['SEGMENT2']).strip() if pd.notna(row['SEGMENT2']) else None,
                         segment3=str(row['SEGMENT3']).strip() if pd.notna(row['SEGMENT3']) else None,
-                        encumbrance_ytd=safe_decimal_convert(row['ENCUMBRANCE_YTD']),
-                        other_ytd=safe_decimal_convert(row['OTHER_YTD']),
-                        actual_ytd=safe_decimal_convert(row['ACTUAL_YTD']),
+                        encumbrance_ytd=safe_decimal_convert(row['ENCUMBRANCE_PTD']),
+                        other_ytd=safe_decimal_convert(row['OTHER_PTD']),
+                        actual_ytd=safe_decimal_convert(row['ACTUAL_PTD']),
                         funds_available_asof=safe_decimal_convert(row['FUNDS_AVAILABLE_ASOF']),
-                        budget_ytd=safe_decimal_convert(row['BUDGET_YTD'])
+                        budget_ytd=safe_decimal_convert(row['BUDGET_PTD'])
                     )
                     
                     balance_report.save()
@@ -228,7 +435,7 @@ def load_excel_to_balance_report_table(excel_file_path="report.xlsx", clear_exis
         return result
 
 
-def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY"):
+def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="sep-25"):
     """
     Complete process: Download report from Oracle and load into database
     
@@ -247,10 +454,10 @@ def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY"):
     }
     
     try:
-        print(f"🚀 Starting report refresh for: {control_budget_name}")
+        print(f"🚀 Starting report refresh for: {control_budget_name} (Period: {period_name})")
         
         # Step 1: Download the report
-        download_success = download_oracle_report(control_budget_name)
+        download_success = download_oracle_report(control_budget_name, period_name, "report.xlsx")
         result['download_success'] = download_success
         
         if not download_success:
