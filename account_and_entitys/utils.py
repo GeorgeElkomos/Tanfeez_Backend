@@ -489,3 +489,59 @@ def refresh_balance_report_data(control_budget_name="MIC_HQ_MONTHLY", period_nam
     except Exception as e:
         result['message'] = f"Error during report refresh: {str(e)}"
         return result
+
+
+def extract_unique_segments_from_data(balance_data):
+    """
+    Extract unique segments from balance report data structure
+    
+    Args:
+        balance_data (list): List of balance report records with segment fields
+        
+    Returns:
+        dict: Dictionary containing unique values for each segment
+    """
+    try:
+        if not balance_data:
+            return {
+                'segment1': [],
+                'segment2': [],
+                'segment3': [],
+                'message': 'No data provided'
+            }
+        
+        # Extract unique values for each segment
+        segment1_values = set()
+        segment2_values = set()
+        segment3_values = set()
+        
+        for record in balance_data["data"]:
+            # Handle both string and float values
+            if 'segment1' in record and record['segment1'] is not None:
+                segment1_val = str(record['segment1']).rstrip('.0') if isinstance(record['segment1'], (int, float)) else str(record['segment1'])
+                segment1_values.add(segment1_val)
+                
+            if 'segment2' in record and record['segment2'] is not None:
+                segment2_val = str(record['segment2']).rstrip('.0') if isinstance(record['segment2'], (int, float)) else str(record['segment2'])
+                segment2_values.add(segment2_val)
+                
+            if 'segment3' in record and record['segment3'] is not None:
+                segment3_val = str(record['segment3']).rstrip('.0') if isinstance(record['segment3'], (int, float)) else str(record['segment3'])
+                segment3_values.add(segment3_val)
+        
+        # Convert to sorted lists
+        return {
+            'Cost_Center': sorted(list(segment1_values)),
+            'Account': sorted(list(segment2_values)),
+            'Project': sorted(list(segment3_values)),
+            'total_records': len(balance_data),
+            'unique_combinations': len(balance_data)
+        }
+        
+    except Exception as e:
+        return {
+            'segment1': [],
+            'segment2': [],
+            'segment3': [],
+            'error': f'Error extracting segments: {str(e)}'
+        }

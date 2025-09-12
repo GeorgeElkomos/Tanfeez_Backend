@@ -100,7 +100,7 @@ urlpatterns = [
         DeleteAccountEntityLimit.as_view(),
         name="delete_limit",
     ),
-
+    
     # Balance Report URLs
     path("balance-report/refresh/", RefreshBalanceReportView.as_view(), name="refresh-balance-report"),
     path("balance-report/list/", BalanceReportListView.as_view(), name="list-balance-report"),

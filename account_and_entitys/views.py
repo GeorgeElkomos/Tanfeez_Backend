@@ -946,7 +946,6 @@ class RefreshBalanceReportView(APIView):
                 'message': f'Error getting balance report status: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class BalanceReportListView(APIView):
     """List balance report data with filtering"""
     permission_classes = [IsAuthenticated]
@@ -956,41 +955,42 @@ class BalanceReportListView(APIView):
         """Get balance report data with optional filtering"""
         from .models import XX_BalanceReport
         from .serializers import BalanceReportSerializer
+        from .utils import extract_unique_segments_from_data
         
         try:
-            queryset = XX_BalanceReport.objects.all().order_by('-created_at')
+            control_budget_name = request.query_params.get('control_budget_name')
+            period_name = request.query_params.get('as_of_period')
+
             
-            # Apply filters
-            control_budget = request.query_params.get('control_budget_name')
-            period = request.query_params.get('as_of_period')
-            segment1 = request.query_params.get('segment1')
-            segment2 = request.query_params.get('segment2')
-            segment3 = request.query_params.get('segment3')
+            # Check if user wants only unique segments
+            extract_segments = request.query_params.get('extract_segments', '').lower() == 'true'
+
+            # Get data from Oracle
+            data = get_oracle_report_data(control_budget_name, period_name)
             
-            if control_budget:
-                queryset = queryset.filter(control_budget_name__icontains=control_budget)
-            if period:
-                queryset = queryset.filter(as_of_period=period)
-            if segment1:
-                queryset = queryset.filter(segment1__icontains=segment1)
-            if segment2:
-                queryset = queryset.filter(segment2__icontains=segment2)
-            if segment3:
-                queryset = queryset.filter(segment3__icontains=segment3)
+
+
+
+            if extract_segments:
+                unique_segments = extract_unique_segments_from_data(data)
+                print(unique_segments)
+                return Response({
+                    'success': True,
+                    'message': 'Unique segments extracted successfully',
+                    'data': unique_segments
+                }, status=status.HTTP_200_OK)
             
-            # Pagination
-            paginator = self.pagination_class()
-            page = paginator.paginate_queryset(queryset, request)
+            # Otherwise, return the full data with unique segments included
+            # unique_segments = extract_unique_segments_from_data(data)
             
-            if page is not None:
-                serializer = BalanceReportSerializer(page, many=True)
-                return paginator.get_paginated_response(serializer.data)
-            
-            serializer = BalanceReportSerializer(queryset, many=True)
             return Response({
                 'success': True,
-                'data': serializer.data,
-                'count': queryset.count()
+                'message': 'Balance report data retrieved successfully',
+                'data': {
+                    'records': data,
+                    'unique_segments': unique_segments,
+                    'total_records': len(data)
+                }
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
@@ -998,7 +998,6 @@ class BalanceReportListView(APIView):
                 'success': False,
                 'message': f'Error retrieving balance report data: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class BalanceReportSegmentsView(APIView):
     """API to get all unique segments from balance report"""
@@ -1059,6 +1058,75 @@ class BalanceReportSegmentsView(APIView):
                 'message': f'Error retrieving segments: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class BalanceReportOracleSegmentsView(APIView):
+    """API to get unique segments from Oracle balance report data"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get unique segments from Oracle data with optional filtering"""
+        from .utils import extract_unique_segments_from_data
+        
+        try:
+            # Get filter parameters
+            control_budget_name = request.query_params.get('control_budget_name')
+            period_name = request.query_params.get('as_of_period')
+            segment1_filter = request.query_params.get('segment1')
+            segment2_filter = request.query_params.get('segment2')
+            segment3_filter = request.query_params.get('segment3')
+            
+            # Get data from Oracle with filters
+            oracle_data = get_oracle_report_data(control_budget_name, period_name, segment1_filter, segment2_filter, segment3_filter)
+            
+            if not oracle_data:
+                return Response({
+                    'success': False,
+                    'message': 'No data found with the specified filters'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Extract unique segments from the Oracle data
+            unique_segments = extract_unique_segments_from_data(oracle_data)
+            
+            return Response({
+                'success': True,
+                'message': f'Successfully extracted unique segments from {len(oracle_data)} records',
+                'data': unique_segments
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error extracting segments from Oracle data: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        """Extract unique segments from provided balance report data"""
+        from .utils import extract_unique_segments_from_data
+        
+        try:
+            # Get data from request body
+            balance_data = request.data.get('data', [])
+            
+            if not balance_data:
+                return Response({
+                    'success': False,
+                    'message': 'No balance report data provided in request body'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Extract unique segments from the provided data
+            unique_segments = extract_unique_segments_from_data(balance_data)
+            
+            return Response({
+                'success': True,
+                'message': f'Successfully extracted unique segments from {len(balance_data)} records',
+                'data': unique_segments
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error extracting segments from provided data: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class BalanceReportFinancialDataView(APIView):
     """API to get financial data for specific segment combination"""
@@ -1245,8 +1313,6 @@ class BalanceReportFinancialDataView(APIView):
                 'success': False,
                 'message': f'Error processing segment combinations: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 class Single_BalanceReportView(APIView):
     """Retrieve a specific balance report record by ID"""
