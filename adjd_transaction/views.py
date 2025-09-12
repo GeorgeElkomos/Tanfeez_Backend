@@ -381,6 +381,7 @@ class AdjdTransactionTransferListView(APIView):
                     "total_to": total_to_center,
                     "balanced": True,
                     "status": status,
+                    "period": transaction_object.transaction_date + str(25),
                 }
             else:
                 summary = {
@@ -390,6 +391,8 @@ class AdjdTransactionTransferListView(APIView):
                     "total_to": total_to_center,
                     "balanced": total_from_center == total_to_center,
                     "status": status,
+                    "period": transaction_object.transaction_date + str(25),
+
                 }
 
             status = {"status": status}
@@ -404,6 +407,8 @@ class AdjdTransactionTransferListView(APIView):
                 "total_to": 0,
                 "balanced": True,
                 "status": status,
+                "period": transaction_object.transaction_date + str(25),
+
             }
             status = {"status": status}
             return Response(
