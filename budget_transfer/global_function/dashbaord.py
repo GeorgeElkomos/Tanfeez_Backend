@@ -243,7 +243,7 @@ def dashboard_normal():
 
         # Get all transfers with minimal data loading
         transfers_queryset = xx_BudgetTransfer.objects.only(
-            "code", "status", "status_level", "request_date"
+            "code", "status", "status_level", "request_date", "transaction_date"
         )
 
         # Use database aggregations for counting

@@ -1077,15 +1077,15 @@ class DashboardBudgetTransferView(APIView):
             transfers_queryset = xx_BudgetTransfer.objects.only(
                 "code", "status", "status_level", "request_date", "transaction_date"
             )
-            # if request.user.abilities.count() > 0:
             print(len(transfers_queryset))
-            transfers_queryset = filter_budget_transfers_all_in_entities(
-                transfers_queryset,
-                request.user,
-                "edit",
-                dashboard_filler_per_project=DashBoard_filler_per_Project,
-            )
-            print(len(transfers_queryset))
+            if request.user.abilities.count() > 0:
+                transfers_queryset = filter_budget_transfers_all_in_entities(
+                    transfers_queryset,
+                    request.user,
+                    "edit",
+                    dashboard_filler_per_project=DashBoard_filler_per_Project,
+                )
+                print(len(transfers_queryset))
 
             if dashboard_type == "normal" or dashboard_type == "all":
                 # Use database aggregations for counting
