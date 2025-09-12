@@ -483,6 +483,8 @@ class ApprovalManager:
                 st.delegations.filter(active=True).update(
                     active=False, deactivated_at=now
                 )
+                # delete any remaining pending assignments on this completed stage
+                st.assignments.filter(status=ApprovalAssignment.STATUS_PENDING).delete()
                 # call hook
                 cls.on_stage_completed(st)
                 # optionally log system action (not necessary if user actions recorded)
@@ -494,6 +496,8 @@ class ApprovalManager:
                 st.delegations.filter(active=True).update(
                     active=False, deactivated_at=now
                 )
+                # delete any remaining pending assignments on this completed stage
+                st.assignments.filter(status=ApprovalAssignment.STATUS_PENDING).delete()
                 cls.on_stage_completed(st)
             # mark workflow rejected
             instance.status = ApprovalWorkflowInstance.STATUS_REJECTED
@@ -712,12 +716,104 @@ class ApprovalManager:
         Return list of BudgetTransfer objects for which this user
         has pending approval assignments in active workflow stages.
         """
-        return xx_BudgetTransfer.objects.filter(
+        base_qs = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+        ).distinct()
+        print(f"Total transfers in queryset: {base_qs.count()}")
+
+        # Pre-user filter: active stages with any pending assignments
+        transfers = base_qs.filter(
+            workflow_instance__stage_instances__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
+            workflow_instance__stage_instances__assignments__status=ApprovalAssignment.STATUS_PENDING,
+        ).distinct()
+        print(f"Transfers with active stages: {transfers.count()}")
+        print(f"Transfers with pending assignments: {transfers.count()}")
+        try:
+            pre_ids = list(transfers.values_list("id", flat=True))
+        except Exception:
+            pre_ids = []
+        # Debug: list stages and assignments (with users) before filtering by user
+        try:
+            print("Debug: Active stages and assignments for current transfers (before user filter):")
+            for tr in transfers:
+                wi = getattr(tr, "workflow_instance", None)
+                wi_id = getattr(wi, "id", None)
+                tr_id = getattr(tr, "id", getattr(tr, "pk", "?"))
+                print(f"- Transfer {tr_id}, WorkflowInstance {wi_id}")
+                if not wi:
+                    continue
+                stages_qs = wi.stage_instances.filter(
+                    status=ApprovalWorkflowStageInstance.STATUS_ACTIVE
+                )
+                for stg in stages_qs:
+                    stg_id = getattr(stg, "id", getattr(stg, "pk", "?"))
+                    tpl_name = getattr(getattr(stg, "stage_template", None), "name", "<no tpl>")
+                    print(f"  Stage {stg_id} ({tpl_name}) status={stg.status}")
+                    for asg in stg.assignments.all():
+                        asg_id = getattr(asg, "id", getattr(asg, "pk", "?"))
+                        asg_user = getattr(asg, "user", None)
+                        asg_user_id = getattr(asg_user, "id", getattr(asg_user, "pk", None))
+                        asg_user_name = None
+                        try:
+                            asg_user_name = str(asg_user)
+                        except Exception:
+                            asg_user_name = f"<user {asg_user_id}>"
+                        print(
+                            f"    Assignment {asg_id}: user={asg_user_name} (id={asg_user_id}) status={asg.status}"
+                        )
+        except Exception as e:
+            print(f"Debug listing error: {e}")
+        # IMPORTANT: Anchor user+pending to the SAME active stage instance.
+        # Using the assignment's stage_instance relation avoids mixing conditions
+        # across different stages in the same workflow.
+        transfers = base_qs.filter(
             workflow_instance__stage_instances__assignments__user=user,
             workflow_instance__stage_instances__assignments__status=ApprovalAssignment.STATUS_PENDING,
-            workflow_instance__stage_instances__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
-            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS,
+            workflow_instance__stage_instances__assignments__stage_instance__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
         ).distinct()
+        print(
+            f"Transfers with active pending assignment for user {user}: {transfers.count()}"
+        )
+        try:
+            post_ids = list(transfers.values_list("id", flat=True))
+            excluded = sorted(set(pre_ids) - set(post_ids))
+            if excluded:
+                print(
+                    f"Transfers excluded after anchoring to user's active pending assignment: {excluded}"
+                )
+        except Exception:
+            pass
+
+        # Extra debug: list the exact assignment(s) for this user in active stages
+        try:
+            user_asgs = ApprovalAssignment.objects.filter(
+                user=user,
+                status=ApprovalAssignment.STATUS_PENDING,
+                stage_instance__status=ApprovalWorkflowStageInstance.STATUS_ACTIVE,
+                stage_instance__workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS,
+                stage_instance__workflow_instance__budget_transfer__in=transfers,
+            ).select_related(
+                "stage_instance__workflow_instance",
+                "stage_instance__stage_template",
+            )
+            print(
+                f"Debug: Active PENDING assignments for user {user} that drive the final result: {user_asgs.count()}"
+            )
+            for asg in user_asgs:
+                tr_id = getattr(
+                    getattr(asg.stage_instance.workflow_instance, "budget_transfer", None),
+                    "id",
+                    None,
+                )
+                stg = asg.stage_instance
+                tpl_name = getattr(stg.stage_template, "name", "<no tpl>")
+                print(
+                    f"  -> Transfer {tr_id}, Stage {stg.id} ({tpl_name}), assignment {asg.id}, status={asg.status}"
+                )
+        except Exception as e:
+            print(f"Debug (user assignments) listing error: {e}")
+
+        return transfers
 
     @staticmethod
     def is_workflow_finished(budget_transfer: xx_BudgetTransfer):

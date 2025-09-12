@@ -8,7 +8,7 @@ class ApprovalWorkflowStageTemplateSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     workflow_template = serializers.PrimaryKeyRelatedField(
-        read_only=True  # <-- don't require it from input, only return it if you want
+        queryset=ApprovalWorkflowTemplate.objects.all()
     )
 
     class Meta:

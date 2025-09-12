@@ -187,35 +187,25 @@ def get_approval_rate_change(transfers_queryset):
     today = timezone.now().date()
     total_count = transfers_queryset.count()
     print(f"Total transfers in queryset: {total_count}")
-    transfers_queryset = transfers_queryset.filter(status__in=["Approved", "Rejected"])
+    transfers_queryset = transfers_queryset.filter(status__in=["approved", "rejected"])
     print(f"Filtered transfers (Approved/Rejected): {transfers_queryset.count()}")
-    # --- Current month start/end ---
-    cm_start = today.replace(day=1)
-    cm_end = date(
-        today.year, today.month, calendar.monthrange(today.year, today.month)[1]
-    )
-
     # --- Previous month start/end ---
     if today.month == 1:  # January edge case
-        pm_year = today.year - 1
         pm_month = 12
     else:
-        pm_year = today.year
         pm_month = today.month - 1
-
-    pm_start = date(pm_year, pm_month, 1)
-    pm_end = date(pm_year, pm_month, calendar.monthrange(pm_year, pm_month)[1])
-
+    p_month_name = calendar.month_abbr[pm_month]
+    c_month_name = calendar.month_abbr[today.month]
     # --- Filter ---
-    pm_qs = transfers_queryset.filter(request_date__range=[pm_start, pm_end])
-    cm_qs = transfers_queryset.filter(request_date__range=[cm_start, cm_end])
-    print(f"PM range: {pm_start} to {pm_end}, CM range: {cm_start} to {cm_end}")
+    pm_qs = transfers_queryset.filter(transaction_date=p_month_name)
+    cm_qs = transfers_queryset.filter(transaction_date=c_month_name)
+    print(f"PM: {p_month_name}, CM: {c_month_name}")
     # --- Counts ---
     PM_submitted = pm_qs.count()
     CM_submitted = cm_qs.count()
     print(f"PM submitted: {PM_submitted}, CM submitted: {CM_submitted}")
-    PM_approved = pm_qs.filter(status="Approved").count()
-    CM_approved = cm_qs.filter(status="Approved").count()
+    PM_approved = pm_qs.filter(status="approved").count()
+    CM_approved = cm_qs.filter(status="approved").count()
     print(f"PM approved: {PM_approved}, CM approved: {CM_approved}")
     # --- Rates ---
     PM_rate = PM_approved / PM_submitted if PM_submitted else 0

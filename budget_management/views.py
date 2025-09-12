@@ -1075,7 +1075,7 @@ class DashboardBudgetTransferView(APIView):
 
             # Get all transfers with minimal data loading
             transfers_queryset = xx_BudgetTransfer.objects.only(
-                "code", "status", "status_level", "request_date"
+                "code", "status", "status_level", "request_date", "transaction_date"
             )
             # if request.user.abilities.count() > 0:
             print(len(transfers_queryset))
@@ -1398,28 +1398,43 @@ class ListBudgetTransfer_approvels_MobileView(APIView):
 
         return Response(filtered_data, status=status.HTTP_200_OK)
 
+
 class Approval_Status(APIView):
     """Get approval status options"""
+
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         transaction_id = request.query_params.get("transaction_id", None)
         if not transaction_id:
-            return Response({"detail": "transaction_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "transaction_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
-            transaction_obj = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
+            transaction_obj = xx_BudgetTransfer.objects.get(
+                transaction_id=transaction_id
+            )
         except xx_BudgetTransfer.DoesNotExist:
-            return Response({"detail": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         workflow = getattr(transaction_obj, "workflow_instance", None)
         if not workflow:
-            return Response({"detail": "No workflow instance for this transaction"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "No workflow instance for this transaction"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         # Stage templates in order
         stage_templates = workflow.template.stages.all().order_by("order_index")
 
         # Map of stage_template_id -> stage_instance (if created)
-        stage_instances_qs = workflow.stage_instances.select_related("stage_template", "workflow_instance").all()
+        stage_instances_qs = workflow.stage_instances.select_related(
+            "stage_template", "workflow_instance"
+        ).all()
         instances_by_tpl = {si.stage_template_id: si for si in stage_instances_qs}
 
         # For rejected workflows, capture the latest reject per order_index to reflect group outcome
@@ -1432,7 +1447,10 @@ class Approval_Status(APIView):
                     .order_by("-created_at")
                     .first()
                 )
-                if r and (order_idx not in latest_reject_by_order or r.created_at > latest_reject_by_order[order_idx].created_at):
+                if r and (
+                    order_idx not in latest_reject_by_order
+                    or r.created_at > latest_reject_by_order[order_idx].created_at
+                ):
                     latest_reject_by_order[order_idx] = r
 
         results = []
@@ -1474,8 +1492,14 @@ class Approval_Status(APIView):
                     actor = last_reject.user
                     stage_info["acted_by"] = {
                         "id": getattr(actor, "id", None),
-                        "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
-                        "action_at": last_reject.created_at.isoformat() if getattr(last_reject, "created_at", None) else None,
+                        "username": getattr(
+                            actor, "username", "SYSTEM" if actor is None else None
+                        ),
+                        "action_at": (
+                            last_reject.created_at.isoformat()
+                            if getattr(last_reject, "created_at", None)
+                            else None
+                        ),
                     }
                     stage_info["comment"] = last_reject.comment
                 else:
@@ -1487,8 +1511,14 @@ class Approval_Status(APIView):
                         actor = group_reject.user
                         stage_info["acted_by"] = {
                             "id": getattr(actor, "id", None),
-                            "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
-                            "action_at": group_reject.created_at.isoformat() if getattr(group_reject, "created_at", None) else None,
+                            "username": getattr(
+                                actor, "username", "SYSTEM" if actor is None else None
+                            ),
+                            "action_at": (
+                                group_reject.created_at.isoformat()
+                                if getattr(group_reject, "created_at", None)
+                                else None
+                            ),
                         }
                         stage_info["comment"] = group_reject.comment
                         results.append(stage_info)
@@ -1504,8 +1534,14 @@ class Approval_Status(APIView):
                         actor = last_approve.user
                         stage_info["acted_by"] = {
                             "id": getattr(actor, "id", None),
-                            "username": getattr(actor, "username", "SYSTEM" if actor is None else None),
-                            "action_at": last_approve.created_at.isoformat() if getattr(last_approve, "created_at", None) else None,
+                            "username": getattr(
+                                actor, "username", "SYSTEM" if actor is None else None
+                            ),
+                            "action_at": (
+                                last_approve.created_at.isoformat()
+                                if getattr(last_approve, "created_at", None)
+                                else None
+                            ),
                         }
                         stage_info["comment"] = last_approve.comment
             else:
@@ -1514,8 +1550,11 @@ class Approval_Status(APIView):
 
             results.append(stage_info)
 
-        return Response({
-            "transaction_id": transaction_obj.transaction_id,
-            "workflow_status": workflow.status,
-            "stages": results,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "transaction_id": transaction_obj.transaction_id,
+                "workflow_status": workflow.status,
+                "stages": results,
+            },
+            status=status.HTTP_200_OK,
+        )
