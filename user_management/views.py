@@ -150,9 +150,42 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data.get("refresh")
-            token = RefreshToken(refresh_token)
-            token.blacklist()
+            # Expect both tokens from client
+            refresh_token_str = request.data.get("refresh")
+            access_token_str = request.data.get("access")
+
+            # Blacklist refresh token (standard SimpleJWT behavior)
+            if refresh_token_str:
+                refresh_token = RefreshToken(refresh_token_str)
+                try:
+                    refresh_token.blacklist()
+                except Exception:
+                    # If blacklist app isn't installed or already blacklisted
+                    pass
+
+            # Attempt to blacklist access token if blacklist app is available
+            # Note: Access tokens are stateless; this only works if
+            # rest_framework_simplejwt.token_blacklist is installed and configured
+            if access_token_str:
+                try:
+                    from rest_framework_simplejwt.tokens import AccessToken
+                    from rest_framework_simplejwt.token_blacklist.models import (
+                        OutstandingToken,
+                        BlacklistedToken,
+                    )
+
+                    access_token = AccessToken(access_token_str)
+                    jti = access_token.get("jti")
+                    if jti:
+                        try:
+                            outstanding = OutstandingToken.objects.get(jti=jti)
+                            BlacklistedToken.objects.get_or_create(token=outstanding)
+                        except OutstandingToken.DoesNotExist:
+                            # If no OutstandingToken record exists (common for access tokens), skip
+                            pass
+                except Exception:
+                    # Any import/blacklist issues are non-fatal for logout
+                    pass
 
             return Response(
                 {"message": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT
