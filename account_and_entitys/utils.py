@@ -278,13 +278,13 @@ def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="se
                       'control_budget_name': str(row.get('CONTROL_BUDGET_NAME', '')).strip() if pd.notna(row.get('CONTROL_BUDGET_NAME')) else None,
                       'ledger_name': str(row.get('LEDGER_NAME', '')).strip() if pd.notna(row.get('LEDGER_NAME')) else None,
                       'as_of_period': str(row.get('AS_OF_PERIOD', '')).strip() if pd.notna(row.get('AS_OF_PERIOD')) else None,
-                      'segment1': str(row.get('SEGMENT1', '')).strip() if pd.notna(row.get('SEGMENT1')) else None,
-                      'segment2': str(row.get('SEGMENT2', '')).strip() if pd.notna(row.get('SEGMENT2')) else None,
+                      'segment1': str(int(row.get('SEGMENT1', ''))).strip() if pd.notna(int(row.get('SEGMENT1'))) else None,
+                      'segment2': str(int(row.get('SEGMENT2', ''))).strip() if pd.notna(int(row.get('SEGMENT2'))) else None,
                       'segment3': str(row.get('SEGMENT3', '')).strip() if pd.notna(row.get('SEGMENT3')) else None,
                       'encumbrance_ytd': float(row.get('ENCUMBRANCE_PTD', 0)) if pd.notna(row.get('ENCUMBRANCE_PTD')) and str(row.get('ENCUMBRANCE_PTD', '')).strip() != '' else 0.0,
                       'other_ytd': float(row.get('OTHER_PTD', 0)) if pd.notna(row.get('OTHER_PTD')) and str(row.get('OTHER_PTD', '')).strip() != '' else 0.0,
                       'actual_ytd': float(row.get('ACTUAL_PTD', 0)) if pd.notna(row.get('ACTUAL_PTD')) and str(row.get('ACTUAL_PTD', '')).strip() != '' else 0.0,
-                      'funds_available_asof': float(row.get('FUNDS_AVAILABLE_ASOF', 0)) if pd.notna(row.get('FUNDS_AVAILABLE_ASOF')) and str(row.get('FUNDS_AVAILABLE_ASOF', '')).strip() != '' else 0.0,
+                      'funds_available_asof': float(row.get('FUNDS_AVAILABLE', 0)) if pd.notna(row.get('FUNDS_AVAILABLE')) and str(row.get('FUNDS_AVAILABLE', '')).strip() != '' else 0.0,
                       'budget_ytd': float(row.get('BUDGET_PTD', 0)) if pd.notna(row.get('BUDGET_PTD')) and str(row.get('BUDGET_PTD', '')).strip() != '' else 0.0
                   }
                   data_list.append(record)
