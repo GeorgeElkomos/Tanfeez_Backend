@@ -609,7 +609,7 @@ class Adjdtranscationtransferapprovel_reject(APIView):
             decide = item.get("decide")[0]
             if item.get("reason") is not None:
                 reson = item.get("reason")[0]
-            if item.get("other_user_id") is not None:
+            if item.get("other_user_id") is not None and len(item.get("other_user_id")) > 0:
                 OtherUserId = item.get("other_user_id")[0]
             OtherUser = None
             # Validate required fields

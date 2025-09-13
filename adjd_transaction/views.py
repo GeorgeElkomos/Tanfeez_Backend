@@ -22,9 +22,18 @@ from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from pathlib import Path
 from django.conf import settings
-from test_upload_fbdi.journal_template_manager import create_sample_journal_data,create_journal_from_scratch
-from test_upload_fbdi.upload_soap_fbdi import b64_csv, build_soap_envelope, upload_fbdi_to_oracle
+from test_upload_fbdi.journal_template_manager import (
+    create_sample_journal_data,
+    create_journal_from_scratch,
+)
+from test_upload_fbdi.upload_soap_fbdi import (
+    b64_csv,
+    build_soap_envelope,
+    upload_fbdi_to_oracle,
+)
 from account_and_entitys.utils import get_oracle_report_data
+
+
 def validate_adjd_transaction(data, code=None):
     """
     Validate ADJD transaction transfer data against 10 business rules
@@ -44,17 +53,17 @@ def validate_adjd_transaction(data, code=None):
         "account_code",
         "project_code",
     ]
-    if data["from_center"]=='':
+    if data["from_center"] == "":
         data["from_center"] = 0
-    if data["to_center"]=='':
+    if data["to_center"] == "":
         data["to_center"] = 0
-    if data["approved_budget"]=='':
+    if data["approved_budget"] == "":
         data["approved_budget"] = 0
-    if data["available_budget"]=='':
+    if data["available_budget"] == "":
         data["available_budget"] = 0
-    if data["encumbrance"]=='':
+    if data["encumbrance"] == "":
         data["encumbrance"] = 0
-    if data["actual"]=='':
+    if data["actual"] == "":
         data["actual"] = 0
 
     for field in required_fields:
@@ -108,13 +117,22 @@ def validate_adjd_transaction(data, code=None):
 def validate_adjd_transcation_transfer(data, code=None, errors=None):
     # Validation 1: Check for fund is available if not then no combination code
     existing_code_combintion = XX_PivotFund.objects.filter(
-        entity=data["cost_center_code"], account=data["account_code"], project=data["project_code"]
+        entity=data["cost_center_code"],
+        account=data["account_code"],
+        project=data["project_code"],
     )
     if not existing_code_combintion.exists():
         errors.append(
             f"Code combination not found for {data['cost_center_code']} and {data['project_code']} and {data['account_code']}"
         )
-    print("existing_code_combintion", type(data["cost_center_code"]),":", type(data["project_code"]),":", type(data["account_code"]))
+    print(
+        "existing_code_combintion",
+        type(data["cost_center_code"]),
+        ":",
+        type(data["project_code"]),
+        ":",
+        type(data["account_code"]),
+    )
     # Validation 2: Check if is allowed to make trasfer using this cost_center_code and account_code
     allowed_to_make_transfer = XX_ACCOUNT_ENTITY_LIMIT.objects.filter(
         entity_id=str(data["cost_center_code"]),
@@ -147,24 +165,24 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
 # def upload_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> dict:
 #     """
 #     Upload FBDI CSV file to Oracle Fusion using SOAP API
-    
+
 #     Args:
 #         csv_file_path: Path to the CSV file to upload
 #         group_id: Optional group ID for the upload (auto-generated if not provided)
-    
+
 #     Returns:
 #         Dictionary with upload results
 #     """
 #     # Load environment variables
 #     load_dotenv()
-    
+
 #     BASE_URL = os.getenv("FUSION_BASE_URL")
-#     USER = os.getenv("FUSION_USER") 
+#     USER = os.getenv("FUSION_USER")
 #     PASS = os.getenv("FUSION_PASS")
 #     DATA_ACCESS_SET_ID = os.getenv("FUSION_DAS_ID")
 #     LEDGER_ID = os.getenv("FUSION_LEDGER_ID")
 #     SOURCE_NAME = os.getenv("FUSION_SOURCE_NAME", "Manual")
-    
+
 #     # Sanity checks
 #     for k, v in {
 #         "FUSION_BASE_URL": BASE_URL,
@@ -175,37 +193,37 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
 #     }.items():
 #         if not v:
 #             return {"success": False, "error": f"Missing environment variable: {k}"}
-    
+
 #     # Check if CSV file exists
 #     if not os.path.exists(csv_file_path):
 #         return {"success": False, "error": f"CSV file not found: {csv_file_path}"}
-    
+
 #     # Auto-generate group ID if not provided
 #     if not group_id:
 #         timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 #         group_id = timestamp
-    
+
 #     try:
 #         # Read and encode CSV
 #         csv_b64 = b64_csv(csv_file_path)
 #         csv_filename = os.path.basename(csv_file_path)
-        
+
 #         # Build SOAP envelope
 #         soap_body = build_soap_envelope(csv_b64, csv_filename, group_id)
-        
+
 #         # SOAP headers
 #         headers = {
-#             "Content-Type": "text/xml; charset=utf-8", 
+#             "Content-Type": "text/xml; charset=utf-8",
 #             "SOAPAction": "",
 #             "Accept": "text/xml"
 #         }
-        
+
 #         # Determine SOAP endpoint
 #         if BASE_URL:
 #             soap_url = BASE_URL.replace("/fscmRestApi/resources/11.13.18.05", "/fscmService/ErpIntegrationService")
 #         else:
 #             return {"success": False, "error": "FUSION_BASE_URL not configured"}
-        
+
 #         # Send SOAP request
 #         response = requests.post(
 #             soap_url,
@@ -214,19 +232,19 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
 #             data=soap_body,
 #             timeout=60
 #         )
-        
+
 #         if response.status_code >= 400:
 #             return {
-#                 "success": False, 
+#                 "success": False,
 #                 "error": f"HTTP Error: {response.status_code} {response.reason}",
 #                 "response": response.text[:500]  # Truncate for logging
 #             }
-        
+
 #         # Extract request ID from SOAP response
 #         import re
 #         result_match = re.search(r'<result[^>]*>(\d+)</result>', response.text)
 #         request_id = result_match.group(1) if result_match else None
-        
+
 #         return {
 #             "success": True,
 #             "request_id": request_id,
@@ -234,7 +252,7 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
 #             "csv_file": csv_filename,
 #             "message": "FBDI file uploaded successfully to Oracle Fusion"
 #         }
-        
+
 #     except Exception as e:
 #         return {"success": False, "error": f"Upload failed: {str(e)}"}
 
@@ -269,9 +287,7 @@ class AdjdTransactionTransferCreateView(APIView):
                 )
 
             # Delete all existing transfers for this transaction
-            xx_TransactionTransfer.objects.filter(
-                transaction=transaction_id
-            ).delete()
+            xx_TransactionTransfer.objects.filter(transaction=transaction_id).delete()
 
             # Process the new transfers
             results = []
@@ -294,7 +310,9 @@ class AdjdTransactionTransferCreateView(APIView):
                     results.append(serializer.data)
                     print(f"Transfer {index} created: {transfer}")
                 else:
-                    print(f"Validation errors for transfer at index {index}: {serializer.errors}")
+                    print(
+                        f"Validation errors for transfer at index {index}: {serializer.errors}"
+                    )
                     results.append(
                         {
                             "index": index,
@@ -317,9 +335,7 @@ class AdjdTransactionTransferCreateView(APIView):
                 )
 
             # Delete all existing transfers for this transaction for single item operations
-            xx_TransactionTransfer.objects.filter(
-                transaction=transaction_id
-            ).delete()
+            xx_TransactionTransfer.objects.filter(transaction=transaction_id).delete()
 
             # Validate with serializer and create new transfer
 
@@ -360,7 +376,9 @@ class AdjdTransactionTransferCreateView(APIView):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 serializer.save()
-                print(f"Validation errors for transfer at index {index}: {serializer.errors}")
+                print(
+                    f"Validation errors for transfer at index {index}: {serializer.errors}"
+                )
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -381,7 +399,9 @@ class AdjdTransactionTransferListView(APIView):
                 status=rest_framework.status.HTTP_400_BAD_REQUEST,
             )
 
-        transaction_object = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
+        transaction_object = xx_BudgetTransfer.objects.get(
+            transaction_id=transaction_id
+        )
         if not transaction_object:
             return Response(
                 {
@@ -395,53 +415,63 @@ class AdjdTransactionTransferListView(APIView):
 
             if transaction_object.status_level and transaction_object.status_level < 1:
                 status = "is rejected"
-            elif transaction_object.status_level and transaction_object.status_level == 1:
+            elif (
+                transaction_object.status_level and transaction_object.status_level == 1
+            ):
                 status = "not yet sent for approval"
-            elif transaction_object.status_level and transaction_object.status_level == 4:
+            elif (
+                transaction_object.status_level and transaction_object.status_level == 4
+            ):
                 status = "approved"
             else:
                 status = "waiting for approval"
         else:
             if transaction_object.status_level and transaction_object.status_level < 1:
                 status = "is rejected"
-            elif transaction_object.status_level and transaction_object.status_level == 3:
+            elif (
+                transaction_object.status_level and transaction_object.status_level == 3
+            ):
                 status = "approved"
-            elif transaction_object.status_level and transaction_object.status_level == 1:
+            elif (
+                transaction_object.status_level and transaction_object.status_level == 1
+            ):
                 status = "not yet sent for approval"
             else:
                 status = "waiting for approval"
 
-        transfers = xx_TransactionTransfer.objects.filter(
-            transaction=transaction_id
-        )
+        transfers = xx_TransactionTransfer.objects.filter(transaction=transaction_id)
         serializer = AdjdTransactionTransferSerializer(transfers, many=True)
 
         for transfer in transfers:
-           result = get_oracle_report_data(segment1=transfer.cost_center_code, segment2=transfer.account_code, segment3=transfer.project_code)
-           data = result["data"]
-           
-           if data and len(data) > 0:
-               record = data[0]
-               transfer.available_budget = record["funds_available_asof"]
-               transfer.approved_budget = record["budget_ytd"]
-               transfer.encumbrance = record["encumbrance_ytd"]
-               transfer.actual = record["actual_ytd"]
-           else:
-               # No data found, set default values
-               transfer.available_budget = 0.0
-               transfer.approved_budget = 0.0
-               transfer.encumbrance = 0.0
-               transfer.actual = 0.0
-           
-           transfer.save()
+            result = get_oracle_report_data(
+                segment1=transfer.cost_center_code,
+                segment2=transfer.account_code,
+                segment3=transfer.project_code,
+            )
+            data = result["data"]
 
+            if data and len(data) > 0:
+                record = data[0]
+                transfer.available_budget = record["funds_available_asof"]
+                transfer.approved_budget = record["budget_ytd"]
+                transfer.encumbrance = record["encumbrance_ytd"]
+                transfer.actual = record["actual_ytd"]
+            else:
+                # No data found, set default values
+                transfer.available_budget = 0.0
+                transfer.approved_budget = 0.0
+                transfer.encumbrance = 0.0
+                transfer.actual = 0.0
 
+            transfer.save()
 
         # Create response with validation for each transfer
         response_data = []
         for transfer_data in serializer.data:
             from_center_val = transfer_data.get("from_center", 0)
-            from_center = float(from_center_val) if from_center_val not in [None, ""] else 0.0
+            from_center = (
+                float(from_center_val) if from_center_val not in [None, ""] else 0.0
+            )
             to_center = float(transfer_data.get("to_center", 0))
             cost_center_code = transfer_data.get("cost_center_code")
             account_code = transfer_data.get("account_code")
@@ -471,9 +501,9 @@ class AdjdTransactionTransferListView(APIView):
             validation_errors = validate_adjd_transaction(
                 validation_data, code=transaction_object.code
             )
-            validation_errors = validate_adjd_transcation_transfer(
-                validation_data, code=transaction_object.code, errors=validation_errors
-            )
+            # validation_errors = validate_adjd_transcation_transfer(
+            #     validation_data, code=transaction_object.code, errors=validation_errors
+            # )
             # Add validation results to the transfer data
             transfer_result = transfer_data.copy()
             if validation_errors:
@@ -488,14 +518,24 @@ class AdjdTransactionTransferListView(APIView):
         )
 
         if all_related_transfers.exists():
-            from_center_values = all_related_transfers.values_list("from_center", flat=True)
+            from_center_values = all_related_transfers.values_list(
+                "from_center", flat=True
+            )
             to_center_values = all_related_transfers.values_list("to_center", flat=True)
-            total_from_center = sum(float(value) if value not in [None, ''] else 0 for value in from_center_values)
-            total_to_center = sum(float(value) if value not in [None, ''] else 0 for value in to_center_values)
+            total_from_center = sum(
+                float(value) if value not in [None, ""] else 0
+                for value in from_center_values
+            )
+            total_to_center = sum(
+                float(value) if value not in [None, ""] else 0
+                for value in to_center_values
+            )
 
             if total_from_center == total_to_center:
                 transaction_object.amount = total_from_center
-                xx_BudgetTransfer.objects.filter(pk=transaction_id).update(amount=total_from_center)
+                xx_BudgetTransfer.objects.filter(pk=transaction_id).update(
+                    amount=total_from_center
+                )
 
             if transaction_object.code[0:3] == "AFR":
                 summary = {
@@ -516,7 +556,6 @@ class AdjdTransactionTransferListView(APIView):
                     "balanced": total_from_center == total_to_center,
                     "status": status,
                     "period": transaction_object.transaction_date + str(-25),
-
                 }
 
             status = {"status": status}
@@ -532,7 +571,6 @@ class AdjdTransactionTransferListView(APIView):
                 "balanced": True,
                 "status": status,
                 "period": transaction_object.transaction_date + str(-25),
-
             }
             status = {"status": status}
             return Response(
@@ -541,7 +579,6 @@ class AdjdTransactionTransferListView(APIView):
 
 
 class AdjdTransactionTransferDetailView(APIView):
-
     """Retrieve a specific ADJD transaction transfer"""
 
     permission_classes = [IsAuthenticated]
@@ -742,47 +779,55 @@ class AdjdtranscationtransferSubmit(APIView):
                 # Update the budget transfer status
                 # Use absolute path for template file
                 base_dir = Path(settings.BASE_DIR)
-                template_path = base_dir / "test_upload_fbdi" / "JournalImportTemplate.xlsm"
+                template_path = (
+                    base_dir / "test_upload_fbdi" / "JournalImportTemplate.xlsm"
+                )
                 output_name = base_dir / "test_upload_fbdi" / "SampleJournal"
-                
+
                 print(f"Template path: {template_path}")
                 print(f"Output name: {output_name}")
-                
+
                 # Generate journal entry using the transfers
                 data = create_sample_journal_data(transfers)
                 result = create_journal_from_scratch(
                     template_path=str(template_path),
                     journal_data=data,
                     output_name=str(output_name),
-                    auto_zip=True
+                    auto_zip=True,
                 )
                 print(f"\nCompleted! Final file: {result}")
-                
+
                 # Extract CSV file path and upload to Oracle Fusion
                 csv_upload_result = None
-                if result and result.endswith('.zip'):
+                if result and result.endswith(".zip"):
                     # The CSV file should be in the same directory as the ZIP file
                     zip_path = Path(result)
                     csv_path = zip_path.parent / "GL_INTERFACE.csv"
-                    
+
                     if csv_path.exists():
                         print(f"Uploading CSV to Oracle Fusion: {csv_path}")
                         csv_upload_result = upload_fbdi_to_oracle(str(csv_path))
-                        
+
                         if csv_upload_result.get("success"):
-                            print(f"FBDI Upload successful! Request ID: {csv_upload_result.get('request_id')}")
+                            print(
+                                f"FBDI Upload successful! Request ID: {csv_upload_result.get('request_id')}"
+                            )
                         else:
-                            print(f"FBDI Upload failed: {csv_upload_result.get('error')}")
+                            print(
+                                f"FBDI Upload failed: {csv_upload_result.get('error')}"
+                            )
                     else:
                         print(f"CSV file not found at expected location: {csv_path}")
-                        csv_upload_result = {"success": False, "error": "CSV file not found"}
+                        csv_upload_result = {
+                            "success": False,
+                            "error": "CSV file not found",
+                        }
                 else:
                     print("Journal creation did not produce expected ZIP file")
-                    csv_upload_result = {"success": False, "error": "No ZIP file created"}
-
-
-
-
+                    csv_upload_result = {
+                        "success": False,
+                        "error": "No ZIP file created",
+                    }
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
@@ -801,11 +846,11 @@ class AdjdtranscationtransferSubmit(APIView):
                     "pivot_updates": pivot_updates,
                     "journal_file": result if result else None,
                 }
-                
+
                 # Add FBDI upload results if available
                 if csv_upload_result:
                     response_data["fbdi_upload"] = csv_upload_result
-                
+
                 # Return success response here, inside the try block
                 return Response(response_data, status=status.HTTP_200_OK)
 
@@ -859,7 +904,9 @@ class Adjdtranscationtransfer_Reopen(APIView):
                 transaction_id=transaction_id
             )
 
-            if adjd_transaction.status_level and adjd_transaction.status_level < 3:  # Must be 1:
+            if (
+                adjd_transaction.status_level and adjd_transaction.status_level < 3
+            ):  # Must be 1:
                 if action == "reopen":
                     # Update the single object
                     adjd_transaction.approvel_1 = None
@@ -873,7 +920,7 @@ class Adjdtranscationtransfer_Reopen(APIView):
                     adjd_transaction.status = "pending"
                     adjd_transaction.status_level = 1
                     adjd_transaction.save()
-                    
+
                     return Response(
                         {
                             "message": "transaction re-opened successfully",
