@@ -14,8 +14,17 @@ from django.utils import timezone
 from user_management.models import xx_notification
 import pandas as pd
 import io
-
-
+import os
+import datetime
+import base64
+import requests
+from requests.auth import HTTPBasicAuth
+from dotenv import load_dotenv
+from pathlib import Path
+from django.conf import settings
+from test_upload_fbdi.journal_template_manager import create_sample_journal_data,create_journal_from_scratch
+from test_upload_fbdi.upload_soap_fbdi import b64_csv, build_soap_envelope, upload_fbdi_to_oracle
+from account_and_entitys.utils import get_oracle_report_data
 def validate_adjd_transaction(data, code=None):
     """
     Validate ADJD transaction transfer data against 10 business rules
@@ -133,6 +142,101 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
                         f"Not allowed to make transfer for {data['cost_center_code']} and {data['project_code']} and {data['account_code']} according to the rules (can't transfer to this account)"
                     )
     return errors
+
+
+# def upload_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> dict:
+#     """
+#     Upload FBDI CSV file to Oracle Fusion using SOAP API
+    
+#     Args:
+#         csv_file_path: Path to the CSV file to upload
+#         group_id: Optional group ID for the upload (auto-generated if not provided)
+    
+#     Returns:
+#         Dictionary with upload results
+#     """
+#     # Load environment variables
+#     load_dotenv()
+    
+#     BASE_URL = os.getenv("FUSION_BASE_URL")
+#     USER = os.getenv("FUSION_USER") 
+#     PASS = os.getenv("FUSION_PASS")
+#     DATA_ACCESS_SET_ID = os.getenv("FUSION_DAS_ID")
+#     LEDGER_ID = os.getenv("FUSION_LEDGER_ID")
+#     SOURCE_NAME = os.getenv("FUSION_SOURCE_NAME", "Manual")
+    
+#     # Sanity checks
+#     for k, v in {
+#         "FUSION_BASE_URL": BASE_URL,
+#         "FUSION_USER": USER,
+#         "FUSION_PASS": PASS,
+#         "FUSION_DAS_ID": DATA_ACCESS_SET_ID,
+#         "FUSION_LEDGER_ID": LEDGER_ID,
+#     }.items():
+#         if not v:
+#             return {"success": False, "error": f"Missing environment variable: {k}"}
+    
+#     # Check if CSV file exists
+#     if not os.path.exists(csv_file_path):
+#         return {"success": False, "error": f"CSV file not found: {csv_file_path}"}
+    
+#     # Auto-generate group ID if not provided
+#     if not group_id:
+#         timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+#         group_id = timestamp
+    
+#     try:
+#         # Read and encode CSV
+#         csv_b64 = b64_csv(csv_file_path)
+#         csv_filename = os.path.basename(csv_file_path)
+        
+#         # Build SOAP envelope
+#         soap_body = build_soap_envelope(csv_b64, csv_filename, group_id)
+        
+#         # SOAP headers
+#         headers = {
+#             "Content-Type": "text/xml; charset=utf-8", 
+#             "SOAPAction": "",
+#             "Accept": "text/xml"
+#         }
+        
+#         # Determine SOAP endpoint
+#         if BASE_URL:
+#             soap_url = BASE_URL.replace("/fscmRestApi/resources/11.13.18.05", "/fscmService/ErpIntegrationService")
+#         else:
+#             return {"success": False, "error": "FUSION_BASE_URL not configured"}
+        
+#         # Send SOAP request
+#         response = requests.post(
+#             soap_url,
+#             auth=HTTPBasicAuth(USER, PASS),
+#             headers=headers,
+#             data=soap_body,
+#             timeout=60
+#         )
+        
+#         if response.status_code >= 400:
+#             return {
+#                 "success": False, 
+#                 "error": f"HTTP Error: {response.status_code} {response.reason}",
+#                 "response": response.text[:500]  # Truncate for logging
+#             }
+        
+#         # Extract request ID from SOAP response
+#         import re
+#         result_match = re.search(r'<result[^>]*>(\d+)</result>', response.text)
+#         request_id = result_match.group(1) if result_match else None
+        
+#         return {
+#             "success": True,
+#             "request_id": request_id,
+#             "group_id": group_id,
+#             "csv_file": csv_filename,
+#             "message": "FBDI file uploaded successfully to Oracle Fusion"
+#         }
+        
+#     except Exception as e:
+#         return {"success": False, "error": f"Upload failed: {str(e)}"}
 
 
 class AdjdTransactionTransferCreateView(APIView):
@@ -312,9 +416,29 @@ class AdjdTransactionTransferListView(APIView):
         )
         serializer = AdjdTransactionTransferSerializer(transfers, many=True)
 
+        for transfer in transfers:
+           result = get_oracle_report_data(segment1=transfer.cost_center_code, segment2=transfer.account_code, segment3=transfer.project_code)
+           data = result["data"]
+           
+           if data and len(data) > 0:
+               record = data[0]
+               transfer.available_budget = record["funds_available_asof"]
+               transfer.approved_budget = record["budget_ytd"]
+               transfer.encumbrance = record["encumbrance_ytd"]
+               transfer.actual = record["actual_ytd"]
+           else:
+               # No data found, set default values
+               transfer.available_budget = 0.0
+               transfer.approved_budget = 0.0
+               transfer.encumbrance = 0.0
+               transfer.actual = 0.0
+           
+           transfer.save()
+
+
+
         # Create response with validation for each transfer
         response_data = []
-
         for transfer_data in serializer.data:
             from_center_val = transfer_data.get("from_center", 0)
             from_center = float(from_center_val) if from_center_val not in [None, ""] else 0.0
@@ -560,62 +684,106 @@ class AdjdtranscationtransferSubmit(APIView):
                     )
 
                 # Validate all transfers have corresponding pivot funds
-                missing_pivot_funds = []
-                for transfer in transfers:
-                    try:
-                        pivot_fund = XX_PivotFund.objects.get(
-                            entity=transfer.cost_center_code,
-                            account=transfer.account_code,
-                            project=transfer.project_code,
-                        )
-                    except XX_PivotFund.DoesNotExist:
-                        missing_pivot_funds.append(
-                            {
-                                "transfer_id": transfer.transfer_id,
-                                "cost_center_code": transfer.cost_center_code,
-                                "account_code": transfer.account_code,
-                                "project_code": transfer.project_code,
-                            }
-                        )
+                # missing_pivot_funds = []
+                # for transfer in transfers:
+                #     try:
+                #         pivot_fund = XX_PivotFund.objects.get(
+                #             entity=transfer.cost_center_code,
+                #             account=transfer.account_code,
+                #             project=transfer.project_code,
+                #         )
+                #     except XX_PivotFund.DoesNotExist:
+                #         missing_pivot_funds.append(
+                #             {
+                #                 "transfer_id": transfer.transfer_id,
+                #                 "cost_center_code": transfer.cost_center_code,
+                #                 "account_code": transfer.account_code,
+                #                 "project_code": transfer.project_code,
+                #             }
+                #         )
 
-                # If any pivot funds are missing, return error with details
-                if missing_pivot_funds:
-                    return Response(
-                        {
-                            "error": "Missing pivot funds",
-                            "message": f"Some transfers do not have corresponding pivot funds",
-                            "missing_pivot_funds": missing_pivot_funds,
-                        },
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
+                # # If any pivot funds are missing, return error with details
+                # if missing_pivot_funds:
+                #     return Response(
+                #         {
+                #             "error": "Missing pivot funds",
+                #             "message": f"Some transfers do not have corresponding pivot funds",
+                #             "missing_pivot_funds": missing_pivot_funds,
+                #         },
+                #         status=status.HTTP_404_NOT_FOUND,
+                #     )
 
-                # Process each transfer for the transaction (only if all pivot funds exist)
-                for transfer in transfers:
-                    # Use the utility function to update pivot fund
-                    update_result = update_pivot_fund(
-                        transfer.cost_center_code,
-                        transfer.account_code,
-                        transfer.project_code,
-                        transfer.from_center,
-                        transfer.to_center,
-                        decide="pending",
-                    )
-                    print(f"Update result: {update_result}")
+                # # Process each transfer for the transaction (only if all pivot funds exist)
+                # for transfer in transfers:
+                #     # Use the utility function to update pivot fund
+                #     update_result = update_pivot_fund(
+                #         transfer.cost_center_code,
+                #         transfer.account_code,
+                #         transfer.project_code,
+                #         transfer.from_center,
+                #         transfer.to_center,
+                #         decide="pending",
+                #     )
+                #     print(f"Update result: {update_result}")
 
-                    # Check if error key exists and has a value
-                    if "error" in update_result and update_result["error"]:
-                        return Response(
-                            {
-                                "error": "Budget transfer not found",
-                                "message": f"No PIVOT FUND AVAILABLE: {transaction_id}",
-                            },
-                            status=status.HTTP_404_NOT_FOUND,
-                        )
+                #     # Check if error key exists and has a value
+                #     if "error" in update_result and update_result["error"]:
+                #         return Response(
+                #             {
+                #                 "error": "Budget transfer not found",
+                #                 "message": f"No PIVOT FUND AVAILABLE: {transaction_id}",
+                #             },
+                #             status=status.HTTP_404_NOT_FOUND,
+                #         )
 
-                    # If we get here, update was successful
-                    pivot_updates.append(update_result)
+                #     # If we get here, update was successful
+                #     pivot_updates.append(update_result)
 
                 # Update the budget transfer status
+                # Use absolute path for template file
+                base_dir = Path(settings.BASE_DIR)
+                template_path = base_dir / "test_upload_fbdi" / "JournalImportTemplate.xlsm"
+                output_name = base_dir / "test_upload_fbdi" / "SampleJournal"
+                
+                print(f"Template path: {template_path}")
+                print(f"Output name: {output_name}")
+                
+                # Generate journal entry using the transfers
+                data = create_sample_journal_data(transfers)
+                result = create_journal_from_scratch(
+                    template_path=str(template_path),
+                    journal_data=data,
+                    output_name=str(output_name),
+                    auto_zip=True
+                )
+                print(f"\nCompleted! Final file: {result}")
+                
+                # Extract CSV file path and upload to Oracle Fusion
+                csv_upload_result = None
+                if result and result.endswith('.zip'):
+                    # The CSV file should be in the same directory as the ZIP file
+                    zip_path = Path(result)
+                    csv_path = zip_path.parent / "GL_INTERFACE.csv"
+                    
+                    if csv_path.exists():
+                        print(f"Uploading CSV to Oracle Fusion: {csv_path}")
+                        csv_upload_result = upload_fbdi_to_oracle(str(csv_path))
+                        
+                        if csv_upload_result.get("success"):
+                            print(f"FBDI Upload successful! Request ID: {csv_upload_result.get('request_id')}")
+                        else:
+                            print(f"FBDI Upload failed: {csv_upload_result.get('error')}")
+                    else:
+                        print(f"CSV file not found at expected location: {csv_path}")
+                        csv_upload_result = {"success": False, "error": "CSV file not found"}
+                else:
+                    print("Journal creation did not produce expected ZIP file")
+                    csv_upload_result = {"success": False, "error": "No ZIP file created"}
+
+
+
+
+
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
                 budget_transfer.status_level = 2
@@ -626,15 +794,20 @@ class AdjdtranscationtransferSubmit(APIView):
                 # user_submit=xx_notification()
                 # user_submit.create_notification(user=request.user,message=f"you have submited the trasnation {transaction_id} secessfully ")
 
+                # Prepare response data
+                response_data = {
+                    "message": "Transfers submitted for approval successfully",
+                    "transaction_id": transaction_id,
+                    "pivot_updates": pivot_updates,
+                    "journal_file": result if result else None,
+                }
+                
+                # Add FBDI upload results if available
+                if csv_upload_result:
+                    response_data["fbdi_upload"] = csv_upload_result
+                
                 # Return success response here, inside the try block
-                return Response(
-                    {
-                        "message": "Transfers submitted for approval successfully",
-                        "transaction_id": transaction_id,
-                        "pivot_updates": pivot_updates,
-                    },
-                    status=status.HTTP_200_OK,
-                )
+                return Response(response_data, status=status.HTTP_200_OK)
 
             except xx_BudgetTransfer.DoesNotExist:
                 return Response(
@@ -785,6 +958,7 @@ class AdjdTransactionTransferExcelUploadView(APIView):
             required_columns = [
                 "cost_center_code",
                 "account_code",
+                "project_code",
                 "from_center",
                 "to_center",
             ]

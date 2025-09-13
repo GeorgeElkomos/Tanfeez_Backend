@@ -12,6 +12,11 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
     if excel_file.suffix.lower() not in ['.xlsx', '.xlsm', '.xls']:
         raise ValueError(f"File is not an Excel file: {excel_path}")
     
+    # Get the directory where the ZIP file will be saved
+    zip_dir = Path(zip_path).parent
+    print(f"ZIP will be saved to: {zip_path}")
+    print(f"CSV files will be saved to: {zip_dir}")
+    
     # Read Excel file and get all sheets
     xl = pd.ExcelFile(excel_path)
     print(f"Found sheets: {xl.sheet_names}")
@@ -138,26 +143,26 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                         csv_content.append(','.join(oracle_row))
                     
                     # Write directly to CSV file with proper comma separation
-                    csv_filename = 'GL_INTERFACE.csv'
+                    csv_filename = zip_dir / 'GL_INTERFACE.csv'
                     with open(csv_filename, 'w', newline='', encoding='utf-8') as f:
                         for line in csv_content:
                             f.write(line + '\n')
                     
-                    temp_csv_files.append(csv_filename)
+                    temp_csv_files.append(str(csv_filename))
                     print(f"Created CSV: {csv_filename} ({len(df)} rows, {len(df.columns)} columns)")
                     continue  # Skip the normal CSV creation
                 
                 # Clean the sheet name for filename - use proper FBDI naming
                 if 'GL_INTERFACE' in sheet_name:
                     # Try Oracle standard GL interface naming
-                    csv_filename = "GlInterface.csv"  
+                    csv_filename = zip_dir / "GlInterface.csv"  
                 else:
                     clean_name = sheet_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
-                    csv_filename = f"{clean_name}.csv"
+                    csv_filename = zip_dir / f"{clean_name}.csv"
                 
-                # Save CSV in current directory without header row
+                # Save CSV in the same directory as the ZIP file
                 df.to_csv(csv_filename, index=False, header=False)
-                temp_csv_files.append(csv_filename)
+                temp_csv_files.append(str(csv_filename))
                 print(f"Created CSV: {csv_filename} ({len(df)} rows)")
                 
             except Exception as e:
@@ -210,7 +215,8 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                     with zipfile.ZipFile(zip_path, 'w') as zf:
                         for csv_file in temp_csv_files:
                             if os.path.exists(csv_file):
-                                zf.write(csv_file)
+                                # Add file with just its name (not full path) to the ZIP
+                                zf.write(csv_file, arcname=Path(csv_file).name)
                     print(f"ZIP created with Python zipfile: {zip_path}")
                 except Exception as e:
                     print(f"Python zipfile also failed: {e}")
@@ -220,8 +226,9 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
         print(f"Error during processing: {e}")
         raise
     finally:
-        # Don't clean up CSV files for debugging
-        print(f"Keeping CSV files for debugging: {temp_csv_files}")
+        # CSV files are now saved in the same directory as the ZIP file
+        print(f"CSV files saved in directory: {zip_dir}")
+        print(f"CSV files created: {[Path(f).name for f in temp_csv_files]}")
     
     return zip_path
 
