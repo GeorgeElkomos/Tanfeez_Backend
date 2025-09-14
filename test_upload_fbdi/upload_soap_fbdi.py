@@ -27,7 +27,7 @@ def build_soap_envelope(csv_b64_content: str, csv_filename: str, group_id: str,
     """Build the SOAP envelope for importBulkDataAsync"""
     
     # Build parameter list: DataAccessSetId, SourceName, LedgerId, GroupId, PostErrorsToSuspense, CreateSummary, ImportDFF
-    parameter_list = f"{DATA_ACCESS_SET_ID},{SOURCE_NAME},{LEDGER_ID},{group_id},N,N,N"
+    parameter_list = f"{DATA_ACCESS_SET_ID},{SOURCE_NAME},{LEDGER_ID},NULL,N,N,N"
     
     # Optional callback URL
     callback_section = f"<typ:callbackURL>{callback_url}</typ:callbackURL>" if callback_url else ""

@@ -207,7 +207,7 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
                 "Effective Date of Transaction": "2025-09-13",
-                "Journal Source": "Balance Transfer",
+                "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
                 "Journal Entry Creation Date": "2025-09-13",
@@ -223,17 +223,17 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "Segment9": "000000",
                 "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
                 "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
-                "REFERENCE4 (Journal Entry Name)": f"Balance Transfer - {transfer.account_code}",
-                "REFERENCE5 (Journal Entry Description)": f"Transfer for account {transfer.account_code} to cost center {transfer.cost_center_code}",
+                "REFERENCE4 (Journal Entry Name)":"test from script",
+                "REFERENCE5 (Journal Entry Description)": "test from script2",
                 "REFERENCE10 (Journal Entry Line Description)": f"Debit line for account {transfer.account_code}",
                 "Encumbrance Type ID": "100000243328511"
             }
-        if transfer.cost_center_code==10172 and transfer.account_code==5010016 and transfer.project_code=="SRCE001":
+        if transfer.cost_center_code==10001 and transfer.account_code==5010016 and transfer.project_code=="SRCE001":
             journal_entry = {
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
                 "Effective Date of Transaction": "2025-09-13",
-                "Journal Source": "Balance Transfer",
+                "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
                 "Journal Entry Creation Date": "2025-09-13",
@@ -249,8 +249,8 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "Segment9": "000000",
                 "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
                 "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
-                "REFERENCE4 (Journal Entry Name)": f"Balance Transfer - {transfer.account_code}",
-                "REFERENCE5 (Journal Entry Description)": f"Transfer for account {transfer.account_code} to cost center {transfer.cost_center_code}",
+                "REFERENCE4 (Journal Entry Name)":"test from script",
+                "REFERENCE5 (Journal Entry Description)": "test from script2",
                 "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
                 "Encumbrance Type ID": "100000243328511"
             }
