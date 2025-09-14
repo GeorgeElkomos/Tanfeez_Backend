@@ -198,16 +198,24 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
     Returns:
         List of sample journal entries
     """
+    # Generate unique values that will be the same for all transfers in this function run
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    batch_name = f"BATCH_TRANSFER_{timestamp}"
+    batch_description = f"Balance Transfer Batch created on {time.strftime('%Y-%m-%d %H:%M:%S')}"
+    journal_name = f"JOURNAL_TRANSFER_{timestamp}"
+    journal_description = f"Journal Entry for Balance Transfer - Created {time.strftime('%Y-%m-%d %H:%M:%S')}"
+    
     sample_data = []
     
     for transfer in transfers:
+
         # Create journal entry using transfer data
         if transfer.cost_center_code==10001 and transfer.account_code==2205403 and transfer.project_code=="CTRLCE1":
             journal_entry = {
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
                 "Effective Date of Transaction": "2025-09-13",
-                "Journal Source": "Balance Transfer",
+                "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
                 "Journal Entry Creation Date": "2025-09-13",
@@ -223,17 +231,19 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "Segment9": "000000",
                 "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
                 "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
-                "REFERENCE4 (Journal Entry Name)": f"Balance Transfer - {transfer.account_code}",
-                "REFERENCE5 (Journal Entry Description)": f"Transfer for account {transfer.account_code} to cost center {transfer.cost_center_code}",
+                "REFERENCE1 (Batch Name)": batch_name,
+                "REFERENCE2 (Batch Description)": batch_description,
+                "REFERENCE4 (Journal Entry Name)": journal_name,
+                "REFERENCE5 (Journal Entry Description)": journal_description,
                 "REFERENCE10 (Journal Entry Line Description)": f"Debit line for account {transfer.account_code}",
                 "Encumbrance Type ID": "100000243328511"
             }
-        if transfer.cost_center_code==10172 and transfer.account_code==5010016 and transfer.project_code=="SRCE001":
+        if transfer.cost_center_code==10001 and transfer.account_code==5010016 and transfer.project_code=="SRCE001":
             journal_entry = {
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
                 "Effective Date of Transaction": "2025-09-13",
-                "Journal Source": "Balance Transfer",
+                "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
                 "Journal Entry Creation Date": "2025-09-13",
@@ -249,8 +259,10 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "Segment9": "000000",
                 "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
                 "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
-                "REFERENCE4 (Journal Entry Name)": f"Balance Transfer - {transfer.account_code}",
-                "REFERENCE5 (Journal Entry Description)": f"Transfer for account {transfer.account_code} to cost center {transfer.cost_center_code}",
+                "REFERENCE1 (Batch Name)": batch_name,
+                "REFERENCE2 (Batch Description)": batch_description,
+                "REFERENCE4 (Journal Entry Name)": journal_name,
+                "REFERENCE5 (Journal Entry Description)": journal_description,
                 "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
                 "Encumbrance Type ID": "100000243328511"
             }
