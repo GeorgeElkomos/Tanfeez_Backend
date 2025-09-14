@@ -1,11 +1,39 @@
 from django.urls import path
 from .views import (
-    AccountListView, AccountCreateView, AccountDetailView, AccountUpdateView, AccountDeleteView,
-    EntityListView, EntityCreateView, EntityDetailView, EntityUpdateView, EntityDeleteView,
-    PivotFundListView, PivotFundCreateView, PivotFundDetailView, PivotFundUpdateView, PivotFundDeleteView,
-    AdjdTransactionAuditListView, AdjdTransactionAuditCreateView, AdjdTransactionAuditDetailView, 
-    AdjdTransactionAuditUpdateView, AdjdTransactionAuditDeleteView, ProjectCreateView, ProjectDeleteView, ProjectDetailView, ProjectListView, ProjectUpdateView, list_ACCOUNT_ENTITY_LIMIT,UpdateAccountEntityLimit,DeleteAccountEntityLimit,AccountEntityLimitAPI,
-    RefreshBalanceReportView, BalanceReportListView, BalanceReportSegmentsView, BalanceReportFinancialDataView,Single_BalanceReportView
+    AccountListView,
+    AccountCreateView,
+    AccountDetailView,
+    AccountUpdateView,
+    AccountDeleteView,
+    EntityListView,
+    EntityCreateView,
+    EntityDetailView,
+    EntityUpdateView,
+    EntityDeleteView,
+    PivotFundListView,
+    PivotFundCreateView,
+    PivotFundDetailView,
+    PivotFundUpdateView,
+    PivotFundDeleteView,
+    TransactionAuditListView,
+    TransactionAuditCreateView,
+    TransactionAuditDetailView,
+    TransactionAuditUpdateView,
+    TransactionAuditDeleteView,
+    ProjectCreateView,
+    ProjectDeleteView,
+    ProjectDetailView,
+    ProjectListView,
+    ProjectUpdateView,
+    list_ACCOUNT_ENTITY_LIMIT,
+    UpdateAccountEntityLimit,
+    DeleteAccountEntityLimit,
+    AccountEntityLimitAPI,
+    RefreshBalanceReportView,
+    BalanceReportListView,
+    BalanceReportSegmentsView,
+    BalanceReportFinancialDataView,
+    Single_BalanceReportView,
 )
 
 urlpatterns = [
@@ -19,7 +47,6 @@ urlpatterns = [
     path(
         "accounts/<int:pk>/delete/", AccountDeleteView.as_view(), name="account-delete"
     ),
-    
     # Project URLs
     path("projects/", ProjectListView.as_view(), name="project-list"),
     path("projects/create/", ProjectCreateView.as_view(), name="project-create"),
@@ -55,27 +82,27 @@ urlpatterns = [
     # ADJD Transaction Audit URLs
     path(
         "transaction-audits/",
-        AdjdTransactionAuditListView.as_view(),
+        TransactionAuditListView.as_view(),
         name="transaction-audit-list",
     ),
     path(
         "transaction-audits/create/",
-        AdjdTransactionAuditCreateView.as_view(),
+        TransactionAuditCreateView.as_view(),
         name="transaction-audit-create",
     ),
     path(
         "transaction-audits/<int:pk>/",
-        AdjdTransactionAuditDetailView.as_view(),
+        TransactionAuditDetailView.as_view(),
         name="transaction-audit-detail",
     ),
     path(
         "transaction-audits/<int:pk>/update/",
-        AdjdTransactionAuditUpdateView.as_view(),
+        TransactionAuditUpdateView.as_view(),
         name="transaction-audit-update",
     ),
     path(
         "transaction-audits/<int:pk>/delete/",
-        AdjdTransactionAuditDeleteView.as_view(),
+        TransactionAuditDeleteView.as_view(),
         name="transaction-audit-delete",
     ),
     # Fix the URL for list_ACCOUNT_ENTITY_LIMIT view
@@ -100,14 +127,31 @@ urlpatterns = [
         DeleteAccountEntityLimit.as_view(),
         name="delete_limit",
     ),
-    
     # Balance Report URLs
-    path("balance-report/refresh/", RefreshBalanceReportView.as_view(), name="refresh-balance-report"),
-    path("balance-report/list/", BalanceReportListView.as_view(), name="list-balance-report"),
-    path("balance-report/segments/", BalanceReportSegmentsView.as_view(), name="balance-report-segments"),
-    path("balance-report/financial-data/", BalanceReportFinancialDataView.as_view(), name="balance-report-financial-data"),
-
-    path("balance-report/single_balance/", Single_BalanceReportView.as_view(), name="balance-report"),
-
+    path(
+        "balance-report/refresh/",
+        RefreshBalanceReportView.as_view(),
+        name="refresh-balance-report",
+    ),
+    path(
+        "balance-report/list/",
+        BalanceReportListView.as_view(),
+        name="list-balance-report",
+    ),
+    path(
+        "balance-report/segments/",
+        BalanceReportSegmentsView.as_view(),
+        name="balance-report-segments",
+    ),
+    path(
+        "balance-report/financial-data/",
+        BalanceReportFinancialDataView.as_view(),
+        name="balance-report-financial-data",
+    ),
+    path(
+        "balance-report/single_balance/",
+        Single_BalanceReportView.as_view(),
+        name="balance-report",
+    ),
     # Main Currency URLs
 ]

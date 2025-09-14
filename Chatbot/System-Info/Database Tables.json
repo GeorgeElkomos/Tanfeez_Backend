@@ -441,7 +441,7 @@
         }
       ]
     },
-    "XX_ADJD_TRANSACTION_AUDIT": {
+    "XX_TRANSACTION_AUDIT": {
       "description": "Represents ADJD transaction audit records.",
       "columns": {
         "id": {"type": "INTEGER", "constraints": ["PRIMARY KEY", "AUTOINCREMENT"], "description": "Unique identifier for each audit record."},

@@ -1,23 +1,23 @@
 from django.urls import path
 from .views import (
     Approval_Status,
-    CreateBudgetTransferView, 
-    ListBudgetTransferView, 
-    ApproveBudgetTransferView, 
+    CreateBudgetTransferView,
+    ListBudgetTransferView,
+    ApproveBudgetTransferView,
     GetBudgetTransferView,
     UpdateBudgetTransferView,
     DeleteBudgetTransferView,
-    Adjdtranscationtransferapprovel_reject,
+    transcationtransferapprovel_reject,
     ListBudgetTransfer_approvels_View,
     BudgetTransferFileUploadView,
     DeleteBudgetTransferAttachmentView,
     ListBudgetTransferAttachmentsView,
     list_budget_transfer_reject_reason,
     DashboardBudgetTransferView,
-    ListBudgetTransfer_approvels_MobileView
+    ListBudgetTransfer_approvels_MobileView,
 )
 
-app_name = 'budget_management'
+app_name = "budget_management"
 
 urlpatterns = [
     # Budget transfer endpoints
@@ -68,9 +68,9 @@ urlpatterns = [
     ),
     # URL for approve/reject ADJD transaction transfers
     path(
-        "transfers/adjd-approve-reject/",
-        Adjdtranscationtransferapprovel_reject.as_view(),
-        name="adjd-transaction-approve-reject",
+        "transfers/approve-reject/",
+        transcationtransferapprovel_reject.as_view(),
+        name="transaction-approve-reject",
     ),
     # File upload and delete endpoints
     path(

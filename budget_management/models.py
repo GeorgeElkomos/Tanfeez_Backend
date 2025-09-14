@@ -240,7 +240,7 @@ def filter_budget_transfers_all_in_entities(
         print(f"Error occurred: {e}")
         if numeric_entity_codes:
             return budget_transfers.filter(
-                Q(adjd_transfers__cost_center_code__in=numeric_entity_codes)
+                Q(transfers__cost_center_code__in=numeric_entity_codes)
                 | Q(user_id=user.id)
             ).distinct()
         # If nothing numeric to filter on, just fall back to user-owned transfers

@@ -20,7 +20,7 @@ urlpatterns = [
     # Update to use the new apps' URLs instead of budget_app
     path("api/auth/", include("user_management.urls")),
     path("api/budget/", include("budget_management.urls")),
-    path("api/adjd-transfers/", include("adjd_transaction.urls")),
+    path("api/transfers/", include("transaction.urls")),
     path(
         "api/accounts-entities/", include("account_and_entitys.urls")
     ),  # Add the new app's URLs

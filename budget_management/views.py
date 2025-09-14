@@ -20,7 +20,7 @@ from .models import (
     xx_DashboardBudgetTransfer,
 )
 from account_and_entitys.models import XX_PivotFund, XX_Entity, XX_Account
-from adjd_transaction.models import xx_TransactionTransfer
+from transaction.models import xx_TransactionTransfer
 from .serializers import BudgetTransferSerializer
 from user_management.permissions import IsAdmin, CanTransferBudget
 from budget_transfer.global_function.dashbaord import (
@@ -580,7 +580,7 @@ class DeleteBudgetTransferView(APIView):
             )
 
 
-class Adjdtranscationtransferapprovel_reject(APIView):
+class transcationtransferapprovel_reject(APIView):
     """Submit ADJD transaction transfers for approval"""
 
     permission_classes = [IsAuthenticated]
@@ -603,15 +603,20 @@ class Adjdtranscationtransferapprovel_reject(APIView):
             # Handle single transaction case
             items_to_process = [request.data]
         results = []
+        OtherUser = None
+        reson = None
         # Process each transaction
         for item in items_to_process:
             transaction_id = item.get("transaction_id")[0]
             decide = item.get("decide")[0]
-            if item.get("reason") is not None:
+            if item.get("reason") is not None and len(item.get("reason")) > 0:
                 reson = item.get("reason")[0]
-            if item.get("other_user_id") is not None and len(item.get("other_user_id")) > 0:
+            if (
+                item.get("other_user_id") is not None
+                and len(item.get("other_user_id")) > 0
+            ):
                 OtherUserId = item.get("other_user_id")[0]
-            OtherUser = None
+            
             # Validate required fields
             if not transaction_id:
                 return Response(

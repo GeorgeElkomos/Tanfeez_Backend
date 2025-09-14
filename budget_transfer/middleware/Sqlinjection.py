@@ -49,7 +49,7 @@ class SQLInjectionProtectionMiddleware(MiddlewareMixin):
 
         # Whitelist patterns for legitimate content
         self.whitelist_patterns = [
-            r"^/api/(approvals|budget|auth|accounts-entities|admin_panel|adjd-transfers)/",  # API endpoints
+            r"^/api/(approvals|budget|auth|accounts-entities|admin_panel|transfers)/",  # API endpoints
             r"workflow",  # Allow "workflow" in content
             r"approval",  # Allow "approval" in content
             r"transfer",  # Allow "transfer" in content

@@ -16,7 +16,7 @@ from budget_management.models import (
     xx_BudgetTransferRejectReason,
     xx_DashboardBudgetTransfer,
 )
-from adjd_transaction.models import xx_TransactionTransfer
+from transaction.models import xx_TransactionTransfer
 import time
 import multiprocessing
 from collections import defaultdict

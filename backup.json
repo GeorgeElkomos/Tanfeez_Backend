@@ -93,7 +93,7 @@
 {
   "model": "contenttypes.contenttype",
   "fields": {
-    "app_label": "adjd_transaction",
+    "app_label": "transaction",
     "model": "xx_transactiontransfer"
   }
 },
@@ -2290,7 +2290,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 123,
   "fields": {
     "approved_budget": "15000.00",
@@ -2312,7 +2312,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 124,
   "fields": {
     "approved_budget": "5000.00",
@@ -2334,7 +2334,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 154,
   "fields": {
     "approved_budget": "20000.00",
@@ -2356,7 +2356,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 155,
   "fields": {
     "approved_budget": "30000.00",
@@ -2378,7 +2378,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 161,
   "fields": {
     "approved_budget": "15000.00",
@@ -2400,7 +2400,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 162,
   "fields": {
     "approved_budget": "10000.00",
@@ -2422,7 +2422,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 208,
   "fields": {
     "approved_budget": "10000.00",
@@ -2444,7 +2444,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 209,
   "fields": {
     "approved_budget": "15000.00",
@@ -2466,7 +2466,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 210,
   "fields": {
     "approved_budget": "25000.00",
@@ -2488,7 +2488,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 211,
   "fields": {
     "approved_budget": "75000.00",
@@ -2510,7 +2510,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 212,
   "fields": {
     "approved_budget": "15000.00",
@@ -2532,7 +2532,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 213,
   "fields": {
     "approved_budget": "5000.00",
@@ -2554,7 +2554,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 214,
   "fields": {
     "approved_budget": "25000.00",
@@ -2576,7 +2576,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 215,
   "fields": {
     "approved_budget": "5000.00",
@@ -2598,7 +2598,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 226,
   "fields": {
     "approved_budget": "5000.00",
@@ -2620,7 +2620,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 227,
   "fields": {
     "approved_budget": "20000.00",
@@ -2642,7 +2642,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 230,
   "fields": {
     "approved_budget": "0.00",
@@ -2664,7 +2664,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 231,
   "fields": {
     "approved_budget": "15000.00",
@@ -2686,7 +2686,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 344,
   "fields": {
     "approved_budget": "4099786.20",
@@ -2708,7 +2708,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 345,
   "fields": {
     "approved_budget": "88979.86",
@@ -2730,7 +2730,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 350,
   "fields": {
     "approved_budget": "7948462.44",
@@ -2752,7 +2752,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 351,
   "fields": {
     "approved_budget": "9486981.60",
@@ -2774,7 +2774,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 364,
   "fields": {
     "approved_budget": "4537154.18",
@@ -2796,7 +2796,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 365,
   "fields": {
     "approved_budget": "9121241.61",
@@ -2818,7 +2818,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 382,
   "fields": {
     "approved_budget": "9472789.22",
@@ -2840,7 +2840,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 383,
   "fields": {
     "approved_budget": "9121241.61",
@@ -2862,7 +2862,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 384,
   "fields": {
     "approved_budget": "4537154.18",
@@ -2884,7 +2884,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 385,
   "fields": {
     "approved_budget": "9121241.61",
@@ -2906,7 +2906,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 393,
   "fields": {
     "approved_budget": "4537154.18",
@@ -2928,7 +2928,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 394,
   "fields": {
     "approved_budget": "9121241.61",
@@ -2950,7 +2950,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 401,
   "fields": {
     "approved_budget": "6967632.66",
@@ -2972,7 +2972,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 402,
   "fields": {
     "approved_budget": "9670706.96",
@@ -2994,7 +2994,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 403,
   "fields": {
     "approved_budget": "994412.55",
@@ -3016,7 +3016,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 404,
   "fields": {
     "approved_budget": "9121241.61",
@@ -3038,7 +3038,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 418,
   "fields": {
     "approved_budget": "9670706.96",
@@ -3060,7 +3060,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 428,
   "fields": {
     "approved_budget": "6135732.81",
@@ -3082,7 +3082,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 429,
   "fields": {
     "approved_budget": "6884984.40",
@@ -3104,7 +3104,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 430,
   "fields": {
     "approved_budget": "9267296.95",
@@ -3126,7 +3126,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 431,
   "fields": {
     "approved_budget": "442966.94",
@@ -3148,7 +3148,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 432,
   "fields": {
     "approved_budget": "6967632.66",
@@ -3170,7 +3170,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 433,
   "fields": {
     "approved_budget": "9121241.61",
@@ -3192,7 +3192,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 436,
   "fields": {
     "approved_budget": "442966.94",
@@ -3214,7 +3214,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 437,
   "fields": {
     "approved_budget": "9121241.61",
@@ -3236,7 +3236,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 445,
   "fields": {
     "approved_budget": "9670706.96",
@@ -3258,7 +3258,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 446,
   "fields": {
     "approved_budget": "5264485.14",
@@ -3280,7 +3280,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 455,
   "fields": {
     "approved_budget": "4537154.18",
@@ -3302,7 +3302,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 456,
   "fields": {
     "approved_budget": "9121241.61",
@@ -3324,7 +3324,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 464,
   "fields": {
     "approved_budget": "6135732.81",
@@ -3346,7 +3346,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 465,
   "fields": {
     "approved_budget": "442966.94",
@@ -3368,7 +3368,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 470,
   "fields": {
     "approved_budget": "2232372.14",
@@ -3390,7 +3390,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 471,
   "fields": {
     "approved_budget": "1150852.67",
@@ -3412,7 +3412,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 478,
   "fields": {
     "approved_budget": "9121241.61",
@@ -3434,7 +3434,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 479,
   "fields": {
     "approved_budget": "2068512.49",
@@ -3456,7 +3456,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 482,
   "fields": {
     "approved_budget": "7812330.50",
@@ -3478,7 +3478,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 483,
   "fields": {
     "approved_budget": "442966.94",
@@ -3500,7 +3500,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 484,
   "fields": {
     "approved_budget": "659593.59",
@@ -3522,7 +3522,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 485,
   "fields": {
     "approved_budget": "775245.97",
@@ -3544,7 +3544,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 486,
   "fields": {
     "approved_budget": "9924489.91",
@@ -3566,7 +3566,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 489,
   "fields": {
     "approved_budget": "4859904.63",
@@ -3588,7 +3588,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 490,
   "fields": {
     "approved_budget": "4670246.68",
@@ -3610,7 +3610,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 491,
   "fields": {
     "approved_budget": "5516804.21",
@@ -3632,7 +3632,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 492,
   "fields": {
     "approved_budget": "1785678.16",
@@ -3654,7 +3654,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 539,
   "fields": {
     "approved_budget": "1283914.64",
@@ -3676,7 +3676,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 540,
   "fields": {
     "approved_budget": "4670246.68",
@@ -3698,7 +3698,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 541,
   "fields": {
     "approved_budget": "4859904.63",
@@ -3720,7 +3720,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 542,
   "fields": {
     "approved_budget": "1904099.14",
@@ -3742,7 +3742,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 545,
   "fields": {
     "approved_budget": "1283914.64",
@@ -3764,7 +3764,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 546,
   "fields": {
     "approved_budget": "8724330.41",
@@ -3786,7 +3786,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 561,
   "fields": {
     "approved_budget": "4859904.63",
@@ -3808,7 +3808,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 562,
   "fields": {
     "approved_budget": "1283914.64",
@@ -3830,7 +3830,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 581,
   "fields": {
     "approved_budget": "4859904.63",
@@ -3852,7 +3852,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 582,
   "fields": {
     "approved_budget": "1283914.64",
@@ -3874,7 +3874,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 583,
   "fields": {
     "approved_budget": "2785451.45",
@@ -3896,7 +3896,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 586,
   "fields": {
     "approved_budget": "4859904.63",
@@ -3918,7 +3918,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 587,
   "fields": {
     "approved_budget": "1904099.14",
@@ -3940,7 +3940,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 599,
   "fields": {
     "approved_budget": "1904099.14",
@@ -3962,7 +3962,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 600,
   "fields": {
     "approved_budget": "4670246.68",
@@ -3984,7 +3984,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 601,
   "fields": {
     "approved_budget": "984178.71",
@@ -4006,7 +4006,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 602,
   "fields": {
     "approved_budget": "2785451.45",
@@ -4028,7 +4028,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 603,
   "fields": {
     "approved_budget": "8613491.05",
@@ -4050,7 +4050,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 604,
   "fields": {
     "approved_budget": "1283914.64",
@@ -4072,7 +4072,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 605,
   "fields": {
     "approved_budget": "8724330.41",
@@ -4094,7 +4094,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 606,
   "fields": {
     "approved_budget": "6498780.58",
@@ -4116,7 +4116,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 607,
   "fields": {
     "approved_budget": "1283914.64",
@@ -4138,7 +4138,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 608,
   "fields": {
     "approved_budget": "4859904.63",
@@ -4160,7 +4160,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 609,
   "fields": {
     "approved_budget": "2202173.84",
@@ -4182,7 +4182,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 623,
   "fields": {
     "approved_budget": "3051908.67",
@@ -4204,7 +4204,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 624,
   "fields": {
     "approved_budget": "6498780.58",
@@ -4226,7 +4226,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 626,
   "fields": {
     "approved_budget": "2785451.45",
@@ -4248,7 +4248,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 627,
   "fields": {
     "approved_budget": "984178.71",
@@ -4270,7 +4270,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 641,
   "fields": {
     "approved_budget": "6498780.58",
@@ -4292,7 +4292,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 642,
   "fields": {
     "approved_budget": "2785451.45",
@@ -4314,7 +4314,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 643,
   "fields": {
     "approved_budget": "1283914.64",
@@ -4336,7 +4336,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 644,
   "fields": {
     "approved_budget": "984178.71",
@@ -4358,7 +4358,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 661,
   "fields": {
     "approved_budget": "4859904.63",
@@ -4380,7 +4380,7 @@
   }
 },
 {
-  "model": "adjd_transaction.xx_transactiontransfer",
+  "model": "transaction.xx_transactiontransfer",
   "pk": 662,
   "fields": {
     "approved_budget": "984178.71",
@@ -8183,7 +8183,7 @@
   "fields": {
     "name": "Can add xx_ transaction transfer",
     "content_type": [
-      "adjd_transaction",
+      "transaction",
       "xx_transactiontransfer"
     ],
     "codename": "add_xx_transactiontransfer"
@@ -8194,7 +8194,7 @@
   "fields": {
     "name": "Can change xx_ transaction transfer",
     "content_type": [
-      "adjd_transaction",
+      "transaction",
       "xx_transactiontransfer"
     ],
     "codename": "change_xx_transactiontransfer"
@@ -8205,7 +8205,7 @@
   "fields": {
     "name": "Can delete xx_ transaction transfer",
     "content_type": [
-      "adjd_transaction",
+      "transaction",
       "xx_transactiontransfer"
     ],
     "codename": "delete_xx_transactiontransfer"
@@ -8216,7 +8216,7 @@
   "fields": {
     "name": "Can view xx_ transaction transfer",
     "content_type": [
-      "adjd_transaction",
+      "transaction",
       "xx_transactiontransfer"
     ],
     "codename": "view_xx_transactiontransfer"

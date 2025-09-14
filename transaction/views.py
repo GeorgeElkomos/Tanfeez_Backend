@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import xx_TransactionTransfer
 from account_and_entitys.models import XX_Entity, XX_PivotFund, XX_ACCOUNT_ENTITY_LIMIT
 from budget_management.models import xx_BudgetTransfer
-from .serializers import AdjdTransactionTransferSerializer
+from .serializers import TransactionTransferSerializer
 from decimal import Decimal
 from django.db.models import Sum
 from public_funtion.update_pivot_fund import update_pivot_fund
@@ -34,7 +34,7 @@ from test_upload_fbdi.upload_soap_fbdi import (
 from account_and_entitys.utils import get_oracle_report_data
 
 
-def validate_adjd_transaction(data, code=None):
+def validate_transaction(data, code=None):
     """
     Validate ADJD transaction transfer data against 10 business rules
     Returns a list of validation errors or empty list if valid
@@ -114,7 +114,7 @@ def validate_adjd_transaction(data, code=None):
     return errors
 
 
-def validate_adjd_transcation_transfer(data, code=None, errors=None):
+def validate_transcation_transfer(data, code=None, errors=None):
     # Validation 1: Check for fund is available if not then no combination code
     existing_code_combintion = XX_PivotFund.objects.filter(
         entity=data["cost_center_code"],
@@ -257,7 +257,7 @@ def validate_adjd_transcation_transfer(data, code=None, errors=None):
 #         return {"success": False, "error": f"Upload failed: {str(e)}"}
 
 
-class AdjdTransactionTransferCreateView(APIView):
+class TransactionTransferCreateView(APIView):
     """Create new ADJD transaction transfers (single or batch)"""
 
     permission_classes = [IsAuthenticated]
@@ -304,7 +304,7 @@ class AdjdTransactionTransferCreateView(APIView):
                     continue
 
                 # Validate and save each transfer
-                serializer = AdjdTransactionTransferSerializer(data=transfer_data)
+                serializer = TransactionTransferSerializer(data=transfer_data)
                 if serializer.is_valid():
                     transfer = serializer.save()
                     results.append(serializer.data)
@@ -370,7 +370,7 @@ class AdjdTransactionTransferCreateView(APIView):
                 "transfer_id": transfer_id,  # Fixed: was using 'transfer_id' instead of 'id'
             }
 
-            serializer = AdjdTransactionTransferSerializer(data=validation_data)
+            serializer = TransactionTransferSerializer(data=validation_data)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -382,7 +382,7 @@ class AdjdTransactionTransferCreateView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AdjdTransactionTransferListView(APIView):
+class TransactionTransferListView(APIView):
     """List ADJD transaction transfers for a specific transaction"""
 
     permission_classes = [IsAuthenticated]
@@ -440,7 +440,7 @@ class AdjdTransactionTransferListView(APIView):
                 status = "waiting for approval"
 
         transfers = xx_TransactionTransfer.objects.filter(transaction=transaction_id)
-        serializer = AdjdTransactionTransferSerializer(transfers, many=True)
+        serializer = TransactionTransferSerializer(transfers, many=True)
 
         for transfer in transfers:
             result = get_oracle_report_data(
@@ -498,10 +498,10 @@ class AdjdTransactionTransferListView(APIView):
             }
 
             # Validate the transfer
-            validation_errors = validate_adjd_transaction(
+            validation_errors = validate_transaction(
                 validation_data, code=transaction_object.code
             )
-            # validation_errors = validate_adjd_transcation_transfer(
+            # validation_errors = validate_transcation_transfer(
             #     validation_data, code=transaction_object.code, errors=validation_errors
             # )
             # Add validation results to the transfer data
@@ -578,7 +578,7 @@ class AdjdTransactionTransferListView(APIView):
             )
 
 
-class AdjdTransactionTransferDetailView(APIView):
+class TransactionTransferDetailView(APIView):
     """Retrieve a specific ADJD transaction transfer"""
 
     permission_classes = [IsAuthenticated]
@@ -586,13 +586,13 @@ class AdjdTransactionTransferDetailView(APIView):
     def get(self, request, pk):
         try:
             transfer = xx_TransactionTransfer.objects.get(pk=pk)
-            serializer = AdjdTransactionTransferSerializer(transfer)
+            serializer = TransactionTransferSerializer(transfer)
             return Response(serializer.data)
         except xx_TransactionTransfer.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class AdjdTransactionTransferUpdateView(APIView):
+class TransactionTransferUpdateView(APIView):
     """Update an ADJD transaction transfer"""
 
     permission_classes = [IsAuthenticated]
@@ -603,7 +603,7 @@ class AdjdTransactionTransferUpdateView(APIView):
             transfer = xx_TransactionTransfer.objects.get(pk=pk)
 
             # First validate with serializer
-            serializer = AdjdTransactionTransferSerializer(transfer, data=request.data)
+            serializer = TransactionTransferSerializer(transfer, data=request.data)
             if serializer.is_valid():
                 # Save the data
                 serializer.save()
@@ -616,7 +616,7 @@ class AdjdTransactionTransferUpdateView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class AdjdTransactionTransferDeleteView(APIView):
+class TransactionTransferDeleteView(APIView):
     """Delete an ADJD transaction transfer"""
 
     permission_classes = [IsAuthenticated]
@@ -630,7 +630,7 @@ class AdjdTransactionTransferDeleteView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class AdjdtranscationtransferSubmit(APIView):
+class transcationtransferSubmit(APIView):
     """Submit ADJD transaction transfers for approval"""
 
     permission_classes = [IsAuthenticated]
@@ -870,7 +870,7 @@ class AdjdtranscationtransferSubmit(APIView):
                 )
 
 
-class Adjdtranscationtransfer_Reopen(APIView):
+class transcationtransfer_Reopen(APIView):
     """Submit ADJD transaction transfers for approval"""
 
     permission_classes = [IsAuthenticated]
@@ -900,26 +900,22 @@ class Adjdtranscationtransfer_Reopen(APIView):
 
         try:
             # Get a single object instead of a QuerySet
-            adjd_transaction = xx_BudgetTransfer.objects.get(
-                transaction_id=transaction_id
-            )
+            transaction = xx_BudgetTransfer.objects.get(transaction_id=transaction_id)
 
-            if (
-                adjd_transaction.status_level and adjd_transaction.status_level < 3
-            ):  # Must be 1:
+            if transaction.status_level and transaction.status_level < 3:  # Must be 1:
                 if action == "reopen":
                     # Update the single object
-                    adjd_transaction.approvel_1 = None
-                    adjd_transaction.approvel_2 = None
-                    adjd_transaction.approvel_3 = None
-                    adjd_transaction.approvel_4 = None
-                    adjd_transaction.approvel_1_date = None
-                    adjd_transaction.approvel_2_date = None
-                    adjd_transaction.approvel_3_date = None
-                    adjd_transaction.approvel_4_date = None
-                    adjd_transaction.status = "pending"
-                    adjd_transaction.status_level = 1
-                    adjd_transaction.save()
+                    transaction.approvel_1 = None
+                    transaction.approvel_2 = None
+                    transaction.approvel_3 = None
+                    transaction.approvel_4 = None
+                    transaction.approvel_1_date = None
+                    transaction.approvel_2_date = None
+                    transaction.approvel_3_date = None
+                    transaction.approvel_4_date = None
+                    transaction.status = "pending"
+                    transaction.status_level = 1
+                    transaction.save()
 
                     return Response(
                         {
@@ -947,7 +943,7 @@ class Adjdtranscationtransfer_Reopen(APIView):
             )
 
 
-class AdjdTransactionTransferExcelUploadView(APIView):
+class TransactionTransferExcelUploadView(APIView):
     """Upload Excel file to create ADJD transaction transfers"""
 
     permission_classes = [IsAuthenticated]
@@ -1057,7 +1053,7 @@ class AdjdTransactionTransferExcelUploadView(APIView):
                     }
 
                     # Validate and save
-                    serializer = AdjdTransactionTransferSerializer(data=transfer_data)
+                    serializer = TransactionTransferSerializer(data=transfer_data)
                     if serializer.is_valid():
                         transfer = serializer.save()
                         created_transfers.append(serializer.data)

@@ -25,7 +25,7 @@ from budget_management.models import (
     xx_BudgetTransferRejectReason,
     xx_DashboardBudgetTransfer,
 )
-from adjd_transaction.models import xx_TransactionTransfer
+from transaction.models import xx_TransactionTransfer
 from account_and_entitys.models import (
     XX_Account,
     XX_Entity,
