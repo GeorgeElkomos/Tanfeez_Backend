@@ -694,19 +694,16 @@ class transcationtransferapprovel_reject(APIView):
                     )
                     for transfer in trasfers:
                         try:
-                            # Extract the necessary data
-                            item_cost_center = transfer.cost_center_code
-                            item_account_code = transfer.account_code
-                            item_project_code = transfer.project_code
-                            from_center = transfer.from_center or 0
-                            to_center = transfer.to_center or 0
-                            # Update the pivot fund
+                            # Update the pivot fund    
+
+                            Google
+
                             update_result = update_pivot_fund(
-                                item_cost_center,
-                                item_account_code,
-                                item_project_code,
-                                from_center,
-                                to_center,
+                                transfer.cost_center_code,
+                                transfer.account_code,
+                                transfer.project_code,
+                                transfer.from_center or 0,
+                                transfer.to_center or 0,
                                 Status,
                             )
                             if update_result:

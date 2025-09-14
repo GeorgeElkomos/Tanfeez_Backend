@@ -59,27 +59,6 @@ def build_soap_envelope(csv_b64_content: str, csv_filename: str, group_id: str,
 
 
 
-# if __name__ == "__main__":
-#     main()
-
-
-# def b64_csv(csv_path: str) -> str:
-#     """Read CSV file and encode in base64"""
-#     with open(csv_path, "rb") as f:
-#         return base64.b64encode(f.read()).decode("utf-8")
-
-# def build_soap_envelope(csv_b64_content: str, csv_filename: str, group_id: str, 
-#                        callback_url: str = None, notification_code: str = "10"):
-#     """Build the SOAP envelope for importBulkDataAsync"""
-    
-#     # Build parameter list: DataAccessSetId, SourceName, LedgerId, GroupId, PostErrorsToSuspense, CreateSummary, ImportDFF
-#     parameter_list = f"{DATA_ACCESS_SET_ID},{SOURCE_NAME},{LEDGER_ID},{group_id},N,N,N"
-    
-#     # Optional callback URL
-#     callback_section = f"<typ:callbackURL>{callback_url}</typ:callbackURL>" if callback_url else ""
-    
-#     soap_envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
-
 def upload_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> dict:
     """
     Upload FBDI CSV file to Oracle Fusion using SOAP API

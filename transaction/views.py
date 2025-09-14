@@ -625,64 +625,7 @@ class transcationtransferSubmit(APIView):
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
-                # Validate all transfers have corresponding pivot funds
-                # missing_pivot_funds = []
-                # for transfer in transfers:
-                #     try:
-                #         pivot_fund = XX_PivotFund.objects.get(
-                #             entity=transfer.cost_center_code,
-                #             account=transfer.account_code,
-                #             project=transfer.project_code,
-                #         )
-                #     except XX_PivotFund.DoesNotExist:
-                #         missing_pivot_funds.append(
-                #             {
-                #                 "transfer_id": transfer.transfer_id,
-                #                 "cost_center_code": transfer.cost_center_code,
-                #                 "account_code": transfer.account_code,
-                #                 "project_code": transfer.project_code,
-                #             }
-                #         )
-
-                # # If any pivot funds are missing, return error with details
-                # if missing_pivot_funds:
-                #     return Response(
-                #         {
-                #             "error": "Missing pivot funds",
-                #             "message": f"Some transfers do not have corresponding pivot funds",
-                #             "missing_pivot_funds": missing_pivot_funds,
-                #         },
-                #         status=status.HTTP_404_NOT_FOUND,
-                #     )
-
-                # # Process each transfer for the transaction (only if all pivot funds exist)
-                # for transfer in transfers:
-                #     # Use the utility function to update pivot fund
-                #     update_result = update_pivot_fund(
-                #         transfer.cost_center_code,
-                #         transfer.account_code,
-                #         transfer.project_code,
-                #         transfer.from_center,
-                #         transfer.to_center,
-                #         decide="pending",
-                #     )
-                #     print(f"Update result: {update_result}")
-
-                #     # Check if error key exists and has a value
-                #     if "error" in update_result and update_result["error"]:
-                #         return Response(
-                #             {
-                #                 "error": "Budget transfer not found",
-                #                 "message": f"No PIVOT FUND AVAILABLE: {transaction_id}",
-                #             },
-                #             status=status.HTTP_404_NOT_FOUND,
-                #         )
-
-                #     # If we get here, update was successful
-                #     pivot_updates.append(update_result)
-
-                # Update the budget transfer status
-                # Use absolute path for template file
+               
                 base_dir = Path(settings.BASE_DIR)
                 template_path = (
                     base_dir / "test_upload_fbdi" / "JournalImportTemplate.xlsm"
@@ -736,9 +679,6 @@ class transcationtransferSubmit(APIView):
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
-                budget_transfer.status_level = 2
-                budget_transfer.approvel_1 = request.user.username
-                budget_transfer.approvel_1_date = timezone.now()
                 budget_transfer.save()
 
                 # user_submit=xx_notification()
