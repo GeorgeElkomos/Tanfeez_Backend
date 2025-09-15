@@ -59,13 +59,130 @@ def build_budget_soap_envelope(csv_b64_content: str, csv_filename: str, group_id
     return soap_envelope
 
 
-def upload_budget_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> dict:
+def submit_import_budget_amounts(data_access_set_id: str, ledger_id: str, source_name: str = "BudgetTransfer") -> dict:
+    """
+    Submit 'Import Budget Amounts' ESS job via SOAP after file upload
+    This is Step 2: Run the separate ESS job to import the budget amounts
+    
+    Args:
+        data_access_set_id: Data Access Set ID
+        ledger_id: Ledger ID
+        source_name: Source Name for the budget import
+    
+    Returns:
+        Dictionary with import job results
+    """
+    load_dotenv()
+    
+    BASE_URL = os.getenv("FUSION_BASE_URL")
+    USER = os.getenv("FUSION_USER") 
+    PASS = os.getenv("FUSION_PASS")
+    
+    if not all([BASE_URL, USER, PASS]):
+        return {"success": False, "error": "Missing Oracle connection environment variables"}
+    
+    # Try multiple possible ESS job locations for ImportBudgetAmounts
+    job_locations = [
+        {
+            "package": "/oracle/apps/ess/financials/generalLedger/programs/common",
+            "job": "ImportBudgetAmounts",
+            "description": "Standard GL Common Package"
+        },
+        {
+            "package": "/oracle/apps/ess/financials/generalLedger/budgets",
+            "job": "ImportBudgetAmounts", 
+            "description": "GL Budgets Package"
+        },
+        {
+            "package": "/oracle/apps/ess/financials/generalLedger/programs",
+            "job": "ImportBudgetAmounts",
+            "description": "GL Programs Package"
+        }
+    ]
+    
+    for job_info in job_locations:
+        try:
+            # Build SOAP envelope for ESS Job Submission
+            parameter_list = f"{data_access_set_id}##{source_name}##{ledger_id}"
+            
+            soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+                  xmlns:typ="http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/types/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <typ:submitESSJobRequest>
+         <typ:jobPackageName>{job_info['package']}</typ:jobPackageName>
+         <typ:jobDefinitionName>{job_info['job']}</typ:jobDefinitionName>
+         <typ:parameterList>{parameter_list}</typ:parameterList>
+      </typ:submitESSJobRequest>
+   </soapenv:Body>
+</soapenv:Envelope>"""
+            
+            # ESS Job Submission endpoint
+            ess_url = BASE_URL.replace("/fscmRestApi/resources/11.13.18.05", "/fscmService/ErpIntegrationService")
+            headers = {
+                "Content-Type": "text/xml; charset=utf-8",
+                "SOAPAction": "http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/types/submitESSJobRequest",
+                "Accept": "text/xml"
+            }
+            
+            print(f"🔄 Trying ESS Job: {job_info['description']}")
+            print(f"Job Package: {job_info['package']}")
+            print(f"Job Name: {job_info['job']}")
+            print(f"Parameters: {parameter_list}")
+            
+            response = requests.post(
+                ess_url,
+                auth=HTTPBasicAuth(USER, PASS),
+                headers=headers,
+                data=soap_body,
+                timeout=120
+            )
+            
+            print(f"Response Status: {response.status_code}")
+            
+            if response.status_code == 200:
+                # Success! Extract job request ID
+                import re
+                result_match = re.search(r'<result[^>]*>(\d+)</result>', response.text)
+                request_id = result_match.group(1) if result_match else None
+                
+                # Check for SOAP faults
+                fault_match = re.search(r'<faultstring[^>]*>(.*?)</faultstring>', response.text, re.DOTALL)
+                if not fault_match:
+                    print(f"✅ SUCCESS with {job_info['description']}")
+                    return {
+                        "success": True,
+                        "request_id": request_id,
+                        "message": f"Import Budget Amounts ESS Job submitted successfully using {job_info['description']}",
+                        "job_name": job_info['job'],
+                        "job_package": job_info['package']
+                    }
+                else:
+                    fault_message = fault_match.group(1).strip()
+                    print(f"❌ SOAP Fault: {fault_message[:200]}")
+            else:
+                print(f"❌ HTTP {response.status_code}: {response.reason}")
+                
+        except Exception as e:
+            print(f"❌ Error trying {job_info['description']}: {str(e)}")
+            continue
+    
+    return {
+        "success": False,
+        "error": "All ESS job location attempts failed. User may not have permission to run ImportBudgetAmounts ESS job.",
+        "recommendation": "Contact Oracle administrator to grant access to ImportBudgetAmounts ESS job definition."
+    }
+
+
+def upload_budget_fbdi_to_oracle(csv_file_path: str, group_id: str = None, run_import_process: bool = True) -> dict:
     """
     Upload Budget FBDI CSV file to Oracle Fusion using SOAP API
     
     Args:
         csv_file_path: Path to the CSV file to upload
         group_id: Optional group ID for the upload (auto-generated if not provided)
+        run_import_process: Whether to run 'Import Budget Amounts' after file upload
     
     Returns:
         Dictionary with upload results
@@ -165,7 +282,7 @@ def upload_budget_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> di
             print("⚠️  WARNING: No request ID found in Oracle response")
             print(f"Full response: {response.text[:2000]}")
         
-        return {
+        result = {
             "success": True,
             "request_id": request_id,
             "group_id": group_id,
@@ -174,17 +291,35 @@ def upload_budget_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> di
             "job_name": "JournalImportLauncher"
         }
         
+        # Step 2: Run Import Budget Amounts process if requested
+        if run_import_process:
+            print(f"\n🔄 Running Step 2: Import Budget Amounts process...")
+            import_result = submit_import_budget_amounts(DATA_ACCESS_SET_ID, LEDGER_ID, SOURCE_NAME)
+            result["import_budget_amounts"] = import_result
+            
+            if import_result["success"]:
+                print(f"✅ Import Budget Amounts submitted successfully")
+                print(f"Import Request ID: {import_result.get('request_id', 'N/A')}")
+                result["message"] += " and Import Budget Amounts process submitted"
+            else:
+                print(f"⚠️ Import Budget Amounts failed: {import_result['error']}")
+                # Don't fail the whole process, just add warning
+                result["message"] += " but Import Budget Amounts failed"
+        
+        return result
+        
     except Exception as e:
         return {"success": False, "error": f"Budget upload failed: {str(e)}"}
 
 
-def upload_budget_from_zip(zip_file_path: str, group_id: str = None) -> dict:
+def upload_budget_from_zip(zip_file_path: str, group_id: str = None, run_import_process: bool = True) -> dict:
     """
     Extract CSV from ZIP file and upload budget FBDI to Oracle Fusion
     
     Args:
         zip_file_path: Path to the ZIP file containing CSV
         group_id: Optional group ID for the upload
+        run_import_process: Whether to run 'Import Budget Amounts' after upload
     
     Returns:
         Dictionary with upload results
@@ -210,8 +345,8 @@ def upload_budget_from_zip(zip_file_path: str, group_id: str = None) -> dict:
                 zip_ref.extract(csv_filename, temp_dir)
                 csv_path = os.path.join(temp_dir, csv_filename)
                 
-                # Upload the extracted CSV
-                return upload_budget_fbdi_to_oracle(csv_path, group_id)
+                # Upload the extracted CSV with import process option
+                return upload_budget_fbdi_to_oracle(csv_path, group_id, run_import_process)
                 
     except Exception as e:
         return {"success": False, "error": f"Failed to process ZIP file: {str(e)}"}
@@ -219,18 +354,23 @@ def upload_budget_from_zip(zip_file_path: str, group_id: str = None) -> dict:
 
 if __name__ == "__main__":
     """
-    Example usage for testing budget FBDI upload
+    Example usage for testing budget FBDI upload with complete process
     """
-    parser = argparse.ArgumentParser(description="Upload Budget FBDI to Oracle Fusion")
+    parser = argparse.ArgumentParser(description="Upload Budget FBDI to Oracle Fusion with Import Process")
     parser.add_argument("file_path", help="Path to CSV or ZIP file to upload")
     parser.add_argument("--group-id", help="Optional group ID for the upload")
+    parser.add_argument("--no-import", action="store_true", 
+                       help="Skip running 'Import Budget Amounts' process after upload")
     
     args = parser.parse_args()
     
+    # Determine whether to run import process (default: True, unless --no-import flag)
+    run_import = not args.no_import
+    
     if args.file_path.lower().endswith('.zip'):
-        result = upload_budget_from_zip(args.file_path, args.group_id)
+        result = upload_budget_from_zip(args.file_path, args.group_id, run_import)
     elif args.file_path.lower().endswith('.csv'):
-        result = upload_budget_fbdi_to_oracle(args.file_path, args.group_id)
+        result = upload_budget_fbdi_to_oracle(args.file_path, args.group_id, run_import)
     else:
         print("Error: File must be either CSV or ZIP format")
         exit(1)
@@ -240,6 +380,14 @@ if __name__ == "__main__":
         print(f"Request ID: {result.get('request_id', 'N/A')}")
         print(f"Group ID: {result.get('group_id', 'N/A')}")
         print(f"Message: {result.get('message', 'N/A')}")
+        
+        # Show import process results if available
+        if "import_budget_amounts" in result:
+            import_result = result["import_budget_amounts"]
+            if import_result["success"]:
+                print(f"📊 Import Budget Amounts Request ID: {import_result.get('request_id', 'N/A')}")
+            else:
+                print(f"⚠️ Import Budget Amounts Error: {import_result['error']}")
     else:
         print(f"❌ Upload failed: {result['error']}")
         exit(1)

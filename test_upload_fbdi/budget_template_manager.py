@@ -283,7 +283,7 @@ def create_sample_budget_data(transfers, transactions_id) -> List[Dict[str, Any]
     for transfer in transfers:
         if transfer.from_center>0:
             budget_entry = {
-                "Source Budget Type": "Hyperion Planning",
+                "Source Budget Type": "HYPERION",
                 "Source Budget Name": batch_name,
                 "Budget Entry Name": budget_name,
                 "Line Number": line_number,
@@ -291,13 +291,13 @@ def create_sample_budget_data(transfers, transactions_id) -> List[Dict[str, Any]
                 "Currency Code": "AED",
                 "Period Name": "21-Sep",
                 "Segment1": str(transfer.cost_center_code),
-                "Segment2": str(transfer.account_code),
-                "Segment3": str(transfer.project_code),
+                "Segment3": str(transfer.account_code),
+                "Segment5": str(transfer.project_code),
                 "Comment": f"Budget transfer for transaction {transactions_id}",
             }
         if transfer.to_center>0:
             budget_entry = {
-                "Source Budget Type": "Hyperion Planning",
+                "Source Budget Type": "HYPERION",
                 "Source Budget Name": batch_name,
                 "Budget Entry Name": budget_name,
                 "Line Number": line_number,
