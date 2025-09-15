@@ -84,7 +84,7 @@ def fill_budget_template_with_data(
     # Generate output path if not provided
     if output_path is None:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        output_path = template_file.parent / f"BudgetImport_Filled_{timestamp}.xlsm"
+        output_path = template_file.parent / f"XccBudgetInterface_Filled_{timestamp}.xlsm"
     else:
         output_path = Path(output_path)
     
@@ -154,7 +154,7 @@ def create_budget_from_scratch(
     Args:
         template_path: Path to the original BudgetImportTemplate.xlsm
         budget_data: List of dictionaries containing budget entry data
-        output_name: Base name for output files (optional)
+        output_name: Base name for output files (optional) - will use XccBudgetInterface prefix if None
         auto_zip: Whether to create ZIP file automatically
     
     Returns:
@@ -163,7 +163,8 @@ def create_budget_from_scratch(
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     
     if output_name is None:
-        output_name = f"BudgetImport_{timestamp}"
+        # Use Oracle-required naming convention: XccBudgetInterface as prefix
+        output_name = f"XccBudgetInterface_{timestamp}"
     
     try:
         # Step 1: Create clean template
@@ -210,7 +211,7 @@ def create_and_upload_budget(
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     
     if output_name is None:
-        output_name = f"BudgetImport_{timestamp}"
+        output_name = f"XccBudgetInterface_{timestamp}"
     
     try:
         # Step 1: Create budget ZIP file
@@ -348,7 +349,7 @@ if __name__ == "__main__":
         result = create_and_upload_budget(
             template_path=template_path,
             budget_data=sample_data,
-            output_name="SampleBudget",
+            output_name="XccBudgetInterface_Sample",
             upload_to_oracle=True,  # Set to False if you just want to create the file
             group_id=f"BUDGET_TEST_{time.strftime('%Y%m%d_%H%M%S')}"
         )
