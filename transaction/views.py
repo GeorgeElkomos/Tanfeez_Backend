@@ -32,7 +32,8 @@ from test_upload_fbdi.upload_soap_fbdi import (
     upload_fbdi_to_oracle,
 )
 from account_and_entitys.utils import get_oracle_report_data
-from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload
+from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload 
+from test_upload_fbdi.utility.submit_budget_and_upload import submit_budget_and_upload
 
 def validate_transaction(data, code=None):
     """
@@ -625,8 +626,9 @@ class transcationtransferSubmit(APIView):
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
-               
-                csv_upload_result,result=submint_journal_and_upload(transfers=transfers,type="reject")
+
+                # csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="reject")
+                csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"

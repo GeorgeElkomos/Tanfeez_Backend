@@ -52,8 +52,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count, Case, When, Value, F
-from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload
-
+from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload 
+from test_upload_fbdi.utility.submit_budget_and_upload import submit_budget_and_upload
 class TransferPagination(PageNumberPagination):
     """Pagination class for budget transfers"""
 
@@ -697,10 +697,32 @@ class transcationtransferapprovel_reject(APIView):
                             # Update the pivot fund    
 
                            if Status=="approved":
-                             continue
-                           if Status=="rejected":
+                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,type="rejected")
+                              response_data = {
+                                "message": "Transfers submitted for approval successfully",
+                                "transaction_id": transaction_id,
+                                "pivot_updates": pivot_updates,
+                                "journal_file": result if result else None,
+                                }
+                              if csv_upload_result:
+                                    response_data["fbdi_upload_journal"] = csv_upload_result
                               
-                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers)
+                              results.append(response_data)
+                              csv_upload_result,result= submit_budget_and_upload(
+                                  transfers=trasfers,
+                                  transaction_id=transaction_id,
+                              )
+                              if csv_upload_result:
+                                    response_data["fbdi_upload_budget"] = csv_upload_result
+
+
+
+
+                              
+                            #   continue
+                           if Status=="rejected":
+
+                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,type="rejected")
                               response_data = {
                                 "message": "Transfers submitted for approval successfully",
                                 "transaction_id": transaction_id,

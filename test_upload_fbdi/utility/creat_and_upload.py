@@ -1,17 +1,6 @@
-import rest_framework
-from decimal import Decimal
-from django.db.models import Sum
-from public_funtion.update_pivot_fund import update_pivot_fund
-from django.utils import timezone
-from user_management.models import xx_notification
-import pandas as pd
-import io
-import os
-import datetime
-import base64
-import requests
-from requests.auth import HTTPBasicAuth
-from dotenv import load_dotenv
+
+
+
 from pathlib import Path
 from django.conf import settings
 from test_upload_fbdi.journal_template_manager import (
@@ -26,7 +15,7 @@ from test_upload_fbdi.upload_soap_fbdi import (
 from account_and_entitys.utils import get_oracle_report_data
 
 
-def submint_journal_and_upload(transfers,type="submit"):
+def submint_journal_and_upload(transfers,transaction_id,type="submit"):
 
     base_dir = Path(settings.BASE_DIR)
 
@@ -39,7 +28,7 @@ def submint_journal_and_upload(transfers,type="submit"):
     print(f"Output name: {output_name}")
 
     # Generate journal entry using the transfers
-    data = create_sample_journal_data(transfers,type)
+    data = create_sample_journal_data(transfers,transaction_id,type)
     result = create_journal_from_scratch(
         template_path=str(template_path),
         journal_data=data,

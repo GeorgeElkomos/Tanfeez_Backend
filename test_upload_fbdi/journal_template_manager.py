@@ -188,7 +188,7 @@ def create_journal_from_scratch(
         raise
 
 # Example usage function
-def create_sample_journal_data(transfers,type="submit") -> List[Dict[str, Any]]:
+def create_sample_journal_data(transfers,transaction_id=0,type="submit") -> List[Dict[str, Any]]:
     """
     Create sample journal entry data for testing.
     
@@ -200,9 +200,9 @@ def create_sample_journal_data(transfers,type="submit") -> List[Dict[str, Any]]:
     """
     # Generate unique values that will be the same for all transfers in this function run
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    batch_name = f"BATCH_TRANSFER_{timestamp}"
+    batch_name = f"BATCH_TRANSFER_{timestamp} transaction id={transaction_id}"
     batch_description = f"Balance Transfer Batch created on {time.strftime('%Y-%m-%d %H:%M:%S')}"
-    journal_name = f"JOURNAL_TRANSFER_{timestamp}"
+    journal_name = f"JOURNAL_TRANSFER_{timestamp} transaction id={transaction_id}"
     journal_description = f"Journal Entry for Balance Transfer - Created {time.strftime('%Y-%m-%d %H:%M:%S')}"
     
     sample_data = []
