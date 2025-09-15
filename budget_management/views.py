@@ -52,7 +52,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count, Case, When, Value, F
-
+from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload
 
 class TransferPagination(PageNumberPagination):
     """Pagination class for budget transfers"""
@@ -692,33 +692,46 @@ class transcationtransferapprovel_reject(APIView):
                     trasfers = xx_TransactionTransfer.objects.filter(
                         transaction_id=transaction_id
                     )
-                    for transfer in trasfers:
-                        try:
+                    # for transfer in trasfers:
+                    try:
                             # Update the pivot fund    
 
-                            Google
-
-                            update_result = update_pivot_fund(
-                                transfer.cost_center_code,
-                                transfer.account_code,
-                                transfer.project_code,
-                                transfer.from_center or 0,
-                                transfer.to_center or 0,
-                                Status,
-                            )
-                            if update_result:
-                                pivot_updates.append(update_result)
-                        except Exception as e:
-                            pivot_updates.append(
-                                {
-                                    "cost_center_code": transfer.cost_center_code,
-                                    "account_code": transfer.account_code,
-                                    "project_code": transfer.project_code,
-                                    "status": "error",
-                                    "message": str(e),
+                           if Status=="approved":
+                             continue
+                           if Status=="rejected":
+                              
+                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers)
+                              response_data = {
+                                "message": "Transfers submitted for approval successfully",
+                                "transaction_id": transaction_id,
+                                "pivot_updates": pivot_updates,
+                                "journal_file": result if result else None,
                                 }
-                            )
-                            continue
+                              if csv_upload_result:
+                                    response_data["fbdi_upload"] = csv_upload_result
+                              
+                              results.append(response_data)
+                              
+
+
+                            # update_result = update_pivot_fund(
+                            #     transfer.cost_center_code,
+                            #     transfer.account_code,
+                            #     transfer.project_code,
+                            #     transfer.from_center or 0,
+                            #     transfer.to_center or 0,
+                            #     Status,
+                            # )
+                            # if update_result:
+                            #     pivot_updates.append(update_result)
+                    except Exception as e:
+                        pivot_updates.append(
+                            {
+                                "status": "error",
+                                "message": str(e),
+                            }
+                        )
+                        continue
 
                         # Add the result for this transaction
                     results.append(

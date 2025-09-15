@@ -188,7 +188,7 @@ def create_journal_from_scratch(
         raise
 
 # Example usage function
-def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
+def create_sample_journal_data(transfers,type="submit") -> List[Dict[str, Any]]:
     """
     Create sample journal entry data for testing.
     
@@ -206,31 +206,61 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
     journal_description = f"Journal Entry for Balance Transfer - Created {time.strftime('%Y-%m-%d %H:%M:%S')}"
     
     sample_data = []
+    total_debit=0
+    for transfer in transfers:
+        total_debit += getattr(transfer, 'from_center') if (transfer.from_center is not None) else 0
     
     for transfer in transfers:
+        if transfer.from_center >0:
+                journal_entry = {
+                    "Status Code": "NEW",
+                    "Ledger ID": "300000205309206",
+                    "Effective Date of Transaction": "2025-09-15",
+                    "Journal Source": "Allocations",
+                    "Journal Category": "Adjustment",
+                    "Currency Code": "AED",
+                    "Journal Entry Creation Date": "2025-09-15",
+                    "Actual Flag": "E",
+                    "Segment1": transfer.cost_center_code,
+                    "Segment2": "C070003",
+                    "Segment3": transfer.account_code ,
+                    "Segment4": "M0000",
+                    "Segment5": transfer.project_code,
+                    "Segment6": "20037",
+                    "Segment7": "000000",
+                    "Segment8": "000000",
+                    "Segment9": "000000",
+                    "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) and (type=="submit") else "",
+                    "Entered Credit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) and (type=="reject") else "",
+                    "REFERENCE1 (Batch Name)": batch_name,
+                    "REFERENCE2 (Batch Description)": batch_description,
+                    "REFERENCE4 (Journal Entry Name)": journal_name,
+                    "REFERENCE5 (Journal Entry Description)": journal_description,
+                    "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
+                    "Encumbrance Type ID": "100000243328511"
+                }
+                sample_data.append(journal_entry)
 
-        # Create journal entry using transfer data
-        if transfer.cost_center_code==10001 and transfer.account_code==2205403 and transfer.project_code=="CTRLCE1":
-            journal_entry = {
+    journal_entry = {
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
-                "Effective Date of Transaction": "2025-09-13",
+                "Effective Date of Transaction": "2025-09-15",
                 "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
-                "Journal Entry Creation Date": "2025-09-13",
+                "Journal Entry Creation Date": "2025-09-15",
                 "Actual Flag": "E",
-                "Segment1": str(transfer.cost_center_code),
+                "Segment1": 10001,
                 "Segment2": "0000000",
-                "Segment3": str(transfer.account_code),
+                "Segment3": 2205403,
                 "Segment4": "M0000",
-                "Segment5": str(transfer.project_code),
+                "Segment5": "CTRLCE1",
                 "Segment6": "00000",
                 "Segment7": "000000",
                 "Segment8": "000000",
                 "Segment9": "000000",
-                "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
-                "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
+                "Entered Debit Amount": total_debit  if (type=="reject") else "",
+                "Entered Credit Amount": total_debit  if (type=="submit") else "",
                 "REFERENCE1 (Batch Name)": batch_name,
                 "REFERENCE2 (Batch Description)": batch_description,
                 "REFERENCE4 (Journal Entry Name)": journal_name,
@@ -238,35 +268,8 @@ def create_sample_journal_data(transfers) -> List[Dict[str, Any]]:
                 "REFERENCE10 (Journal Entry Line Description)": f"Debit line for account {transfer.account_code}",
                 "Encumbrance Type ID": "100000243328511"
             }
-        if transfer.cost_center_code==10001 and transfer.account_code==5010016 and transfer.project_code=="SRCE001":
-            journal_entry = {
-                "Status Code": "NEW",
-                "Ledger ID": "300000205309206",
-                "Effective Date of Transaction": "2025-09-13",
-                "Journal Source": "Allocations",
-                "Journal Category": "Adjustment",
-                "Currency Code": "AED",
-                "Journal Entry Creation Date": "2025-09-13",
-                "Actual Flag": "E",
-                "Segment1": transfer.cost_center_code,
-                "Segment2": "C070003",
-                "Segment3": transfer.account_code ,
-                "Segment4": "M0000",
-                "Segment5": transfer.project_code,
-                "Segment6": "20037",
-                "Segment7": "000000",
-                "Segment8": "000000",
-                "Segment9": "000000",
-                "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) else "",
-                "Entered Credit Amount": getattr(transfer, 'to_center') if (transfer.to_center is not None) else "",
-                "REFERENCE1 (Batch Name)": batch_name,
-                "REFERENCE2 (Batch Description)": batch_description,
-                "REFERENCE4 (Journal Entry Name)": journal_name,
-                "REFERENCE5 (Journal Entry Description)": journal_description,
-                "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
-                "Encumbrance Type ID": "100000243328511"
-            }
-        sample_data.append(journal_entry)
+    sample_data.append(journal_entry)
+        
     
     return sample_data
 
