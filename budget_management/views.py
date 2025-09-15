@@ -714,15 +714,10 @@ class transcationtransferapprovel_reject(APIView):
                               )
                               if csv_upload_result:
                                     response_data["fbdi_upload_budget"] = csv_upload_result
-
-
-
-
-                              
                             #   continue
                            if Status=="rejected":
 
-                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,type="rejected")
+                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,transaction_id=transaction_id,type="rejected")
                               response_data = {
                                 "message": "Transfers submitted for approval successfully",
                                 "transaction_id": transaction_id,

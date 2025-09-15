@@ -627,8 +627,8 @@ class transcationtransferSubmit(APIView):
                     )
 
 
-                # csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="reject")
-                csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
+                csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="reject")
+                # csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
