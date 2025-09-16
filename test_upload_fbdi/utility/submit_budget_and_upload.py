@@ -8,7 +8,7 @@ from test_upload_fbdi.upload_budget_fbdi import (
     upload_budget_fbdi_to_oracle,
     upload_budget_from_zip,
 )
-
+from test_upload_fbdi.budget_import_flow import run_budget_import_flow
 
 def submit_budget_and_upload(transfers, transaction_id,):
     """
@@ -30,19 +30,21 @@ def submit_budget_and_upload(transfers, transaction_id,):
     template_path = (
         base_dir / "test_upload_fbdi" / "BudgetImportTemplate.xlsm"
     )
-    output_name = base_dir / "test_upload_fbdi" / "SampleBudget"
+    output_name = base_dir / "test_upload_fbdi" / "XccBudgetInterface"
 
     print(f"Template path: {template_path}")
     print(f"Output name: {output_name}")
 
     # Generate budget entry using the transfers
     data = create_sample_budget_data(transfers, transaction_id)
+
     result = create_budget_from_scratch(
         template_path=str(template_path),
         budget_data=data,
         output_name=str(output_name),
         auto_zip=True,
     )
+
     print(f"\nCompleted! Final file: {result}")
 
     # Upload ZIP file directly to Oracle Fusion
@@ -52,7 +54,7 @@ def submit_budget_and_upload(transfers, transaction_id,):
         
         # Use the budget-specific upload function
         group_id = f"BUDGET_{transaction_id}"
-        csv_upload_result = upload_budget_from_zip(result, group_id)
+        csv_upload_result = run_budget_import_flow(result, transaction_id)
 
         if csv_upload_result.get("success"):
             print(
@@ -113,7 +115,7 @@ def submit_budget_csv_and_upload(transfers, transaction_id, type="submit"):
     if result and result.endswith(".zip"):
         # The CSV file should be in the same directory as the ZIP file
         zip_path = Path(result)
-        csv_path = zip_path.parent / "XCC_BUDGET_INTERFACE.csv"
+        csv_path = zip_path.parent / "XccBudgetInterface.csv"
 
         if csv_path.exists():
             print(f"Uploading CSV to Oracle Fusion: {csv_path}")

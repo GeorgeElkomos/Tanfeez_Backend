@@ -32,8 +32,8 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                 continue
                 
             try:
-                # For GL_INTERFACE sheet, headers start at row 4 (0-indexed row 3)
-                if 'GL_INTERFACE' in sheet_name:
+                # For GL_INTERFACE and XCC_BUDGET_INTERFACE sheets, headers start at row 4 (0-indexed row 3)
+                if 'GL_INTERFACE' in sheet_name or 'XCC_BUDGET_INTERFACE' in sheet_name:
                     # Read without header first to get raw data
                     df_raw = pd.read_excel(excel_path, sheet_name=sheet_name, header=None)
                     
@@ -48,7 +48,7 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                     # Remove any completely empty rows only
                     df = df.dropna(how='all')
                     
-                    print(f"GL_INTERFACE: Processing all {len(df.columns)} columns, {len(df)} data rows")
+                    print(f"GL_INTERFACE/XCC_BUDGET_INTERFACE: Processing all {len(df.columns)} columns, {len(df)} data rows")
                 else:
                     # Try to detect header row for other sheets
                     df_temp = pd.read_excel(excel_path, sheet_name=sheet_name, header=None)
@@ -65,8 +65,8 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                     
                     df = pd.read_excel(excel_path, sheet_name=sheet_name, header=header_row)
                 
-                # Special formatting for GL_INTERFACE data BEFORE cleaning - we want ALL columns
-                if 'GL_INTERFACE' in sheet_name:
+                # Special formatting for GL_INTERFACE and XCC_BUDGET_INTERFACE data BEFORE cleaning - we want ALL columns
+                if 'GL_INTERFACE' in sheet_name or 'XCC_BUDGET_INTERFACE' in sheet_name:
                     # Don't clean up GL_INTERFACE data - we want all columns
                     pass
                 else:
@@ -79,8 +79,8 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                     print(f"Skipping empty sheet: {sheet_name}")
                     continue
                 
-                # Special formatting for GL_INTERFACE data to match Oracle FBDI exactly
-                if 'GL_INTERFACE' in sheet_name:
+                # Special formatting for GL_INTERFACE and XCC_BUDGET_INTERFACE data to match Oracle FBDI exactly
+                if 'GL_INTERFACE' in sheet_name or 'XCC_BUDGET_INTERFACE' in sheet_name:
                     # Create CSV with exact Oracle format directly - ALL columns
                     csv_content = []
                     
@@ -143,7 +143,11 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                         csv_content.append(','.join(oracle_row))
                     
                     # Write directly to CSV file with proper comma separation
-                    csv_filename = zip_dir / 'GL_INTERFACE.csv'
+                    if 'GL_INTERFACE' in sheet_name:
+                        csv_filename = zip_dir / 'GL_INTERFACE.csv'
+                    else:  # XCC_BUDGET_INTERFACE
+                        csv_filename = zip_dir / 'XccBudgetInterface.csv'
+                    
                     with open(csv_filename, 'w', newline='', encoding='utf-8') as f:
                         for line in csv_content:
                             f.write(line + '\n')
@@ -156,6 +160,9 @@ def excel_to_csv_and_zip(excel_path: str, zip_path: str):
                 if 'GL_INTERFACE' in sheet_name:
                     # Try Oracle standard GL interface naming
                     csv_filename = zip_dir / "GlInterface.csv"  
+                elif 'XCC_BUDGET_INTERFACE' in sheet_name:
+                    # Use Oracle standard XCC Budget Interface naming (camelCase without underscores)
+                    csv_filename = zip_dir / "XccBudgetInterface.csv"
                 else:
                     clean_name = sheet_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
                     csv_filename = zip_dir / f"{clean_name}.csv"

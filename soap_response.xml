@@ -1,7 +1,0 @@
-------=_Part_7013_63747027.1758022861468
-Content-Type: application/xop+xml;charset=utf-8;type="text/xml"
-Content-Transfer-Encoding: 8bit
-Content-ID: <5b669963-ee10-47d7-9e26-612b618cc69c>
-
-<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsa="http://www.w3.org/2005/08/addressing"><env:Header><wsa:Action>http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/importBulkDataAsyncResponse</wsa:Action><wsa:MessageID>urn:uuid:9a0e0976-540e-48ea-8537-776eae3deb78</wsa:MessageID></env:Header><env:Body><ns0:importBulkDataAsyncResponse xmlns:ns0="http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/types/"><result xmlns="http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/types/">10015661</result></ns0:importBulkDataAsyncResponse></env:Body></env:Envelope>
-------=_Part_7013_63747027.1758022861468--
