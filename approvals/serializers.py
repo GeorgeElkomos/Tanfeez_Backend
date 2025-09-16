@@ -13,9 +13,29 @@ class ApprovalWorkflowStageTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalWorkflowStageTemplate
-        exclude = []  # or list fields explicitly if you prefer
-        fields = "__all__"  # return ALL fields in stage
+        fields = "_all_"  # return ALL fields in stage
         # if you want to exclude workflow_template from stage details, list fields manually
+
+
+# -------------------------------
+# Inline Stage Serializer (nested)
+# -------------------------------
+class ApprovalWorkflowStageTemplateInlineSerializer(serializers.ModelSerializer):
+    """Used when stages are nested under a workflow template.
+
+    Excludes workflow_template because it is implied by the parent.
+    Allows id so updates can target existing stages.
+    """
+
+    id = serializers.IntegerField(required=False)
+    required_user_level_name = serializers.CharField(
+        source="required_user_level.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = ApprovalWorkflowStageTemplate
+        exclude = ("workflow_template",)
 
 
 # -------------------------------
@@ -26,7 +46,7 @@ class ApprovalWorkflowTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalWorkflowTemplate
-        fields = "__all__"  # return ALL workflow fields
+        fields = "_all_"  # return ALL workflow fields
 
 
 # -------------------------------
@@ -35,11 +55,11 @@ class ApprovalWorkflowTemplateSerializer(serializers.ModelSerializer):
 class ApprovalWorkflowTemplateDetailSerializer(serializers.ModelSerializer):
     """Used for retrieve view (all workflow fields + stages)."""
 
-    stages = ApprovalWorkflowStageTemplateSerializer(many=True)
+    stages = ApprovalWorkflowStageTemplateInlineSerializer(many=True)
 
     class Meta:
         model = ApprovalWorkflowTemplate
-        fields = "__all__"  # includes all workflow fields + stages
+        fields = "_all_"  # includes all workflow fields + stages
 
     def create(self, validated_data):
         stages_data = validated_data.pop("stages", [])

@@ -6,10 +6,11 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
+from urllib.parse import urlsplit
 
 load_dotenv()
 
-BASE_URL = os.getenv("FUSION_BASE_URL").rstrip("/")
+BASE_URL = os.getenv("FUSION_BASE_URL").rstrip("/") if os.getenv("FUSION_BASE_URL") else None
 USER = os.getenv("FUSION_USER")
 PASS = os.getenv("FUSION_PASS")
 
@@ -57,6 +58,111 @@ def build_budget_soap_envelope(csv_b64_content: str, csv_filename: str, group_id
 </soapenv:Envelope>"""
     
     return soap_envelope
+
+
+def _soap_endpoint_from_base(url: str | None) -> str | None:
+    """Build the correct SOAP endpoint from a base URL that may include REST paths."""
+    if not url:
+        return None
+    parts = urlsplit(url)
+    if parts.scheme and parts.netloc:
+        root = f"{parts.scheme}://{parts.netloc}"
+    else:
+        root = url.split('/')[0]
+        if not root.startswith('http'):
+            root = f"https://{root}"
+    return root.rstrip('/') + '/fscmService/ErpIntegrationService'
+
+
+def upload_gl_budget_interface_zip(zip_file_path: str,
+                                   document_account: str = 'fin/generalLedgerBudgetBalance/import',
+                                   security_group: str = None,
+                                   import_process_code: str | None = None,
+                                   job_name: str = '/oracle/apps/ess/financials/commonModules/shared/common/interfaceLoader;InterfaceLoaderController',
+                                   async_call: bool = True) -> dict:
+    """Upload a GL Budget Interface ZIP via importBulkData(/Async) and return ESS request id.
+
+    This mirrors the GL interface flow: upload ZIP to UCM + run InterfaceLoader with ParamList where the service injects DocumentId.
+    - document_account defaults to GL budget interface account
+    - import_process_code is required (GL_IMPORT_PROCESS_CODE env if not provided)
+    """
+    load_dotenv()
+    base_url = os.getenv('FUSION_BASE_URL')
+    user = os.getenv('FUSION_USER')
+    pwd = os.getenv('FUSION_PASS')
+    if not all([base_url, user, pwd]):
+        return {"success": False, "error": "Missing FUSION_BASE_URL/FUSION_USER/FUSION_PASS"}
+
+    if not os.path.exists(zip_file_path):
+        return {"success": False, "error": f"ZIP not found: {zip_file_path}"}
+
+    endpoint = _soap_endpoint_from_base(base_url)
+    if not endpoint:
+        return {"success": False, "error": "Invalid SOAP endpoint derived from BASE_URL"}
+
+    # Determine params
+    sg = security_group or os.getenv('SECURITY_GROUP', 'FAFusionImportExport')
+    proc_code = import_process_code or os.getenv('GL_IMPORT_PROCESS_CODE')
+    if not proc_code:
+        return {"success": False, "error": "GL_IMPORT_PROCESS_CODE not set"}
+    param_list = f"{proc_code},#NULL,N,N"
+
+    # Build envelope
+    with open(zip_file_path, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode('utf-8')
+
+    op = 'importBulkDataAsync' if async_call else 'importBulkData'
+    envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+  xmlns:typ="http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/types/"
+  xmlns:erp="http://xmlns.oracle.com/apps/financials/commonModules/shared/model/erpIntegrationService/">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <typ:{op}>
+      <typ:document>
+        <erp:Content>{b64}</erp:Content>
+        <erp:FileName>{os.path.basename(zip_file_path)}</erp:FileName>
+        <erp:ContentType>zip</erp:ContentType>
+        <erp:DocumentTitle>{os.path.splitext(os.path.basename(zip_file_path))[0]}</erp:DocumentTitle>
+        <erp:DocumentName>{os.path.splitext(os.path.basename(zip_file_path))[0]}</erp:DocumentName>
+        <erp:DocumentSecurityGroup>{sg}</erp:DocumentSecurityGroup>
+        <erp:DocumentAccount>{document_account}</erp:DocumentAccount>
+      </typ:document>
+      <typ:jobDetails>
+        <erp:JobName>{job_name}</erp:JobName>
+        <erp:ParameterList>{param_list}</erp:ParameterList>
+      </typ:jobDetails>
+      <typ:notificationCode>#NULL</typ:notificationCode>
+      <typ:callbackURL>#NULL</typ:callbackURL>
+      <typ:jobOptions>#NULL</typ:jobOptions>
+    </typ:{op}>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    headers = {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': '',
+        'Accept': 'text/xml'
+    }
+    try:
+        print(f"Uploading GL Budget Interface ZIP via {op}...")
+        print(f"Endpoint: {endpoint}")
+        r = requests.post(endpoint, data=envelope, headers=headers, auth=HTTPBasicAuth(user, pwd), timeout=180)
+        print(f"Response Status: {r.status_code}")
+        if r.status_code >= 400:
+            return {"success": False, "error": f"HTTP {r.status_code} {r.reason}", "response": r.text[:1000]}
+
+        # Extract ESS request id
+        import re
+        m = re.search(r'<result>(\d+)</result>', r.text)
+        req_id = m.group(1) if m else None
+        fault = re.search(r'<faultstring>(.*?)</faultstring>', r.text, re.DOTALL)
+        if fault:
+            return {"success": False, "error": f"SOAP Fault: {fault.group(1).strip()}", "response": r.text[:2000]}
+
+        return {"success": True, "request_id": req_id, "message": "GL Budget Interface submitted"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 def submit_import_budget_amounts(data_access_set_id: str, ledger_id: str, source_name: str = "BudgetTransfer") -> dict:
@@ -356,11 +462,12 @@ if __name__ == "__main__":
     """
     Example usage for testing budget FBDI upload with complete process
     """
-    parser = argparse.ArgumentParser(description="Upload Budget FBDI to Oracle Fusion with Import Process")
+    parser = argparse.ArgumentParser(description="Upload Budget FBDI/ZIP to Oracle Fusion")
     parser.add_argument("file_path", help="Path to CSV or ZIP file to upload")
     parser.add_argument("--group-id", help="Optional group ID for the upload")
     parser.add_argument("--no-import", action="store_true", 
                        help="Skip running 'Import Budget Amounts' process after upload")
+    parser.add_argument("--use-gl-interface", action="store_true", help="For ZIP: use GL Budget Interface flow instead of CSV JournalImport")
     
     args = parser.parse_args()
     
@@ -368,7 +475,10 @@ if __name__ == "__main__":
     run_import = not args.no_import
     
     if args.file_path.lower().endswith('.zip'):
-        result = upload_budget_from_zip(args.file_path, args.group_id, run_import)
+        if args.use_gl_interface:
+            result = upload_gl_budget_interface_zip(args.file_path)
+        else:
+            result = upload_budget_from_zip(args.file_path, args.group_id, run_import)
     elif args.file_path.lower().endswith('.csv'):
         result = upload_budget_fbdi_to_oracle(args.file_path, args.group_id, run_import)
     else:
