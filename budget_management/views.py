@@ -712,6 +712,9 @@ class transcationtransferapprovel_reject(APIView):
                                 response_data["fbdi_upload_journal"] = csv_upload_result
 
                             results.append(response_data)
+                            print("start for 40 seconds")
+                            time.sleep(40)  # wait for 40 seconds before submitting budget
+                            print("wait for 40 seconds")
                             csv_upload_result, result = submit_budget_and_upload(
                                 transfers=trasfers,
                                 transaction_id=transaction_id,
