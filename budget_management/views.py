@@ -700,7 +700,7 @@ class transcationtransferapprovel_reject(APIView):
 
                         if Status == "approved":
                             csv_upload_result, result = submint_journal_and_upload(
-                                transfers=trasfers, type="rejected"
+                                transfers=trasfers, transaction_id=transaction_id, type="reject"
                             )
                             response_data = {
                                 "message": "Transfers submitted for approval successfully",
