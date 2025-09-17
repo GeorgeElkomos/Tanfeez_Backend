@@ -89,10 +89,10 @@ def validate_transaction(data, code=None):
 
         errors.append("Can't have value in both from and to at the same time")
 
-    # Validation 4: Check if actual  > from_center
+    # Validation 4: Check if available_budget > from_center
     if code[0:3] != "AFR":
-        if Decimal(data["from_center"]) > Decimal(data["actual"]):
-            errors.append(" from value must be less or equal actual value")
+        if Decimal(data["from_center"]) > Decimal(data["available_budget"]):
+            errors.append(" from value must be less or equal available_budget value")
 
     # Validation 5: Check for duplicate transfers (same transaction, from_account, to_account)
     existing_transfers = xx_TransactionTransfer.objects.filter(
@@ -634,6 +634,7 @@ class transcationtransferSubmit(APIView):
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
+                budget_transfer.status_level = 2
                 budget_transfer.save()
 
                 # user_submit=xx_notification()
