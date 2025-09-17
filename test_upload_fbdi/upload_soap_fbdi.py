@@ -22,13 +22,12 @@ def b64_csv(csv_path: str) -> str:
     with open(csv_path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
-def build_soap_envelope(csv_b64_content: str, csv_filename: str, group_id: str, 
-                       callback_url: str = None, notification_code: str = "10"):
+def build_soap_envelope(csv_b64_content: str, csv_filename: str, group_id: str, callback_url: str = None, notification_code: str = "10") -> str:
     """Build the SOAP envelope for importBulkDataAsync"""
     
     # Build parameter list: DataAccessSetId, SourceName, LedgerId, GroupId, PostErrorsToSuspense, CreateSummary, ImportDFF
-    parameter_list = f"{DATA_ACCESS_SET_ID},{SOURCE_NAME},{LEDGER_ID},NULL,N,N,N"
-    
+    parameter_list = f"{DATA_ACCESS_SET_ID},{SOURCE_NAME},{LEDGER_ID},{group_id},N,N,N"
+
     # Optional callback URL
     callback_section = f"<typ:callbackURL>{callback_url}</typ:callbackURL>" if callback_url else ""
     
@@ -106,7 +105,7 @@ def upload_fbdi_to_oracle(csv_file_path: str, group_id: str = None) -> dict:
         csv_filename = os.path.basename(csv_file_path)
         
         # Build SOAP envelope
-        soap_body = build_soap_envelope(csv_b64, csv_filename, group_id)
+        soap_body = build_soap_envelope(csv_b64, csv_filename, group_id=group_id)
         
         # SOAP headers
         headers = {

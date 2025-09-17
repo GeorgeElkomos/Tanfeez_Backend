@@ -188,7 +188,7 @@ def create_journal_from_scratch(
         raise
 
 # Example usage function
-def create_sample_journal_data(transfers,transaction_id=0,type="submit") -> List[Dict[str, Any]]:
+def create_sample_journal_data(transfers,transaction_id=0,type="submit",group_id=0) -> List[Dict[str, Any]]:
     """
     Create sample journal entry data for testing.
     
@@ -215,11 +215,11 @@ def create_sample_journal_data(transfers,transaction_id=0,type="submit") -> List
                 journal_entry = {
                     "Status Code": "NEW",
                     "Ledger ID": "300000205309206",
-                    "Effective Date of Transaction": "2025-09-15",
+                    "Effective Date of Transaction": "2025-09-17",
                     "Journal Source": "Allocations",
                     "Journal Category": "Adjustment",
                     "Currency Code": "AED",
-                    "Journal Entry Creation Date": "2025-09-15",
+                    "Journal Entry Creation Date": "2025-09-17",
                     "Actual Flag": "E",
                     "Segment1": transfer.cost_center_code,
                     "Segment2": "C070003",
@@ -237,18 +237,19 @@ def create_sample_journal_data(transfers,transaction_id=0,type="submit") -> List
                     "REFERENCE4 (Journal Entry Name)": journal_name,
                     "REFERENCE5 (Journal Entry Description)": journal_description,
                     "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
-                    "Encumbrance Type ID": "100000243328511"
+                    "Encumbrance Type ID": "100000243328511",
+                    "Interface Group Identifier": group_id
                 }
                 sample_data.append(journal_entry)
 
     journal_entry = {
                 "Status Code": "NEW",
                 "Ledger ID": "300000205309206",
-                "Effective Date of Transaction": "2025-09-15",
+                "Effective Date of Transaction": "2025-09-17",
                 "Journal Source": "Allocations",
                 "Journal Category": "Adjustment",
                 "Currency Code": "AED",
-                "Journal Entry Creation Date": "2025-09-15",
+                "Journal Entry Creation Date": "2025-09-17",
                 "Actual Flag": "E",
                 "Segment1": 10001,
                 "Segment2": "0000000",
@@ -266,7 +267,8 @@ def create_sample_journal_data(transfers,transaction_id=0,type="submit") -> List
                 "REFERENCE4 (Journal Entry Name)": journal_name,
                 "REFERENCE5 (Journal Entry Description)": journal_description,
                 "REFERENCE10 (Journal Entry Line Description)": f"Debit line for account {transfer.account_code}",
-                "Encumbrance Type ID": "100000243328511"
+                "Encumbrance Type ID": "100000243328511",
+                "Interface Group Identifier": group_id
             }
     sample_data.append(journal_entry)
         
