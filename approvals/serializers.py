@@ -13,7 +13,7 @@ class ApprovalWorkflowStageTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalWorkflowStageTemplate
-        fields = "_all_"  # return ALL fields in stage
+        fields = "__all__"  # return ALL fields in stage
         # if you want to exclude workflow_template from stage details, list fields manually
 
 
@@ -46,7 +46,7 @@ class ApprovalWorkflowTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalWorkflowTemplate
-        fields = "_all_"  # return ALL workflow fields
+        fields = "__all__"  # return ALL workflow fields
 
 
 # -------------------------------
@@ -59,7 +59,7 @@ class ApprovalWorkflowTemplateDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ApprovalWorkflowTemplate
-        fields = "_all_"  # includes all workflow fields + stages
+        fields = "__all__"  # includes all workflow fields + stages
 
     def create(self, validated_data):
         stages_data = validated_data.pop("stages", [])
