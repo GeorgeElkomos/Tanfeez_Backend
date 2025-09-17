@@ -15,8 +15,8 @@ from user_management.models import xx_notification
 import pandas as pd
 import io
 import os
-import datetime
 import base64
+import time
 import requests
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
@@ -34,7 +34,7 @@ from test_upload_fbdi.upload_soap_fbdi import (
 from account_and_entitys.utils import get_oracle_report_data
 from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload 
 from test_upload_fbdi.utility.submit_budget_and_upload import submit_budget_and_upload
-
+from test_upload_fbdi.automatic_posting import submit_automatic_posting
 def validate_transaction(data, code=None):
     """
     Validate ADJD transaction transfer data against 10 business rules
@@ -628,6 +628,8 @@ class transcationtransferSubmit(APIView):
 
 
                 csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="submit")
+                time.sleep(90)
+                submit_automatic_posting("300000288873799")
                 # csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)

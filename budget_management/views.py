@@ -11,6 +11,7 @@ from django.db.models.functions import Cast
 from django.db.models import CharField
 from approvals.managers import ApprovalManager
 from approvals.models import ApprovalAction, ApprovalWorkflowInstance
+from test_upload_fbdi.automatic_posting import submit_automatic_posting
 from user_management.models import xx_User, xx_notification
 from .models import (
     filter_budget_transfers_all_in_entities,
@@ -712,9 +713,9 @@ class transcationtransferapprovel_reject(APIView):
                                 response_data["fbdi_upload_journal"] = csv_upload_result
 
                             results.append(response_data)
-                            print("start for 40 seconds")
-                            time.sleep(40)  # wait for 40 seconds before submitting budget
-                            print("wait for 40 seconds")
+                            print("start for 90 seconds")
+                            time.sleep(90)  # wait for 90 seconds before submitting budget
+                            print("wait for 90 seconds")
                             csv_upload_result, result = submit_budget_and_upload(
                                 transfers=trasfers,
                                 transaction_id=transaction_id,
@@ -729,6 +730,8 @@ class transcationtransferapprovel_reject(APIView):
                                 transaction_id=transaction_id,
                                 type="reject",
                             )
+                            time.sleep(90)
+                            submit_automatic_posting("300000288873799")
                             response_data = {
                                 "message": "Transfers submitted for approval successfully",
                                 "transaction_id": transaction_id,
