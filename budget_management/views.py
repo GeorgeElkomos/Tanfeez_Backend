@@ -52,8 +52,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count, Case, When, Value, F
-from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload 
+from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload
 from test_upload_fbdi.utility.submit_budget_and_upload import submit_budget_and_upload
+
+
 class TransferPagination(PageNumberPagination):
     """Pagination class for budget transfers"""
 
@@ -616,7 +618,7 @@ class transcationtransferapprovel_reject(APIView):
                 and len(item.get("other_user_id")) > 0
             ):
                 OtherUserId = item.get("other_user_id")[0]
-            
+
             # Validate required fields
             if not transaction_id:
                 return Response(
@@ -694,53 +696,57 @@ class transcationtransferapprovel_reject(APIView):
                     )
                     # for transfer in trasfers:
                     try:
-                            # Update the pivot fund    
+                        # Update the pivot fund
 
-                           if Status=="approved":
-                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,type="rejected")
-                              response_data = {
+                        if Status == "approved":
+                            csv_upload_result, result = submint_journal_and_upload(
+                                transfers=trasfers, type="rejected"
+                            )
+                            response_data = {
                                 "message": "Transfers submitted for approval successfully",
                                 "transaction_id": transaction_id,
                                 "pivot_updates": pivot_updates,
                                 "journal_file": result if result else None,
-                                }
-                              if csv_upload_result:
-                                    response_data["fbdi_upload_journal"] = csv_upload_result
-                              
-                              results.append(response_data)
-                              csv_upload_result,result= submit_budget_and_upload(
-                                  transfers=trasfers,
-                                  transaction_id=transaction_id,
-                              )
-                              if csv_upload_result:
-                                    response_data["fbdi_upload_budget"] = csv_upload_result
-                            #   continue
-                           if Status=="rejected":
+                            }
+                            if csv_upload_result:
+                                response_data["fbdi_upload_journal"] = csv_upload_result
 
-                              csv_upload_result,result=submint_journal_and_upload(transfers=trasfers,transaction_id=transaction_id,type="rejected")
-                              response_data = {
+                            results.append(response_data)
+                            csv_upload_result, result = submit_budget_and_upload(
+                                transfers=trasfers,
+                                transaction_id=transaction_id,
+                            )
+                            if csv_upload_result:
+                                response_data["fbdi_upload_budget"] = csv_upload_result
+                        #   continue
+                        if Status == "rejected":
+
+                            csv_upload_result, result = submint_journal_and_upload(
+                                transfers=trasfers,
+                                transaction_id=transaction_id,
+                                type="reject",
+                            )
+                            response_data = {
                                 "message": "Transfers submitted for approval successfully",
                                 "transaction_id": transaction_id,
                                 "pivot_updates": pivot_updates,
                                 "journal_file": result if result else None,
-                                }
-                              if csv_upload_result:
-                                    response_data["fbdi_upload"] = csv_upload_result
-                              
-                              results.append(response_data)
-                              
+                            }
+                            if csv_upload_result:
+                                response_data["fbdi_upload"] = csv_upload_result
 
+                            results.append(response_data)
 
-                            # update_result = update_pivot_fund(
-                            #     transfer.cost_center_code,
-                            #     transfer.account_code,
-                            #     transfer.project_code,
-                            #     transfer.from_center or 0,
-                            #     transfer.to_center or 0,
-                            #     Status,
-                            # )
-                            # if update_result:
-                            #     pivot_updates.append(update_result)
+                        # update_result = update_pivot_fund(
+                        #     transfer.cost_center_code,
+                        #     transfer.account_code,
+                        #     transfer.project_code,
+                        #     transfer.from_center or 0,
+                        #     transfer.to_center or 0,
+                        #     Status,
+                        # )
+                        # if update_result:
+                        #     pivot_updates.append(update_result)
                     except Exception as e:
                         pivot_updates.append(
                             {
