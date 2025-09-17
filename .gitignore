@@ -21,7 +21,6 @@ build/
 venv/
 env/
 ENV/
-.env
 .venv
 env/
 

@@ -2,6 +2,7 @@
 
 
 from pathlib import Path
+from time import time
 from django.conf import settings
 from test_upload_fbdi.journal_template_manager import (
     create_sample_journal_data,
@@ -13,6 +14,7 @@ from test_upload_fbdi.upload_soap_fbdi import (
     upload_fbdi_to_oracle,
 )
 from account_and_entitys.utils import get_oracle_report_data
+from datetime import datetime
 
 
 def submint_journal_and_upload(transfers,transaction_id,type="submit"):
@@ -27,8 +29,10 @@ def submint_journal_and_upload(transfers,transaction_id,type="submit"):
     print(f"Template path: {template_path}")
     print(f"Output name: {output_name}")
 
+    group_id = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]  # timestamp with milliseconds
+    group_id = group_id.replace('_', '')
     # Generate journal entry using the transfers
-    data = create_sample_journal_data(transfers,transaction_id,type)
+    data = create_sample_journal_data(transfers,transaction_id,type,group_id)
     result = create_journal_from_scratch(
         template_path=str(template_path),
         journal_data=data,
@@ -46,7 +50,7 @@ def submint_journal_and_upload(transfers,transaction_id,type="submit"):
 
         if csv_path.exists():
             print(f"Uploading CSV to Oracle Fusion: {csv_path}")
-            csv_upload_result = upload_fbdi_to_oracle(str(csv_path))
+            csv_upload_result = upload_fbdi_to_oracle(str(csv_path),group_id)
 
             if csv_upload_result.get("success"):
                 print(
