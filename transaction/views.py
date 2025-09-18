@@ -626,11 +626,28 @@ class transcationtransferSubmit(APIView):
                         status=status.HTTP_404_NOT_FOUND,
                     )
 
+                if code[0:3] != "AFR":
+                    csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="submit")
+                    time.sleep(90)
+                    submit_automatic_posting("300000288873799")
+                    response_data = {
+                    "message": "Transfers submitted for approval successfully",
+                    "transaction_id": transaction_id,
+                    "pivot_updates": pivot_updates,
+                    "journal_file": result if result else None,
+                     }
+                    if csv_upload_result:
+                        response_data["fbdi_upload"] = csv_upload_result
 
-                csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="submit")
-                time.sleep(90)
-                submit_automatic_posting("300000288873799")
-                # csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
+                else:
+                    response_data = {
+                        "message": "Transfers submitted for approval successfully",
+                        "transaction_id": transaction_id,
+                        "pivot_updates": pivot_updates,
+                        "journal_file": None,
+                }
+
+                    # csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
 
                 budget_transfer = xx_BudgetTransfer.objects.get(pk=transaction_id)
                 budget_transfer.status = "submitted"
@@ -641,16 +658,16 @@ class transcationtransferSubmit(APIView):
                 # user_submit.create_notification(user=request.user,message=f"you have submited the trasnation {transaction_id} secessfully ")
 
                 # Prepare response data
-                response_data = {
-                    "message": "Transfers submitted for approval successfully",
-                    "transaction_id": transaction_id,
-                    "pivot_updates": pivot_updates,
-                    "journal_file": result if result else None,
-                }
+                # response_data = {
+                #     "message": "Transfers submitted for approval successfully",
+                #     "transaction_id": transaction_id,
+                #     "pivot_updates": pivot_updates,
+                #     "journal_file": result if result else None,
+                # }
 
                 # Add FBDI upload results if available
-                if csv_upload_result:
-                    response_data["fbdi_upload"] = csv_upload_result
+                # if csv_upload_result:
+                #     response_data["fbdi_upload"] = csv_upload_result
 
                 # Return success response here, inside the try block
                 return Response(response_data, status=status.HTTP_200_OK)

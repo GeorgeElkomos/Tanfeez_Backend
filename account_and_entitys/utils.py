@@ -214,7 +214,7 @@ def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="se
            <soap12:Body>
               <pub:runReport>
                  <pub:reportRequest>
-                    <pub:reportAbsolutePath>/API/get_single_balance_report.xdo</pub:reportAbsolutePath>
+                    <pub:reportAbsolutePath>/API/get_Ava_Fund_report.xdo</pub:reportAbsolutePath>
                     <pub:attributeFormat>xlsx</pub:attributeFormat>
                     <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
                     <pub:parameterNameValues>{parameters_xml}
@@ -275,17 +275,27 @@ def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="se
                       continue
                   
                   record = {
-                      'control_budget_name': str(row.get('CONTROL_BUDGET_NAME', '')).strip() if pd.notna(row.get('CONTROL_BUDGET_NAME')) else None,
-                      'ledger_name': str(row.get('LEDGER_NAME', '')).strip() if pd.notna(row.get('LEDGER_NAME')) else None,
-                      'as_of_period': str(row.get('AS_OF_PERIOD', '')).strip() if pd.notna(row.get('AS_OF_PERIOD')) else None,
-                      'segment1': str(int(row.get('SEGMENT1', ''))).strip() if pd.notna(int(row.get('SEGMENT1'))) else None,
-                      'segment2': str(int(row.get('SEGMENT2', ''))).strip() if pd.notna(int(row.get('SEGMENT2'))) else None,
+                      'segment1': str(int(float(row.get('SEGMENT1', 0)))).strip() if pd.notna(row.get('SEGMENT1')) and str(row.get('SEGMENT1', '')).strip() != '' else None,
+                      'segment2': str(int(float(row.get('SEGMENT2', 0)))).strip() if pd.notna(row.get('SEGMENT2')) and str(row.get('SEGMENT2', '')).strip() != '' else None,
                       'segment3': str(row.get('SEGMENT3', '')).strip() if pd.notna(row.get('SEGMENT3')) else None,
+                      'actual_ytd': float(row.get('PTD_ACTUAL_AMOUNT', 0)) if pd.notna(row.get('PTD_ACTUAL_AMOUNT')) and str(row.get('PTD_ACTUAL_AMOUNT', '')).strip() != '' else 0.0,
+                      'as_of_period': str(row.get('BUDGET_PERIOD', '')).strip() if pd.notna(row.get('BUDGET_PERIOD')) else None,
+                      'funds_available_asof': float(row.get('FUNDS_AVAILABLE_AMOUNT', 0)) if pd.notna(row.get('FUNDS_AVAILABLE_AMOUNT')) and str(row.get('FUNDS_AVAILABLE_AMOUNT', '')).strip() != '' else 0.0,
                       'encumbrance_ytd': float(row.get('ENCUMBRANCE_PTD', 0)) if pd.notna(row.get('ENCUMBRANCE_PTD')) and str(row.get('ENCUMBRANCE_PTD', '')).strip() != '' else 0.0,
                       'other_ytd': float(row.get('OTHER_PTD', 0)) if pd.notna(row.get('OTHER_PTD')) and str(row.get('OTHER_PTD', '')).strip() != '' else 0.0,
-                      'actual_ytd': float(row.get('ACTUAL_PTD', 0)) if pd.notna(row.get('ACTUAL_PTD')) and str(row.get('ACTUAL_PTD', '')).strip() != '' else 0.0,
-                      'funds_available_asof': float(row.get('FUNDS_AVAILABLE', 0)) if pd.notna(row.get('FUNDS_AVAILABLE')) and str(row.get('FUNDS_AVAILABLE', '')).strip() != '' else 0.0,
-                      'budget_ytd': float(row.get('BUDGET_PTD', 0)) if pd.notna(row.get('BUDGET_PTD')) and str(row.get('BUDGET_PTD', '')).strip() != '' else 0.0
+                      'budget_ytd': float(row.get('BUDGET_PTD', 0)) if pd.notna(row.get('BUDGET_PTD')) and str(row.get('BUDGET_PTD', '')).strip() != '' else 0.0,
+                      'control_budget_name': str(row.get('CONTROL_BUDGET_NAME', '')).strip() if pd.notna(row.get('CONTROL_BUDGET_NAME')) else None,
+                      'ledger_name': str(row.get('LEDGER_NAME', '')).strip() if pd.notna(row.get('LEDGER_NAME')) else None,
+                      # Add missing fields from Oracle response
+                      'budget_adjustments': float(row.get('BUDGET_ADJUSTMENTS', 0)) if pd.notna(row.get('BUDGET_ADJUSTMENTS')) and str(row.get('BUDGET_ADJUSTMENTS', '')).strip() != '' else 0.0,
+                      'commitments': float(row.get('COMMITMENTS', 0)) if pd.notna(row.get('COMMITMENTS')) and str(row.get('COMMITMENTS', '')).strip() != '' else 0.0,
+                      'expenditures': float(row.get('EXPENDITURES', 0)) if pd.notna(row.get('EXPENDITURES')) and str(row.get('EXPENDITURES', '')).strip() != '' else 0.0,
+                      'initial_budget': float(row.get('INITIAL_BUDGET', 0)) if pd.notna(row.get('INITIAL_BUDGET')) and str(row.get('INITIAL_BUDGET', '')).strip() != '' else 0.0,
+                      'obligations': float(row.get('OBLIGATIONS', 0)) if pd.notna(row.get('OBLIGATIONS')) and str(row.get('OBLIGATIONS', '')).strip() != '' else 0.0,
+                      'other_consumption': float(row.get('OTHER_CONSUMPTION', 0)) if pd.notna(row.get('OTHER_CONSUMPTION')) and str(row.get('OTHER_CONSUMPTION', '')).strip() != '' else 0.0,
+                      'total_budget': float(row.get('TOTAL_BUDGET', 0)) if pd.notna(row.get('TOTAL_BUDGET')) and str(row.get('TOTAL_BUDGET', '')).strip() != '' else 0.0,
+                      'total_consumption': float(row.get('TOTAL_CONSUMPTION', 0)) if pd.notna(row.get('TOTAL_CONSUMPTION')) and str(row.get('TOTAL_CONSUMPTION', '')).strip() != '' else 0.0,
+                      'unreleased': float(row.get('UNRELEASED', 0)) if pd.notna(row.get('UNRELEASED')) and str(row.get('UNRELEASED', '')).strip() != '' else 0.0,
                   }
                   data_list.append(record)
               
