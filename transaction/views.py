@@ -362,12 +362,25 @@ class TransactionTransferListView(APIView):
                 transfer.approved_budget = record["budget_ytd"]
                 transfer.encumbrance = record["encumbrance_ytd"]
                 transfer.actual = record["actual_ytd"]
+                transfer.budget_adjustments = record["budget_adjustments"]
+                transfer.commitments = record["commitments"]
+                transfer.expenditures = record["expenditures"]
+                transfer.initial_budget = record["initial_budget"]
+                transfer.obligations = record["obligations"]
+                transfer.other_consumption = record["other_consumption"]
             else:
                 # No data found, set default values
                 transfer.available_budget = 0.0
                 transfer.approved_budget = 0.0
                 transfer.encumbrance = 0.0
                 transfer.actual = 0.0
+                transfer.budget_adjustments = 0.0
+                transfer.commitments = 0.0
+                transfer.expenditures = 0.0
+                transfer.initial_budget = 0.0
+                transfer.obligations = 0.0
+                transfer.other_consumption = 0.0
+                
 
             transfer.save()
 
