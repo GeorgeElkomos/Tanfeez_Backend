@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Q, Sum
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Coalesce
 from django.db.models import CharField
 from approvals.managers import ApprovalManager
 from approvals.models import ApprovalAction, ApprovalWorkflowInstance
@@ -276,6 +276,13 @@ class ListBudgetTransferView(APIView):
         # Use only safe fields for ordering to avoid Oracle NCLOB issues
         transfers = transfers.order_by("-transaction_id")
 
+        # Ensure we return the workflow instance status (if any) in the `status` column.
+        # If no workflow instance exists, fall back to the transfer's own status.
+        # Annotate under a different name to avoid conflict with the model's `status` field
+        transfers = transfers.annotate(
+            workflow_status=Coalesce(F("workflow_instance__status"), F("status"))
+        )
+
         # Convert to list to avoid lazy evaluation issues with Oracle
         # Exclude TextField columns that become NCLOB in Oracle
         transfer_list = list(
@@ -283,7 +290,7 @@ class ListBudgetTransferView(APIView):
                 "transaction_id",
                 "transaction_date",
                 "amount",
-                "status",
+                "workflow_status",
                 "requested_by",
                 "user_id",
                 "request_date",
@@ -311,6 +318,12 @@ class ListBudgetTransferView(APIView):
                 "notes",
             )
         )
+
+        # Convert DB rows to a list and then map `workflow_status` -> `status`
+        transfer_list = list(transfer_list)
+        for row in transfer_list:
+            # Prefer the workflow_status annotation, fall back to existing status if present
+            row["status"] = row.pop("workflow_status", row.get("status"))
 
         # Manual pagination to avoid Oracle issues
         page = int(request.GET.get("page", 1))

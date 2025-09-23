@@ -13,9 +13,8 @@ assignment, and auditable approval history.
 Phase 1: Models only (engine / services to be added separately).
 """
 
-# Import user + related references lazily to avoid circular imports in migrations
-from user_management.models import xx_User, xx_UserLevel  # noqa
-from budget_management.models import xx_BudgetTransfer  # noqa
+# Avoid top-level imports of other app models to prevent circular import problems;
+# use string references in ForeignKey/OneToOne declarations instead.
 
 class ApprovalWorkflowTemplate(models.Model):
 	"""Defines a reusable workflow template for a given transfer type.
@@ -72,7 +71,7 @@ class ApprovalWorkflowStageTemplate(models.Model):
 	)
 	quorum_count = models.PositiveIntegerField(null=True, blank=True)
 	required_user_level = models.ForeignKey(
-		xx_UserLevel,
+		"user_management.xx_UserLevel",
 		on_delete=models.PROTECT,
 		related_name="stage_templates",
 		help_text="If set, assignments will include users with this level",
@@ -121,7 +120,7 @@ class ApprovalWorkflowInstance(models.Model):
 	]
 
 	budget_transfer = models.OneToOneField(
-		xx_BudgetTransfer,
+		"budget_management.xx_BudgetTransfer",
 		on_delete=models.CASCADE,
 		related_name="workflow_instance",
 		db_column="transaction_id",
@@ -210,7 +209,7 @@ class ApprovalAssignment(models.Model):
         ApprovalWorkflowStageInstance, related_name="assignments", on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        xx_User, related_name="approval_assignments", on_delete=models.CASCADE
+		"user_management.xx_User", related_name="approval_assignments", on_delete=models.CASCADE
     )
     role_snapshot = models.CharField(max_length=50, null=True, blank=True)
     level_snapshot = models.CharField(max_length=50, null=True, blank=True)
@@ -249,9 +248,9 @@ class ApprovalAction(models.Model):
         ApprovalWorkflowStageInstance, related_name="actions", on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        xx_User,
-        related_name="approval_actions",
-        on_delete=models.CASCADE,
+		"user_management.xx_User",
+		related_name="approval_actions",
+		on_delete=models.CASCADE,
         null=True,
         blank=True,
         help_text="Null for system actions (auto-cancel, auto-skip, etc.)",
@@ -277,10 +276,10 @@ class ApprovalDelegation(models.Model):
 	"""Optional delegation record (future extension)."""
 
 	from_user = models.ForeignKey(
-		xx_User, related_name="delegations_given", on_delete=models.CASCADE
+		"user_management.xx_User", related_name="delegations_given", on_delete=models.CASCADE
 	)
 	to_user = models.ForeignKey(
-		xx_User, related_name="delegations_received", on_delete=models.CASCADE
+		"user_management.xx_User", related_name="delegations_received", on_delete=models.CASCADE
 	)
 	stage_instance = models.ForeignKey(
 		ApprovalWorkflowStageInstance, related_name="delegations", on_delete=models.CASCADE

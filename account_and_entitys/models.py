@@ -1,5 +1,6 @@
 from django.db import models
-from transaction.models import xx_TransactionTransfer
+
+from approvals.models import ApprovalWorkflowInstance
 # Removed encrypted fields import - using standard Django fields now
 
 class XX_Account(models.Model):
@@ -54,7 +55,7 @@ class Project_Envelope(models.Model):
     class Meta:
         db_table = "XX_PROJECT_ENVELOPE_XX"
 
-class EnvelopeManager(models.Model):
+class EnvelopeManager():
     @staticmethod
     def Has_Envelope(project_code):
         try:
@@ -92,7 +93,7 @@ class EnvelopeManager(models.Model):
         return None
     
     @staticmethod
-    def Get_Total_Amount_for_Project(project_code, year=None, month=None):
+    def Get_Total_Amount_for_Project(project_code, year=None, month=None, IsApproved=False):
         """
         Calculate total amount(total,from,to) for a project based on independent year and/or month filtering.
         
@@ -127,10 +128,15 @@ class EnvelopeManager(models.Model):
             from django.db.models import Sum, F, Value, Q
             from django.db.models.functions import Coalesce
             import calendar
-            
+            # Import here to avoid circular import at module import time
+            from transaction.models import xx_TransactionTransfer
+
             # Start with base filter for project code
             transactions = xx_TransactionTransfer.objects.filter(project_code=project_code)
-            
+            if IsApproved:
+                transactions = transactions.filter(transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_APPROVED)
+            else:
+                transactions = transactions.filter(transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS)
             # Apply date filtering based on provided parameters
             if year is not None:
                 # Filter by fiscal year (last 2 digits)
@@ -161,6 +167,158 @@ class EnvelopeManager(models.Model):
             print(f"Error calculating total amount for project {project_code}: {e}")
             return 0
 
+    @staticmethod
+    def Get_Current_Envelope_For_Project(project_code, year=None, month=None, IsApproved=False):
+        try:
+            envelope = EnvelopeManager.Get_First_Parent_Envelope(project_code)
+            if envelope is None:
+                return None
+            total_amount, total_from, total_to = EnvelopeManager.Get_Total_Amount_for_Project(project_code, year=year, month=month, IsApproved=IsApproved)
+            return envelope + total_amount, total_amount, total_from, total_to
+        except Project_Envelope.DoesNotExist:
+            return None
+    
+    @staticmethod
+    def Get_Active_Projects(year=None, month=None, IsApproved=False):
+        """Return a list of distinct project codes used by transactions.
+
+        Params:
+            year: optional fiscal year (int or numeric string) — filters on transaction__fy
+            month: optional month (int 1-12 or 3-letter abbreviation like 'Jan') — filters on transaction__transaction_date
+            IsApproved: if True only include transactions whose parent budget transfer's workflow instance status is APPROVED,
+                        otherwise include those in IN_PROGRESS.
+
+        Returns:
+            list of project_code strings (empty list on error)
+        """
+        try:
+            import calendar
+
+            # Import here to avoid circular import at module import time
+            from transaction.models import xx_TransactionTransfer
+
+            desired_status = (
+                ApprovalWorkflowInstance.STATUS_APPROVED
+                if IsApproved
+                else ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+            )
+
+            transactions = xx_TransactionTransfer.objects.filter(
+                transaction__workflow_instance__status=desired_status
+            )
+
+            # Apply year filter if provided
+            if year is not None and year != "":
+                try:
+                    year_int = int(year)
+                    transactions = transactions.filter(transaction__fy=year_int)
+                except Exception:
+                    # invalid year value; ignore filter but log
+                    print(f"Get_Active_Projects: invalid year value '{year}', skipping year filter")
+
+            # Apply month filter if provided; accept month as int or 3-letter name
+            if month is not None and month != "":
+                month_abbr = None
+                try:
+                    if isinstance(month, str):
+                        m = month.strip()
+                        if len(m) == 3:
+                            month_abbr = m[:3]
+                        else:
+                            month_int = int(m)
+                            if 1 <= month_int <= 12:
+                                month_abbr = calendar.month_abbr[month_int]
+                    else:
+                        month_int = int(month)
+                        if 1 <= month_int <= 12:
+                            month_abbr = calendar.month_abbr[month_int]
+                except Exception:
+                    print(f"Get_Active_Projects: invalid month value '{month}', skipping month filter")
+
+                if month_abbr:
+                    transactions = transactions.filter(transaction__transaction_date=month_abbr)
+
+            # Return plain list of distinct project codes
+            project_qs = transactions.values_list("project_code", flat=True).distinct()
+            return list(project_qs)
+
+        except Exception as e:
+            # Don't raise to avoid breaking import-time usage; log and return empty list
+            print(f"Error in Get_Active_Projects: {e}")
+            return []
+    
+    @staticmethod
+    def Get_Active_Projects_With_Envelope(year=None, month=None, IsApproved=False):
+        projects = EnvelopeManager.Get_Active_Projects(year=year, month=month, IsApproved=IsApproved)
+        """Return list of project envelope summaries for active projects.
+
+        For each project returned by `Get_Active_Projects`, call
+        `Get_Current_Envelope_For_Project` and return a list of dicts with keys:
+            - project_code
+            - current_envelope (envelope + total_amount)
+            - total_amount
+            - total_from
+            - total_to
+
+        Any project for which `Get_Current_Envelope_For_Project` returns None will
+        still be included with all numeric fields set to None.
+        """
+        results = []
+        try:
+            # `projects` is expected to be a list of project_code strings
+            for project_code in projects:
+                try:
+                    value = EnvelopeManager.Get_Current_Envelope_For_Project(
+                        project_code, year=year, month=month, IsApproved=IsApproved
+                    )
+                    if value is None:
+                        results.append(
+                            {
+                                "project_code": project_code,
+                                "current_envelope": None,
+                                "total_amount": None,
+                                "total_from": None,
+                                "total_to": None,
+                            }
+                        )
+                        continue
+
+                    # Expecting a tuple: (current_envelope, total_amount, total_from, total_to)
+                    if isinstance(value, (list, tuple)) and len(value) >= 4:
+                        current_envelope, total_amount, total_from, total_to = value[:4]
+                    else:
+                        # Fallback: if function returned a single numeric value
+                        current_envelope = value
+                        total_amount = None
+                        total_from = None
+                        total_to = None
+
+                    results.append(
+                        {
+                            "project_code": project_code,
+                            "current_envelope": current_envelope,
+                            "total_amount": total_amount,
+                            "total_from": total_from,
+                            "total_to": total_to,
+                        }
+                    )
+                except Exception as inner_e:
+                    # Log and include a placeholder so callers know this project failed
+                    print(f"Get_Active_Projects_With_Envelope: error for project '{project_code}': {inner_e}")
+                    results.append(
+                        {
+                            "project_code": project_code,
+                            "current_envelope": None,
+                            "total_amount": None,
+                            "total_from": None,
+                            "total_to": None,
+                        }
+                    )
+
+        except Exception as e:
+            print(f"Get_Active_Projects_With_Envelope: unexpected error: {e}")
+
+        return results
 
 class XX_PivotFund(models.Model):
     """Model representing ADJD pivot funds"""

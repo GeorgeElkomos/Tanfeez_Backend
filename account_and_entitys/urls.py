@@ -25,6 +25,7 @@ from .views import (
     ProjectDetailView,
     ProjectListView,
     ProjectUpdateView,
+    Upload_ProjectEnvelopeView,
     list_ACCOUNT_ENTITY_LIMIT,
     UpdateAccountEntityLimit,
     DeleteAccountEntityLimit,
@@ -34,7 +35,9 @@ from .views import (
     BalanceReportSegmentsView,
     BalanceReportFinancialDataView,
     Single_BalanceReportView,
+    Upload_ProjectsView
 )
+from .views import ActiveProjectsWithEnvelopeView
 
 urlpatterns = [
     # Account URLs
@@ -56,6 +59,21 @@ urlpatterns = [
     ),
     path(
         "projects/<int:pk>/delete/", ProjectDeleteView.as_view(), name="project-delete"
+    ),
+    path(
+        "projects/upload/",
+        Upload_ProjectsView.as_view(),
+        name="upload-projects",
+    ),
+    path(
+        "projects/envelope/upload/",
+        Upload_ProjectEnvelopeView.as_view(),
+        name="upload-project-envelope",
+    ),
+    path(
+        "projects/active-with-envelope/",
+        ActiveProjectsWithEnvelopeView.as_view(),
+        name="active-projects-with-envelope",
     ),
     # Entity URLs
     path("entities/", EntityListView.as_view(), name="entity-list"),
@@ -153,5 +171,6 @@ urlpatterns = [
         Single_BalanceReportView.as_view(),
         name="balance-report",
     ),
+    
     # Main Currency URLs
 ]

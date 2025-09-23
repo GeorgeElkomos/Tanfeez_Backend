@@ -1,5 +1,5 @@
 from django.db import models
-from budget_management.models import xx_BudgetTransfer
+# Refer to budget model by string to avoid circular import
 
 # Removed encrypted fields import - using standard Django fields now
 
@@ -8,7 +8,7 @@ class xx_TransactionTransfer(models.Model):
     """Model for ADJD transaction transfers"""
 
     transfer_id = models.AutoField(primary_key=True)
-    transaction = models.ForeignKey(xx_BudgetTransfer,on_delete=models.CASCADE,db_column="transaction_id",null=True,blank=True,related_name="transfers",)
+    transaction = models.ForeignKey('budget_management.xx_BudgetTransfer', on_delete=models.CASCADE, db_column="transaction_id", null=True, blank=True, related_name="transfers")
     reason = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries
     account_code = models.IntegerField(null=True, blank=True)
     account_name = models.TextField(null=True, blank=True)  # Keep as TextField but avoid in complex queries

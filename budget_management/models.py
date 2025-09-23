@@ -1,7 +1,7 @@
 from pyexpat import model
 from django.db import models
 from account_and_entitys.models import XX_Account, XX_Entity, XX_Project
-from user_management.models import xx_User
+# Avoid importing xx_User at module import time to prevent circular imports
 
 # Removed encrypted fields import - using standard Django fields now
 import json

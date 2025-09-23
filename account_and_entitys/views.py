@@ -19,6 +19,7 @@ from .models import (
     XX_TransactionAudit,
     XX_ACCOUNT_ENTITY_LIMIT,
     XX_BalanceReport,
+    EnvelopeManager,
 )
 from .serializers import (
     AccountSerializer,
@@ -377,6 +378,28 @@ class EntityCreateView(APIView):
             {"message": "Failed to create entity.", "errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+class ActiveProjectsWithEnvelopeView(APIView):
+    """Return active projects with their current envelope and totals."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Query params: year, month, IsApproved
+        year = request.query_params.get("year", None)
+        month = request.query_params.get("month", None)
+        is_approved = request.query_params.get("IsApproved", "false")
+        try:
+            IsApproved = str(is_approved).lower() in ("1", "true", "yes", "y")
+        except Exception:
+            IsApproved = False
+
+        results = EnvelopeManager.Get_Active_Projects_With_Envelope(
+            year=year, month=month, IsApproved=IsApproved
+        )
+
+        return Response({"message": "Active projects with envelope.", "data": results})
 
 
 class EntityDetailView(APIView):
@@ -1599,3 +1622,199 @@ class Single_BalanceReportView(APIView):
                 "data": data,
             }
         )
+
+
+
+class Upload_ProjectsView(APIView):
+    """Upload projects via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Handle file upload and process projects
+
+        Expects an Excel file where the first sheet has rows like:
+        ProjectCode | ParentCode | AliasDefault
+
+        The view will upsert each row into `XX_Project`.
+        """
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Use openpyxl to read Excel content (openpyxl is listed in requirements)
+            from openpyxl import load_workbook
+            from django.db import transaction
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            with transaction.atomic():
+                # Iterate rows — assume header may be present; detect header by non-numeric first row
+                first = True
+                for row in sheet.iter_rows(values_only=True):
+                    # Skip entirely empty rows
+                    if not row or all([c is None or (isinstance(c, str) and c.strip() == "") for c in row]):
+                        continue
+
+                    # Normalize columns: project_code, parent_code, alias_default
+                    project_code = str(row[0]).strip() if row[0] is not None else None
+                    parent_code = str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
+                    alias_default = str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+
+                    # If the first row looks like a header (non-numeric project code) we skip it
+                    if first:
+                        first = False
+                        header_like = False
+                        # treat as header if first cell contains non-digit characters and not a typical code
+                        if project_code and not any(ch.isdigit() for ch in project_code):
+                            header_like = True
+                        if header_like:
+                            continue
+
+                    # Validate project_code
+                    if not project_code:
+                        skipped += 1
+                        continue
+
+                    # Upsert: update if exists, else create
+                    try:
+                        obj, created_flag = XX_Project.objects.update_or_create(
+                            project=project_code,
+                            defaults={
+                                "parent": parent_code,
+                                "alias_default": alias_default,
+                            },
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append({"project_code": project_code, "error": str(row_err)})
+
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+
+            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+
+
+class Upload_ProjectEnvelopeView(APIView):
+    """Upload project envelopes via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Handle file upload and process project envelopes
+
+        Expects an Excel file where the first sheet has rows like:
+        ProjectCode | EnvelopeNumber
+
+        The view will upsert each row into `Project_Envelope`.
+        """
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response({"message": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from openpyxl import load_workbook
+            from django.db import transaction
+            from decimal import Decimal, InvalidOperation
+            import re
+
+            # Import model locally to avoid top-level circular import issues
+            from .models import Project_Envelope
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            with transaction.atomic():
+                first = True
+                for row in sheet.iter_rows(values_only=True):
+                    # Skip empty rows
+                    if not row or all([c is None or (isinstance(c, str) and c.strip() == "") for c in row]):
+                        continue
+
+                    project_code = str(row[0]).strip() if row[0] is not None else None
+                    envelope_raw = row[1] if len(row) > 1 else None
+
+                    # Header detection: skip header-like first row
+                    if first:
+                        first = False
+                        header_like = False
+                        if project_code and not any(ch.isdigit() for ch in project_code):
+                            header_like = True
+                        if header_like:
+                            continue
+
+                    if not project_code:
+                        skipped += 1
+                        continue
+
+                    # Parse envelope value
+                    if envelope_raw is None or (isinstance(envelope_raw, str) and envelope_raw.strip() == ""):
+                        # If no envelope provided, skip this row
+                        skipped += 1
+                        continue
+
+                    try:
+                        if isinstance(envelope_raw, str):
+                            # Remove commas and non-numeric characters except dot and minus
+                            cleaned = re.sub(r"[^0-9.\-]", "", envelope_raw.replace(",", ""))
+                            envelope_val = Decimal(cleaned) if cleaned != "" else None
+                        else:
+                            envelope_val = Decimal(envelope_raw)
+                    except (InvalidOperation, TypeError) as parse_err:
+                        errors.append({"project_code": project_code, "error": f"Invalid envelope value: {envelope_raw}"})
+                        continue
+
+                    if envelope_val is None:
+                        skipped += 1
+                        continue
+
+                    # Upsert into Project_Envelope
+                    try:
+                        obj, created_flag = Project_Envelope.objects.update_or_create(
+                            project=project_code,
+                            defaults={"envelope": envelope_val},
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append({"project_code": project_code, "error": str(row_err)})
+
+            summary = {"created": created, "updated": updated, "skipped": skipped, "errors": errors}
+            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
