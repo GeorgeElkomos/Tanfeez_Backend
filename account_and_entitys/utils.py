@@ -214,7 +214,7 @@ def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="se
            <soap12:Body>
               <pub:runReport>
                  <pub:reportRequest>
-                    <pub:reportAbsolutePath>/API/get_Ava_Fund_report.xdo</pub:reportAbsolutePath>
+                    <pub:reportAbsolutePath>/Custom/API/get_Ava_Fund_report.xdo</pub:reportAbsolutePath>
                     <pub:attributeFormat>xlsx</pub:attributeFormat>
                     <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
                     <pub:parameterNameValues>{parameters_xml}
