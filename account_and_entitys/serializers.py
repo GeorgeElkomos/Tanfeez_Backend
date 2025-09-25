@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import XX_Account, XX_Entity, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT, XX_Project, XX_BalanceReport, XX_ACCOUNT_mapping, XX_Entity_mapping
+from .models import XX_Account, XX_Entity, XX_PivotFund, XX_TransactionAudit, XX_ACCOUNT_ENTITY_LIMIT, XX_Project, XX_BalanceReport # XX_ACCOUNT_mapping, XX_Entity_mapping
 
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,17 +42,17 @@ class BalanceReportSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
-class AccountMappingSerializer(serializers.ModelSerializer):
-    """Serializer for Account Mapping model"""
+# class AccountMappingSerializer(serializers.ModelSerializer):
+#     """Serializer for Account Mapping model"""
     
-    class Meta:
-        model = XX_ACCOUNT_mapping
-        fields = '__all__'
+#     class Meta:
+#         model = XX_ACCOUNT_mapping
+#         fields = '__all__'
 
 
-class EntityMappingSerializer(serializers.ModelSerializer):
-    """Serializer for Entity Mapping model"""
+# class EntityMappingSerializer(serializers.ModelSerializer):
+#     """Serializer for Entity Mapping model"""
     
-    class Meta:
-        model = XX_Entity_mapping
-        fields = '__all__'
+#     class Meta:
+#         model = XX_Entity_mapping
+#         fields = '__all__'

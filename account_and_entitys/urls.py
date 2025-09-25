@@ -36,11 +36,11 @@ from .views import (
     BalanceReportFinancialDataView,
     Single_BalanceReportView,
     Upload_ProjectsView,
-    UploadMappingExcelView,
-    AccountMappingListView,
-    EntityMappingListView,
-    AccountMappingDetailView,
-    EntityMappingDetailView
+    # UploadMappingExcelView,
+    # AccountMappingListView,
+    # EntityMappingListView,
+    # AccountMappingDetailView,
+    # EntityMappingDetailView
 )
 from .views import ActiveProjectsWithEnvelopeView
 
@@ -176,33 +176,31 @@ urlpatterns = [
         Single_BalanceReportView.as_view(),
         name="balance-report",
     ),
-    
     # Mapping URLs
-    path(
-        "mappings/upload-excel/",
-        UploadMappingExcelView.as_view(),
-        name="upload-mapping-excel",
-    ),
-    path(
-        "mappings/accounts/",
-        AccountMappingListView.as_view(),
-        name="account-mapping-list",
-    ),
-    path(
-        "mappings/accounts/<int:pk>/",
-        AccountMappingDetailView.as_view(),
-        name="account-mapping-detail",
-    ),
-    path(
-        "mappings/entities/",
-        EntityMappingListView.as_view(),
-        name="entity-mapping-list",
-    ),
-    path(
-        "mappings/entities/<int:pk>/",
-        EntityMappingDetailView.as_view(),
-        name="entity-mapping-detail",
-    ),
-    
+    # path(
+    #     "mappings/upload-excel/",
+    #     UploadMappingExcelView.as_view(),
+    #     name="upload-mapping-excel",
+    # ),
+    # path(
+    #     "mappings/accounts/",
+    #     AccountMappingListView.as_view(),
+    #     name="account-mapping-list",
+    # ),
+    # path(
+    #     "mappings/accounts/<int:pk>/",
+    #     AccountMappingDetailView.as_view(),
+    #     name="account-mapping-detail",
+    # ),
+    # path(
+    #     "mappings/entities/",
+    #     EntityMappingListView.as_view(),
+    #     name="entity-mapping-list",
+    # ),
+    # path(
+    #     "mappings/entities/<int:pk>/",
+    #     EntityMappingDetailView.as_view(),
+    #     name="entity-mapping-detail",
+    # ),
     # Main Currency URLs
 ]
