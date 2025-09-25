@@ -387,16 +387,17 @@ class ActiveProjectsWithEnvelopeView(APIView):
 
     def get(self, request):
         # Query params: year, month, IsApproved
+        project_code = request.query_params.get("project_code", None)
+        if project_code is None:
+            return Response(
+                {"message": "project_code query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         year = request.query_params.get("year", None)
         month = request.query_params.get("month", None)
-        is_approved = request.query_params.get("IsApproved", "false")
-        try:
-            IsApproved = str(is_approved).lower() in ("1", "true", "yes", "y")
-        except Exception:
-            IsApproved = False
 
-        results = EnvelopeManager.Get_Active_Projects_With_Envelope(
-            year=year, month=month, IsApproved=IsApproved
+        results = EnvelopeManager.Get_Current_Envelope_For_Project(
+            project_code=project_code, year=year, month=month
         )
 
         return Response({"message": "Active projects with envelope.", "data": results})
