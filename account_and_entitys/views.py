@@ -497,8 +497,6 @@ class EntityCreateView(APIView):
         )
 
 
-
-
 class EntityDetailView(APIView):
     """Retrieve a specific entity"""
 
@@ -1721,7 +1719,6 @@ class Single_BalanceReportView(APIView):
         )
 
 
-
 # envlop
 class Upload_ProjectEnvelopeView(APIView):
     """Upload project envelopes via Excel file"""
@@ -1851,6 +1848,7 @@ class Upload_ProjectEnvelopeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
 class ActiveProjectsWithEnvelopeView(APIView):
     """Return active projects with their current envelope and totals."""
 
@@ -1894,10 +1892,10 @@ class ActiveProjectsWithEnvelopeView(APIView):
                     "message": "Active projects with envelope.",
                     "initial_envelope": results["initial_envelope"],
                     "current_envelope": results["current_envelope"],
+                    "estimated_envelope": results["estimated_envelope"],
                     "data": transformed_data,
                 }
             )
-
 
 
 # Mapping

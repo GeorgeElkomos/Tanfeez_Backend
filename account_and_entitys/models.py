@@ -399,12 +399,15 @@ class EnvelopeManager:
                 }
 
             current_envelope = envelope
+            estimated_envelope = envelope
             for proj, totals in projects_totals.items():
                 current_envelope += totals["approved"]["total"]
-                current_envelope += totals["submitted"]["total"]
+                estimated_envelope += totals["approved"]["total"]
+                estimated_envelope += totals["submitted"]["total"]
             return {
                 "initial_envelope": envelope,
                 "current_envelope": current_envelope,
+                "estimated_envelope": estimated_envelope,
                 "project_totals": projects_totals,
             }
         except Project_Envelope.DoesNotExist:
@@ -566,8 +569,6 @@ class XX_BalanceReport(models.Model):
         ]
 
 
-
-
 # class XX_ACCOUNT_mapping(models.Model):
 #     """Model representing ADJD account mappings"""
 #     id = models.AutoField(primary_key=True)
@@ -581,7 +582,6 @@ class XX_BalanceReport(models.Model):
 #     class Meta:
 #         db_table = 'XX_ACCOUNT_MAPPING_XX'
 #         unique_together = ('source_account', 'target_account')
-
 
 
 # class XX_Entity_mapping(models.Model):
