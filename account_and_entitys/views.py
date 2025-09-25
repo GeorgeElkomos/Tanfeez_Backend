@@ -188,6 +188,121 @@ class AccountDeleteView(APIView):
 
 
 # Project views
+
+
+class Upload_ProjectsView(APIView):
+    """Upload projects via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Handle file upload and process projects
+
+        Expects an Excel file where the first sheet has rows like:
+        ProjectCode | ParentCode | AliasDefault
+
+        The view will upsert each row into `XX_Project`.
+        """
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Use openpyxl to read Excel content (openpyxl is listed in requirements)
+            from openpyxl import load_workbook
+            from django.db import transaction
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            with transaction.atomic():
+                # Iterate rows — assume header may be present; detect header by non-numeric first row
+                first = True
+                for row in sheet.iter_rows(values_only=True):
+                    # Skip entirely empty rows
+                    if not row or all(
+                        [
+                            c is None or (isinstance(c, str) and c.strip() == "")
+                            for c in row
+                        ]
+                    ):
+                        continue
+
+                    # Normalize columns: project_code, parent_code, alias_default
+                    project_code = str(row[0]).strip() if row[0] is not None else None
+                    parent_code = (
+                        str(row[1]).strip()
+                        if len(row) > 1 and row[1] is not None
+                        else None
+                    )
+                    alias_default = (
+                        str(row[2]).strip()
+                        if len(row) > 2 and row[2] is not None
+                        else None
+                    )
+
+                    # If the first row looks like a header (non-numeric project code) we skip it
+                    if first:
+                        first = False
+                        header_like = False
+                        # treat as header if first cell contains non-digit characters and not a typical code
+                        if project_code and not any(
+                            ch.isdigit() for ch in project_code
+                        ):
+                            header_like = True
+                        if header_like:
+                            continue
+
+                    # Validate project_code
+                    if not project_code:
+                        skipped += 1
+                        continue
+
+                    # Upsert: update if exists, else create
+                    try:
+                        obj, created_flag = XX_Project.objects.update_or_create(
+                            project=project_code,
+                            defaults={
+                                "parent": parent_code,
+                                "alias_default": alias_default,
+                            },
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append(
+                            {"project_code": project_code, "error": str(row_err)}
+                        )
+
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+
+            return Response(
+                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class ProjectListView(APIView):
     """List all Projects with optional search"""
 
@@ -382,52 +497,6 @@ class EntityCreateView(APIView):
         )
 
 
-class ActiveProjectsWithEnvelopeView(APIView):
-    """Return active projects with their current envelope and totals."""
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        # Query params: year, month, IsApproved
-        project_code = request.query_params.get("project_code", None)
-        if project_code is None:
-            return Response(
-                {"message": "project_code query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        year = request.query_params.get("year", None)
-        month = request.query_params.get("month", None)
-
-        results = EnvelopeManager.Get_Current_Envelope_For_Project(
-            project_code=project_code, year=year, month=month
-        )
-
-        if results and "project_totals" in results:
-            # Transform into array of objects
-            transformed_data = []
-
-            # Extract data from the original structure
-            for proj, data in results["project_totals"].items():
-                transformed_data.append(
-                    {
-                        "project_code": proj,
-                        "submitted_total": (
-                            data["submitted"]["total"] if data["submitted"] else 0
-                        ),
-                        "approved_total": (
-                            data["approved"]["total"] if data["approved"] else 0
-                        ),
-                    }
-                )
-
-            return Response(
-                {
-                    "message": "Active projects with envelope.",
-                    "initial_envelope": results["initial_envelope"],
-                    "current_envelope": results["current_envelope"],
-                    "data": transformed_data,
-                }
-            )
 
 
 class EntityDetailView(APIView):
@@ -1652,119 +1721,8 @@ class Single_BalanceReportView(APIView):
         )
 
 
-class Upload_ProjectsView(APIView):
-    """Upload projects via Excel file"""
 
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        """Handle file upload and process projects
-
-        Expects an Excel file where the first sheet has rows like:
-        ProjectCode | ParentCode | AliasDefault
-
-        The view will upsert each row into `XX_Project`.
-        """
-        uploaded_file = request.FILES.get("file")
-
-        if not uploaded_file:
-            return Response(
-                {"message": "No file uploaded."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            # Use openpyxl to read Excel content (openpyxl is listed in requirements)
-            from openpyxl import load_workbook
-            from django.db import transaction
-
-            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
-            sheet = wb.active
-
-            created = 0
-            updated = 0
-            skipped = 0
-            errors = []
-
-            with transaction.atomic():
-                # Iterate rows — assume header may be present; detect header by non-numeric first row
-                first = True
-                for row in sheet.iter_rows(values_only=True):
-                    # Skip entirely empty rows
-                    if not row or all(
-                        [
-                            c is None or (isinstance(c, str) and c.strip() == "")
-                            for c in row
-                        ]
-                    ):
-                        continue
-
-                    # Normalize columns: project_code, parent_code, alias_default
-                    project_code = str(row[0]).strip() if row[0] is not None else None
-                    parent_code = (
-                        str(row[1]).strip()
-                        if len(row) > 1 and row[1] is not None
-                        else None
-                    )
-                    alias_default = (
-                        str(row[2]).strip()
-                        if len(row) > 2 and row[2] is not None
-                        else None
-                    )
-
-                    # If the first row looks like a header (non-numeric project code) we skip it
-                    if first:
-                        first = False
-                        header_like = False
-                        # treat as header if first cell contains non-digit characters and not a typical code
-                        if project_code and not any(
-                            ch.isdigit() for ch in project_code
-                        ):
-                            header_like = True
-                        if header_like:
-                            continue
-
-                    # Validate project_code
-                    if not project_code:
-                        skipped += 1
-                        continue
-
-                    # Upsert: update if exists, else create
-                    try:
-                        obj, created_flag = XX_Project.objects.update_or_create(
-                            project=project_code,
-                            defaults={
-                                "parent": parent_code,
-                                "alias_default": alias_default,
-                            },
-                        )
-                        if created_flag:
-                            created += 1
-                        else:
-                            updated += 1
-                    except Exception as row_err:
-                        errors.append(
-                            {"project_code": project_code, "error": str(row_err)}
-                        )
-
-            summary = {
-                "created": created,
-                "updated": updated,
-                "skipped": skipped,
-                "errors": errors,
-            }
-
-            return Response(
-                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
-            )
-
-        except Exception as e:
-            return Response(
-                {"status": "error", "message": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-
+# envlop
 class Upload_ProjectEnvelopeView(APIView):
     """Upload project envelopes via Excel file"""
 
@@ -1893,6 +1851,56 @@ class Upload_ProjectEnvelopeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+class ActiveProjectsWithEnvelopeView(APIView):
+    """Return active projects with their current envelope and totals."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Query params: year, month, IsApproved
+        project_code = request.query_params.get("project_code", None)
+        if project_code is None:
+            return Response(
+                {"message": "project_code query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        year = request.query_params.get("year", None)
+        month = request.query_params.get("month", None)
+
+        results = EnvelopeManager.Get_Current_Envelope_For_Project(
+            project_code=project_code, year=year, month=month
+        )
+
+        if results and "project_totals" in results:
+            # Transform into array of objects
+            transformed_data = []
+
+            # Extract data from the original structure
+            for proj, data in results["project_totals"].items():
+                transformed_data.append(
+                    {
+                        "project_code": proj,
+                        "submitted_total": (
+                            data["submitted"]["total"] if data["submitted"] else 0
+                        ),
+                        "approved_total": (
+                            data["approved"]["total"] if data["approved"] else 0
+                        ),
+                    }
+                )
+
+            return Response(
+                {
+                    "message": "Active projects with envelope.",
+                    "initial_envelope": results["initial_envelope"],
+                    "current_envelope": results["current_envelope"],
+                    "data": transformed_data,
+                }
+            )
+
+
+
+# Mapping
 
 class UploadMappingExcelView(APIView):
     """
