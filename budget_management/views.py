@@ -715,7 +715,9 @@ class transcationtransferapprovel_reject(APIView):
                         if Status == "approved":
                             if trasncation.code[0:3] != "AFR":
                                 csv_upload_result, result = submint_journal_and_upload(
-                                    transfers=trasfers, transaction_id=transaction_id, type="reject"
+                                    transfers=trasfers,
+                                    transaction_id=transaction_id,
+                                    type="reject",
                                 )
                                 response_data = {
                                     "message": "Transfers submitted for approval successfully",
@@ -724,14 +726,20 @@ class transcationtransferapprovel_reject(APIView):
                                     "journal_file": result if result else None,
                                 }
                                 if csv_upload_result:
-                                    response_data["fbdi_upload_journal"] = csv_upload_result
+                                    response_data["fbdi_upload_journal"] = (
+                                        csv_upload_result
+                                    )
 
                                 results.append(response_data)
                                 print("start for 90 seconds")
-                                time.sleep(90)  # wait for 90 seconds before submitting budget
+                                time.sleep(
+                                    90
+                                )  # wait for 90 seconds before submitting budget
                                 print("wait for 90 seconds")
-                            submit_automatic_posting("300000288873799")
-                            time.sleep(10)  # wait for 10 seconds before submitting budget
+                            submit_automatic_posting("300000306553329")
+                            time.sleep(
+                                10
+                            )  # wait for 10 seconds before submitting budget
                             csv_upload_result, result = submit_budget_and_upload(
                                 transfers=trasfers,
                                 transaction_id=transaction_id,
@@ -740,14 +748,14 @@ class transcationtransferapprovel_reject(APIView):
                                 response_data["fbdi_upload_budget"] = csv_upload_result
                         #   continue
                         if Status == "rejected":
-                           if trasncation.code[0:3] != "AFR":
+                            if trasncation.code[0:3] != "AFR":
                                 csv_upload_result, result = submint_journal_and_upload(
                                     transfers=trasfers,
                                     transaction_id=transaction_id,
                                     type="reject",
                                 )
                                 time.sleep(90)
-                                submit_automatic_posting("300000288873799")
+                                submit_automatic_posting("300000306553329")
                                 response_data = {
                                     "message": "Transfers submitted for approval successfully",
                                     "transaction_id": transaction_id,

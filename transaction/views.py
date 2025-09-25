@@ -642,7 +642,7 @@ class transcationtransferSubmit(APIView):
                 if code[0:3] != "AFR":
                     csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="submit")
                     time.sleep(90)
-                    submit_automatic_posting("300000288873799")
+                    submit_automatic_posting("300000306553329")
                     response_data = {
                     "message": "Transfers submitted for approval successfully",
                     "transaction_id": transaction_id,

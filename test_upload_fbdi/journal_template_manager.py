@@ -204,43 +204,51 @@ def create_sample_journal_data(transfers,transaction_id=0,type="submit",group_id
     batch_description = f"Balance Transfer Batch created on {time.strftime('%Y-%m-%d %H:%M:%S')}"
     journal_name = f"JOURNAL_TRANSFER_{timestamp} transaction id={transaction_id}"
     journal_description = f"Journal Entry for Balance Transfer - Created {time.strftime('%Y-%m-%d %H:%M:%S')}"
-    
+
     sample_data = []
     total_debit=0
     for transfer in transfers:
         total_debit += getattr(transfer, 'from_center') if (transfer.from_center is not None) else 0
-    
+
     for transfer in transfers:
         if transfer.from_center >0:
-                journal_entry = {
-                    "Status Code": "NEW",
-                    "Ledger ID": "300000205309206",
-                    "Effective Date of Transaction": "2025-09-17",
-                    "Journal Source": "Allocations",
-                    "Journal Category": "Adjustment",
-                    "Currency Code": "AED",
-                    "Journal Entry Creation Date": "2025-09-17",
-                    "Actual Flag": "E",
-                    "Segment1": transfer.cost_center_code,
-                    "Segment2": "C070003",
-                    "Segment3": transfer.account_code ,
-                    "Segment4": "M0000",
-                    "Segment5": transfer.project_code,
-                    "Segment6": "20037",
-                    "Segment7": "000000",
-                    "Segment8": "000000",
-                    "Segment9": "000000",
-                    "Entered Debit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) and (type=="submit") else "",
-                    "Entered Credit Amount": getattr(transfer, 'from_center') if (transfer.from_center is not None) and (type=="reject") else "",
-                    "REFERENCE1 (Batch Name)": batch_name,
-                    "REFERENCE2 (Batch Description)": batch_description,
-                    "REFERENCE4 (Journal Entry Name)": journal_name,
-                    "REFERENCE5 (Journal Entry Description)": journal_description,
-                    "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
-                    "Encumbrance Type ID": "100000243328511",
-                    "Interface Group Identifier": group_id
-                }
-                sample_data.append(journal_entry)
+            journal_entry = {
+                "Status Code": "NEW",
+                "Ledger ID": "300000205309206",
+                "Effective Date of Transaction": "2025-09-17",
+                "Journal Source": "Allocations",
+                "Journal Category": "Adjustment",
+                "Currency Code": "AED",
+                "Journal Entry Creation Date": "2025-09-17",
+                "Actual Flag": "E",
+                "Segment1": transfer.cost_center_code,
+                "Segment2": "B040009",
+                "Segment3": transfer.account_code,
+                "Segment4": "M0000",
+                "Segment5": transfer.project_code,
+                "Segment6": "00000",
+                "Segment7": "000000",
+                "Segment8": "000000",
+                "Segment9": "000000",
+                "Entered Debit Amount": (
+                    getattr(transfer, "from_center")
+                    if (transfer.from_center is not None) and (type == "submit")
+                    else ""
+                ),
+                "Entered Credit Amount": (
+                    getattr(transfer, "from_center")
+                    if (transfer.from_center is not None) and (type == "reject")
+                    else ""
+                ),
+                "REFERENCE1 (Batch Name)": batch_name,
+                "REFERENCE2 (Batch Description)": batch_description,
+                "REFERENCE4 (Journal Entry Name)": journal_name,
+                "REFERENCE5 (Journal Entry Description)": journal_description,
+                "REFERENCE10 (Journal Entry Line Description)": f"Credit line for account {transfer.account_code}",
+                "Encumbrance Type ID": "100000243328511",
+                "Interface Group Identifier": group_id,
+            }
+            sample_data.append(journal_entry)
 
     journal_entry = {
                 "Status Code": "NEW",
@@ -271,8 +279,7 @@ def create_sample_journal_data(transfers,transaction_id=0,type="submit",group_id
                 "Interface Group Identifier": group_id
             }
     sample_data.append(journal_entry)
-        
-    
+
     return sample_data
 
 if __name__ == "__main__":
