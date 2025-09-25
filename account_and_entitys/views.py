@@ -402,7 +402,32 @@ class ActiveProjectsWithEnvelopeView(APIView):
             project_code=project_code, year=year, month=month
         )
 
-        return Response({"message": "Active projects with envelope.", "data": results})
+        if results and "project_totals" in results:
+            # Transform into array of objects
+            transformed_data = []
+
+            # Extract data from the original structure
+            for proj, data in results["project_totals"].items():
+                transformed_data.append(
+                    {
+                        "project_code": proj,
+                        "submitted_total": (
+                            data["submitted"]["total"] if data["submitted"] else 0
+                        ),
+                        "approved_total": (
+                            data["approved"]["total"] if data["approved"] else 0
+                        ),
+                    }
+                )
+
+            return Response(
+                {
+                    "message": "Active projects with envelope.",
+                    "initial_envelope": results["initial_envelope"],
+                    "current_envelope": results["current_envelope"],
+                    "data": transformed_data,
+                }
+            )
 
 
 class EntityDetailView(APIView):
@@ -1627,7 +1652,6 @@ class Single_BalanceReportView(APIView):
         )
 
 
-
 class Upload_ProjectsView(APIView):
     """Upload projects via Excel file"""
 
@@ -1667,20 +1691,35 @@ class Upload_ProjectsView(APIView):
                 first = True
                 for row in sheet.iter_rows(values_only=True):
                     # Skip entirely empty rows
-                    if not row or all([c is None or (isinstance(c, str) and c.strip() == "") for c in row]):
+                    if not row or all(
+                        [
+                            c is None or (isinstance(c, str) and c.strip() == "")
+                            for c in row
+                        ]
+                    ):
                         continue
 
                     # Normalize columns: project_code, parent_code, alias_default
                     project_code = str(row[0]).strip() if row[0] is not None else None
-                    parent_code = str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
-                    alias_default = str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+                    parent_code = (
+                        str(row[1]).strip()
+                        if len(row) > 1 and row[1] is not None
+                        else None
+                    )
+                    alias_default = (
+                        str(row[2]).strip()
+                        if len(row) > 2 and row[2] is not None
+                        else None
+                    )
 
                     # If the first row looks like a header (non-numeric project code) we skip it
                     if first:
                         first = False
                         header_like = False
                         # treat as header if first cell contains non-digit characters and not a typical code
-                        if project_code and not any(ch.isdigit() for ch in project_code):
+                        if project_code and not any(
+                            ch.isdigit() for ch in project_code
+                        ):
                             header_like = True
                         if header_like:
                             continue
@@ -1704,7 +1743,9 @@ class Upload_ProjectsView(APIView):
                         else:
                             updated += 1
                     except Exception as row_err:
-                        errors.append({"project_code": project_code, "error": str(row_err)})
+                        errors.append(
+                            {"project_code": project_code, "error": str(row_err)}
+                        )
 
             summary = {
                 "created": created,
@@ -1713,14 +1754,15 @@ class Upload_ProjectsView(APIView):
                 "errors": errors,
             }
 
-            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+            return Response(
+                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return Response(
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            
 
 
 class Upload_ProjectEnvelopeView(APIView):
@@ -1739,7 +1781,9 @@ class Upload_ProjectEnvelopeView(APIView):
         uploaded_file = request.FILES.get("file")
 
         if not uploaded_file:
-            return Response({"message": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             from openpyxl import load_workbook
@@ -1762,7 +1806,12 @@ class Upload_ProjectEnvelopeView(APIView):
                 first = True
                 for row in sheet.iter_rows(values_only=True):
                     # Skip empty rows
-                    if not row or all([c is None or (isinstance(c, str) and c.strip() == "") for c in row]):
+                    if not row or all(
+                        [
+                            c is None or (isinstance(c, str) and c.strip() == "")
+                            for c in row
+                        ]
+                    ):
                         continue
 
                     project_code = str(row[0]).strip() if row[0] is not None else None
@@ -1772,7 +1821,9 @@ class Upload_ProjectEnvelopeView(APIView):
                     if first:
                         first = False
                         header_like = False
-                        if project_code and not any(ch.isdigit() for ch in project_code):
+                        if project_code and not any(
+                            ch.isdigit() for ch in project_code
+                        ):
                             header_like = True
                         if header_like:
                             continue
@@ -1782,7 +1833,9 @@ class Upload_ProjectEnvelopeView(APIView):
                         continue
 
                     # Parse envelope value
-                    if envelope_raw is None or (isinstance(envelope_raw, str) and envelope_raw.strip() == ""):
+                    if envelope_raw is None or (
+                        isinstance(envelope_raw, str) and envelope_raw.strip() == ""
+                    ):
                         # If no envelope provided, skip this row
                         skipped += 1
                         continue
@@ -1790,12 +1843,19 @@ class Upload_ProjectEnvelopeView(APIView):
                     try:
                         if isinstance(envelope_raw, str):
                             # Remove commas and non-numeric characters except dot and minus
-                            cleaned = re.sub(r"[^0-9.\-]", "", envelope_raw.replace(",", ""))
+                            cleaned = re.sub(
+                                r"[^0-9.\-]", "", envelope_raw.replace(",", "")
+                            )
                             envelope_val = Decimal(cleaned) if cleaned != "" else None
                         else:
                             envelope_val = Decimal(envelope_raw)
                     except (InvalidOperation, TypeError) as parse_err:
-                        errors.append({"project_code": project_code, "error": f"Invalid envelope value: {envelope_raw}"})
+                        errors.append(
+                            {
+                                "project_code": project_code,
+                                "error": f"Invalid envelope value: {envelope_raw}",
+                            }
+                        )
                         continue
 
                     if envelope_val is None:
@@ -1813,13 +1873,25 @@ class Upload_ProjectEnvelopeView(APIView):
                         else:
                             updated += 1
                     except Exception as row_err:
-                        errors.append({"project_code": project_code, "error": str(row_err)})
+                        errors.append(
+                            {"project_code": project_code, "error": str(row_err)}
+                        )
 
-            summary = {"created": created, "updated": updated, "skipped": skipped, "errors": errors}
-            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+            return Response(
+                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
 
         except Exception as e:
-            return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class UploadMappingExcelView(APIView):
@@ -1829,45 +1901,61 @@ class UploadMappingExcelView(APIView):
     - 'Account' sheet with columns: source_account, target_account
     - 'Entity' sheet with columns: source_entity, target_entity
     """
+
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
-    
+
     def post(self, request):
         try:
             # Check if file is provided
-            if 'file' not in request.FILES:
+            if "file" not in request.FILES:
                 return Response(
-                    {"status": "error", "message": "No file provided"}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"status": "error", "message": "No file provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
-            uploaded_file = request.FILES['file']
-            
+
+            uploaded_file = request.FILES["file"]
+
             # Validate file extension
-            if not uploaded_file.name.endswith(('.xlsx', '.xls')):
+            if not uploaded_file.name.endswith((".xlsx", ".xls")):
                 return Response(
-                    {"status": "error", "message": "File must be Excel format (.xlsx or .xls)"}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "status": "error",
+                        "message": "File must be Excel format (.xlsx or .xls)",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Read Excel file
             excel_file = pd.ExcelFile(uploaded_file)
             sheet_names = excel_file.sheet_names
-            
+
             results = {
-                "account_mappings": {"created": 0, "updated": 0, "skipped": 0, "errors": []},
-                "entity_mappings": {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+                "account_mappings": {
+                    "created": 0,
+                    "updated": 0,
+                    "skipped": 0,
+                    "errors": [],
+                },
+                "entity_mappings": {
+                    "created": 0,
+                    "updated": 0,
+                    "skipped": 0,
+                    "errors": [],
+                },
             }
-            
+
             # Process Account sheet
-            if 'Account' in sheet_names:
+            if "Account" in sheet_names:
                 try:
-                    account_df = pd.read_excel(uploaded_file, sheet_name='Account')
-                    
+                    account_df = pd.read_excel(uploaded_file, sheet_name="Account")
+
                     # Validate required columns
-                    required_cols = ['source_account', 'target_account']
-                    missing_cols = [col for col in required_cols if col not in account_df.columns]
-                    
+                    required_cols = ["source_account", "target_account"]
+                    missing_cols = [
+                        col for col in required_cols if col not in account_df.columns
+                    ]
+
                     if missing_cols:
                         results["account_mappings"]["errors"].append(
                             f"Missing columns in Account sheet: {', '.join(missing_cols)}"
@@ -1877,46 +1965,58 @@ class UploadMappingExcelView(APIView):
                         with transaction.atomic():
                             for index, row in account_df.iterrows():
                                 try:
-                                    source_account = str(row['source_account']).strip()
-                                    target_account = str(row['target_account']).strip()
-                                    
+                                    source_account = str(row["source_account"]).strip()
+                                    target_account = str(row["target_account"]).strip()
+
                                     # Skip rows with empty values
-                                    if pd.isna(row['source_account']) or pd.isna(row['target_account']) or \
-                                       source_account == '' or target_account == '':
+                                    if (
+                                        pd.isna(row["source_account"])
+                                        or pd.isna(row["target_account"])
+                                        or source_account == ""
+                                        or target_account == ""
+                                    ):
                                         results["account_mappings"]["skipped"] += 1
                                         continue
-                                    
+
                                     # Create or update account mapping
-                                    obj, created = XX_ACCOUNT_mapping.objects.update_or_create(
-                                        source_account=source_account,
-                                        target_account=target_account,
-                                        defaults={'is_active': True}
+                                    obj, created = (
+                                        XX_ACCOUNT_mapping.objects.update_or_create(
+                                            source_account=source_account,
+                                            target_account=target_account,
+                                            defaults={"is_active": True},
+                                        )
                                     )
-                                    
+
                                     if created:
                                         results["account_mappings"]["created"] += 1
                                     else:
                                         results["account_mappings"]["updated"] += 1
-                                        
+
                                 except Exception as row_err:
                                     results["account_mappings"]["errors"].append(
                                         f"Row {index + 2}: {str(row_err)}"
                                     )
-                                    
+
                 except Exception as sheet_err:
-                    results["account_mappings"]["errors"].append(f"Error processing Account sheet: {str(sheet_err)}")
+                    results["account_mappings"]["errors"].append(
+                        f"Error processing Account sheet: {str(sheet_err)}"
+                    )
             else:
-                results["account_mappings"]["errors"].append("Account sheet not found in Excel file")
-            
+                results["account_mappings"]["errors"].append(
+                    "Account sheet not found in Excel file"
+                )
+
             # Process Entity sheet
-            if 'Entity' in sheet_names:
+            if "Entity" in sheet_names:
                 try:
-                    entity_df = pd.read_excel(uploaded_file, sheet_name='Entity')
-                    
+                    entity_df = pd.read_excel(uploaded_file, sheet_name="Entity")
+
                     # Validate required columns
-                    required_cols = ['source_entity', 'target_entity']
-                    missing_cols = [col for col in required_cols if col not in entity_df.columns]
-                    
+                    required_cols = ["source_entity", "target_entity"]
+                    missing_cols = [
+                        col for col in required_cols if col not in entity_df.columns
+                    ]
+
                     if missing_cols:
                         results["entity_mappings"]["errors"].append(
                             f"Missing columns in Entity sheet: {', '.join(missing_cols)}"
@@ -1926,236 +2026,276 @@ class UploadMappingExcelView(APIView):
                         with transaction.atomic():
                             for index, row in entity_df.iterrows():
                                 try:
-                                    source_entity = str(row['source_entity']).strip()
-                                    target_entity = str(row['target_entity']).strip()
-                                    
+                                    source_entity = str(row["source_entity"]).strip()
+                                    target_entity = str(row["target_entity"]).strip()
+
                                     # Skip rows with empty values
-                                    if pd.isna(row['source_entity']) or pd.isna(row['target_entity']) or \
-                                       source_entity == '' or target_entity == '':
+                                    if (
+                                        pd.isna(row["source_entity"])
+                                        or pd.isna(row["target_entity"])
+                                        or source_entity == ""
+                                        or target_entity == ""
+                                    ):
                                         results["entity_mappings"]["skipped"] += 1
                                         continue
-                                    
+
                                     # Create or update entity mapping
-                                    obj, created = XX_Entity_mapping.objects.update_or_create(
-                                        source_entity=source_entity,
-                                        target_entity=target_entity,
-                                        defaults={'is_active': True}
+                                    obj, created = (
+                                        XX_Entity_mapping.objects.update_or_create(
+                                            source_entity=source_entity,
+                                            target_entity=target_entity,
+                                            defaults={"is_active": True},
+                                        )
                                     )
-                                    
+
                                     if created:
                                         results["entity_mappings"]["created"] += 1
                                     else:
                                         results["entity_mappings"]["updated"] += 1
-                                        
+
                                 except Exception as row_err:
                                     results["entity_mappings"]["errors"].append(
                                         f"Row {index + 2}: {str(row_err)}"
                                     )
-                                    
+
                 except Exception as sheet_err:
-                    results["entity_mappings"]["errors"].append(f"Error processing Entity sheet: {str(sheet_err)}")
+                    results["entity_mappings"]["errors"].append(
+                        f"Error processing Entity sheet: {str(sheet_err)}"
+                    )
             else:
-                results["entity_mappings"]["errors"].append("Entity sheet not found in Excel file")
-            
+                results["entity_mappings"]["errors"].append(
+                    "Entity sheet not found in Excel file"
+                )
+
             # Determine overall status
-            has_errors = (len(results["account_mappings"]["errors"]) > 0 or 
-                         len(results["entity_mappings"]["errors"]) > 0)
-            
-            response_status = status.HTTP_207_MULTI_STATUS if has_errors else status.HTTP_200_OK
-            
-            return Response({
-                "status": "completed_with_errors" if has_errors else "success",
-                "message": "File processed successfully" if not has_errors else "File processed with some errors",
-                "results": results
-            }, status=response_status)
-            
+            has_errors = (
+                len(results["account_mappings"]["errors"]) > 0
+                or len(results["entity_mappings"]["errors"]) > 0
+            )
+
+            response_status = (
+                status.HTTP_207_MULTI_STATUS if has_errors else status.HTTP_200_OK
+            )
+
+            return Response(
+                {
+                    "status": "completed_with_errors" if has_errors else "success",
+                    "message": (
+                        "File processed successfully"
+                        if not has_errors
+                        else "File processed with some errors"
+                    ),
+                    "results": results,
+                },
+                status=response_status,
+            )
+
         except Exception as e:
             return Response(
-                {"status": "error", "message": f"Unexpected error: {str(e)}"}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": f"Unexpected error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class AccountMappingListView(APIView):
     """List all account mappings"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         try:
             mappings = XX_ACCOUNT_mapping.objects.filter(is_active=True)
             from .serializers import AccountMappingSerializer
+
             serializer = AccountMappingSerializer(mappings, many=True)
-            return Response({
-                "status": "success",
-                "data": serializer.data,
-                "count": mappings.count()
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "status": "success",
+                    "data": serializer.data,
+                    "count": mappings.count(),
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class EntityMappingListView(APIView):
     """List all entity mappings"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         try:
             mappings = XX_Entity_mapping.objects.filter(is_active=True)
             from .serializers import EntityMappingSerializer
+
             serializer = EntityMappingSerializer(mappings, many=True)
-            return Response({
-                "status": "success", 
-                "data": serializer.data,
-                "count": mappings.count()
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "status": "success",
+                    "data": serializer.data,
+                    "count": mappings.count(),
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class AccountMappingDetailView(APIView):
     """Get, update, or delete specific account mapping"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request, pk):
         try:
             mapping = XX_ACCOUNT_mapping.objects.get(id=pk)
             from .serializers import AccountMappingSerializer
+
             serializer = AccountMappingSerializer(mapping)
-            return Response({
-                "status": "success",
-                "data": serializer.data
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {"status": "success", "data": serializer.data},
+                status=status.HTTP_200_OK,
+            )
         except XX_ACCOUNT_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Account mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Account mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
     def put(self, request, pk):
         try:
             mapping = XX_ACCOUNT_mapping.objects.get(id=pk)
             from .serializers import AccountMappingSerializer
-            serializer = AccountMappingSerializer(mapping, data=request.data, partial=True)
+
+            serializer = AccountMappingSerializer(
+                mapping, data=request.data, partial=True
+            )
             if serializer.is_valid():
                 serializer.save()
-                return Response({
-                    "status": "success",
-                    "data": serializer.data
-                }, status=status.HTTP_200_OK)
+                return Response(
+                    {"status": "success", "data": serializer.data},
+                    status=status.HTTP_200_OK,
+                )
             return Response(
-                {"status": "error", "errors": serializer.errors}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"status": "error", "errors": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except XX_ACCOUNT_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Account mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Account mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
     def delete(self, request, pk):
         try:
             mapping = XX_ACCOUNT_mapping.objects.get(id=pk)
             mapping.is_active = False
             mapping.save()
             return Response(
-                {"status": "success", "message": "Account mapping deactivated"}, 
-                status=status.HTTP_200_OK
+                {"status": "success", "message": "Account mapping deactivated"},
+                status=status.HTTP_200_OK,
             )
         except XX_ACCOUNT_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Account mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Account mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class EntityMappingDetailView(APIView):
     """Get, update, or delete specific entity mapping"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request, pk):
         try:
             mapping = XX_Entity_mapping.objects.get(id=pk)
             from .serializers import EntityMappingSerializer
+
             serializer = EntityMappingSerializer(mapping)
-            return Response({
-                "status": "success",
-                "data": serializer.data
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {"status": "success", "data": serializer.data},
+                status=status.HTTP_200_OK,
+            )
         except XX_Entity_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Entity mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Entity mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
     def put(self, request, pk):
         try:
             mapping = XX_Entity_mapping.objects.get(id=pk)
             from .serializers import EntityMappingSerializer
-            serializer = EntityMappingSerializer(mapping, data=request.data, partial=True)
+
+            serializer = EntityMappingSerializer(
+                mapping, data=request.data, partial=True
+            )
             if serializer.is_valid():
                 serializer.save()
-                return Response({
-                    "status": "success",
-                    "data": serializer.data
-                }, status=status.HTTP_200_OK)
+                return Response(
+                    {"status": "success", "data": serializer.data},
+                    status=status.HTTP_200_OK,
+                )
             return Response(
-                {"status": "error", "errors": serializer.errors}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"status": "error", "errors": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except XX_Entity_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Entity mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Entity mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
     def delete(self, request, pk):
         try:
             mapping = XX_Entity_mapping.objects.get(id=pk)
             mapping.is_active = False
             mapping.save()
             return Response(
-                {"status": "success", "message": "Entity mapping deactivated"}, 
-                status=status.HTTP_200_OK
+                {"status": "success", "message": "Entity mapping deactivated"},
+                status=status.HTTP_200_OK,
             )
         except XX_Entity_mapping.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Entity mapping not found"}, 
-                status=status.HTTP_404_NOT_FOUND
+                {"status": "error", "message": "Entity mapping not found"},
+                status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
             return Response(
-                {"status": "error", "message": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
