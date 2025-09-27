@@ -7,7 +7,7 @@ from datetime import timedelta, datetime, timezone as dt_timezone
 from django.utils import timezone
 
 from Admin_Panel import serializers
-from .models import xx_User, xx_UserAbility, xx_UserLevel, xx_notification
+from .models import UserProjects, xx_User, xx_UserAbility, xx_UserLevel, xx_notification
 from .serializers import (
     ChangePasswordSerializer,
     NotificationSerializer,
@@ -781,4 +781,107 @@ class UserAbilitiesView(APIView):
         except xx_UserAbility.DoesNotExist:
             return Response(
                 {"error": "Ability not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class UserProjectsView(APIView):
+    """Manage user projects"""
+
+    permission_classes = [IsSuperAdmin, IsAuthenticated]
+
+    def get(self, request):
+        # optional filters
+        user_id = request.query_params.get("user_id", None)
+        project_code = request.query_params.get("project_code", None)
+        projects = UserProjects.objects.all()
+        if user_id:
+            projects = projects.filter(user_id=user_id)
+        if project_code:
+            projects = projects.filter(project=project_code)
+
+        data = [
+            {
+                "id": project.id,
+                "user": {
+                    "id": project.user.id,
+                    "username": project.user.username,
+                },
+                "project": project.project,
+            }
+            for project in projects
+        ]
+        return Response(data)
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        project_code = request.data.get("project_code")
+
+        if not user_id or not project_code:
+            return Response(
+                {"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = xx_User.objects.get(id=user_id)
+            project = XX_Project.objects.get(project=project_code)
+        except (xx_User.DoesNotExist, XX_Project.DoesNotExist):
+            return Response(
+                {"error": "User or Project not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        user_project = UserProjects.objects.create(user=user, project=project_code)
+
+        return Response(
+            {"message": "Project assigned to user successfully", "user_project": user_project.id},
+            status=status.HTTP_201_CREATED
+        )
+
+    def put(self, request):
+        user_project_id = request.data.get("id")
+        user_id = request.data.get("user_id")
+        project_code = request.data.get("project_code")
+
+        if not user_project_id or not user_id or not project_code:
+            return Response(
+                {"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user_project = UserProjects.objects.get(id=user_project_id)
+            user = xx_User.objects.get(id=user_id)
+            project = XX_Project.objects.get(project=project_code)
+        except (
+            UserProjects.DoesNotExist,
+            xx_User.DoesNotExist,
+            XX_Project.DoesNotExist,
+        ):
+            return Response(
+                {"error": "User Project, User or Project not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user_project.user = user
+        user_project.project = project.project
+        user_project.save()
+
+        return Response(
+            {"message": "User Project updated successfully"}, status=status.HTTP_200_OK
+        )
+
+    def delete(self, request):
+        user_project_id = request.data.get("id")
+        if not user_project_id:
+            return Response(
+                {"error": "Missing User Project ID"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user_project = UserProjects.objects.get(id=user_project_id)
+            user_project.delete()
+            return Response(
+                {"message": "User Project deleted successfully"}, status=status.HTTP_200_OK
+            )
+        except UserProjects.DoesNotExist:
+            return Response(
+                {"error": "User Project not found"}, status=status.HTTP_404_NOT_FOUND
             )

@@ -100,6 +100,29 @@ class EnvelopeManager:
             return None
 
     @staticmethod
+    def get_all_children(all_projects, curr_code, visited=None):
+        """Recursively get all descendants of a project code with cycle protection."""
+        if visited is None:
+            visited = set()
+        if curr_code in visited:
+            return []
+        visited.add(curr_code)
+
+        direct_children = list(
+            all_projects.filter(parent=curr_code).values_list("project", flat=True)
+        )
+
+        descendants = []
+        for child in direct_children:
+            if child in visited:
+                continue
+            descendants.append(child)
+            descendants.extend(
+                EnvelopeManager.get_all_children(all_projects, child, visited)
+            )
+        return descendants
+
+    @staticmethod
     def __get_all_level_zero_children_code(project_code):
         """
         Get all leaf node project codes that are descendants of the given project_code.
@@ -125,19 +148,8 @@ class EnvelopeManager:
                 .distinct()
             )
 
-            def get_descendants(curr_code):
-                """Recursively get all descendants of a project code"""
-                direct_children = [
-                    p.project for p in all_projects.filter(parent=curr_code)
-                ]
-                descendants = []
-                for child in direct_children:
-                    descendants.append(child)
-                    descendants.extend(get_descendants(child))
-                return descendants
-
             # Get all descendants of the given project_code
-            all_descendants = get_descendants(project_code)
+            all_descendants = EnvelopeManager.get_all_children(all_projects, project_code)
 
             # Filter to only include descendants that are not parents themselves
             leaf_nodes = [code for code in all_descendants if code not in parent_codes]
@@ -147,6 +159,25 @@ class EnvelopeManager:
         except XX_Project.DoesNotExist:
             return []
 
+    @staticmethod
+    def __get_all_children_codes(project_code):
+        try:
+            XX_Project.objects.only("project").get(project=project_code)
+
+            pairs = XX_Project.objects.values_list("project", "parent")
+            children_map = {}
+            for proj, parent in pairs:
+                children_map.setdefault(parent, []).append(proj)
+
+            result = []
+            stack = list(children_map.get(project_code, []))
+            while stack:
+                node = stack.pop()
+                result.append(node)
+                stack.extend(children_map.get(node, []))
+            return result
+        except XX_Project.DoesNotExist:
+            return []
     @staticmethod
     def Get_First_Parent_Envelope(project_code):
         while project_code:

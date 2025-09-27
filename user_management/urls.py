@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ChangePasswordView, LogoutView, RegisterView, LoginView, TokenExpiredView, ListUsersView, UpdateUserPermissionView, UserAbilitiesView, UserLevelListView, UserLevelCreateView, UpdateUserLevelView, UserUpdateView, UserDeleteView, UserLevelUpdateView, UserLevelDeleteView,RefreshTokenView
+from .views import ChangePasswordView, LogoutView, RegisterView, LoginView, TokenExpiredView, ListUsersView, UpdateUserPermissionView, UserAbilitiesView, UserLevelListView, UserLevelCreateView, UpdateUserLevelView, UserProjectsView, UserUpdateView, UserDeleteView, UserLevelUpdateView, UserLevelDeleteView,RefreshTokenView
 from rest_framework_simplejwt.views import TokenRefreshView
 app_name = 'user_management'
 
@@ -27,6 +27,7 @@ urlpatterns = [
     path("levels/update/", UserLevelUpdateView.as_view(), name="level_update"),
     path("levels/delete/", UserLevelDeleteView.as_view(), name="level_delete"),
     path("user/abilities/", UserAbilitiesView.as_view(), name="user-ability-list"),
+    path("user/projects/", UserProjectsView.as_view(), name="user-project-list"),
     # path("chatbot/bot/", testChatbot.as_view(), name="chatbot"),
     # Notification management endpoints
     #

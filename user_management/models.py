@@ -101,9 +101,17 @@ class xx_UserAbility(models.Model):
         db_table = 'XX_USER_ABILITY_XX'
         unique_together = ('user', 'Entity', 'Type')
 
+class UserProjects(models.Model):
+    """Model to represent projects assigned to users."""
+    user = models.ForeignKey(xx_User, on_delete=models.CASCADE, related_name='projects')
+    project = models.CharField(max_length=100)  # Assuming project IDs are strings
 
+    class Meta:
+        db_table = 'XX_USER_PROJECTS_XX'
+        unique_together = ('user', 'project')
 
-
+    def __str__(self):
+        return f"{self.user.username} - {self.project}"
 
 
 class xx_notification(models.Model):

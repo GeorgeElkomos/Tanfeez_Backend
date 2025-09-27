@@ -303,6 +303,190 @@ class Upload_ProjectsView(APIView):
             )
 
 
+class Upload_AccountsView(APIView):
+    """Upload accounts via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Handle file upload and process accounts
+
+        Expects an Excel file where the first sheet has rows like:
+        AccountCode | ParentCode | AliasDefault
+
+        The view will upsert each row into `XX_Account`.
+        """
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from openpyxl import load_workbook
+            from django.db import transaction
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            with transaction.atomic():
+                first = True
+                for row in sheet.iter_rows(values_only=True):
+                    if not row or all(
+                        [c is None or (isinstance(c, str) and c.strip() == "") for c in row]
+                    ):
+                        continue
+
+                    account_code = str(row[0]).strip() if row[0] is not None else None
+                    parent_code = (
+                        str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
+                    )
+                    alias_default = (
+                        str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+                    )
+
+                    if first:
+                        first = False
+                        header_like = False
+                        if account_code and not any(ch.isdigit() for ch in account_code):
+                            header_like = True
+                        if header_like:
+                            continue
+
+                    if not account_code:
+                        skipped += 1
+                        continue
+
+                    try:
+                        obj, created_flag = XX_Account.objects.update_or_create(
+                            account=account_code,
+                            defaults={
+                                "parent": parent_code,
+                                "alias_default": alias_default,
+                            },
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append({"account_code": account_code, "error": str(row_err)})
+
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+
+            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class Upload_EntitiesView(APIView):
+    """Upload entities via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Handle file upload and process entities
+
+        Expects an Excel file where the first sheet has rows like:
+        EntityCode | ParentCode | AliasDefault
+
+        The view will upsert each row into `XX_Entity`.
+        """
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from openpyxl import load_workbook
+            from django.db import transaction
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            with transaction.atomic():
+                first = True
+                for row in sheet.iter_rows(values_only=True):
+                    if not row or all(
+                        [c is None or (isinstance(c, str) and c.strip() == "") for c in row]
+                    ):
+                        continue
+
+                    entity_code = str(row[0]).strip() if row[0] is not None else None
+                    parent_code = (
+                        str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
+                    )
+                    alias_default = (
+                        str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+                    )
+
+                    if first:
+                        first = False
+                        header_like = False
+                        if entity_code and not any(ch.isdigit() for ch in entity_code):
+                            header_like = True
+                        if header_like:
+                            continue
+
+                    if not entity_code:
+                        skipped += 1
+                        continue
+
+                    try:
+                        obj, created_flag = XX_Entity.objects.update_or_create(
+                            entity=entity_code,
+                            defaults={
+                                "parent": parent_code,
+                                "alias_default": alias_default,
+                            },
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append({"entity_code": entity_code, "error": str(row_err)})
+
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+
+            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class ProjectListView(APIView):
     """List all Projects with optional search"""
 
@@ -312,9 +496,16 @@ class ProjectListView(APIView):
     def get(self, request):
         search_query = request.query_params.get("search", None)
 
-        projects = XX_Project.objects.all().order_by("project")
-
-        projects = get_zero_level_projects(projects)
+        if not request.user.projects.exists():
+            projects = XX_Project.objects.all().order_by("project")
+        else:
+            projects = request.user.projects.all().order_by("project")
+            all_projects = []
+            all_projects.extend([proj.project for proj in projects])
+            for proj in projects:
+                all_projects.extend(EnvelopeManager.get_all_children(XX_Project.objects.all(), proj.project))
+            projects = XX_Project.objects.filter(project__in=all_projects)
+        # projects = get_zero_level_projects(projects)
 
         if search_query:
             # Cast project (int) to string for filtering
@@ -1231,29 +1422,113 @@ class BalanceReportListView(APIView):
             # Get data from Oracle
             data = get_oracle_report_data(control_budget_name, period_name)
 
+            # Validate Oracle response structure
+            if not isinstance(data, dict) or not data.get("success"):
+                message = data.get("message") if isinstance(data, dict) else "Unexpected response"
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"Failed to retrieve report data: {message}",
+                        "data": [],
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            records = data.get("data", [])
+
             if extract_segments:
                 unique_segments = extract_unique_segments_from_data(data)
-                print(unique_segments)
+
+                # Enrich segments with names (aliases); fallback to code when missing
+                cost_centers = unique_segments.get("Cost_Center", []) or []
+                accounts = unique_segments.get("Account", []) or []
+                projects = unique_segments.get("Project", []) or []
+
+                # Fetch aliases in bulk
+                entity_alias_map = {
+                    str(e.entity): (e.alias_default or str(e.entity))
+                    for e in XX_Entity.objects.filter(entity__in=cost_centers)
+                }
+                account_alias_map = {
+                    str(a.account): (a.alias_default or str(a.account))
+                    for a in XX_Account.objects.filter(account__in=accounts)
+                }
+                project_alias_map = {
+                    str(p.project): (p.alias_default or str(p.project))
+                    for p in XX_Project.objects.filter(project__in=projects)
+                }
+
+                enriched = {
+                    "Cost_Center": [
+                        {"code": str(code), "name": entity_alias_map.get(str(code), str(code))}
+                        for code in cost_centers
+                    ],
+                    "Account": [
+                        {"code": str(code), "name": account_alias_map.get(str(code), str(code))}
+                        for code in accounts
+                    ],
+                    "Project": [
+                        {"code": str(code), "name": project_alias_map.get(str(code), str(code))}
+                        for code in projects
+                    ],
+                    "total_records": unique_segments.get("total_records", 0),
+                    "unique_combinations": unique_segments.get("unique_combinations", 0),
+                }
                 return Response(
                     {
                         "success": True,
                         "message": "Unique segments extracted successfully",
-                        "data": unique_segments,
+                        "data": enriched,
                     },
                     status=status.HTTP_200_OK,
                 )
 
             # Otherwise, return the full data with unique segments included
-            # unique_segments = extract_unique_segments_from_data(data)
+            unique_segments = extract_unique_segments_from_data(data)
+
+            # Enrich segments with names (aliases); fallback to code when missing
+            cost_centers = unique_segments.get("Cost_Center", []) or []
+            accounts = unique_segments.get("Account", []) or []
+            projects = unique_segments.get("Project", []) or []
+
+            entity_alias_map = {
+                str(e.entity): (e.alias_default or str(e.entity))
+                for e in XX_Entity.objects.filter(entity__in=cost_centers)
+            }
+            account_alias_map = {
+                str(a.account): (a.alias_default or str(a.account))
+                for a in XX_Account.objects.filter(account__in=accounts)
+            }
+            project_alias_map = {
+                str(p.project): (p.alias_default or str(p.project))
+                for p in XX_Project.objects.filter(project__in=projects)
+            }
+
+            enriched_unique_segments = {
+                "Cost_Center": [
+                    {"code": str(code), "name": entity_alias_map.get(str(code), str(code))}
+                    for code in cost_centers
+                ],
+                "Account": [
+                    {"code": str(code), "name": account_alias_map.get(str(code), str(code))}
+                    for code in accounts
+                ],
+                "Project": [
+                    {"code": str(code), "name": project_alias_map.get(str(code), str(code))}
+                    for code in projects
+                ],
+                "total_records": unique_segments.get("total_records", 0),
+                "unique_combinations": unique_segments.get("unique_combinations", 0),
+            }
 
             return Response(
                 {
                     "success": True,
                     "message": "Balance report data retrieved successfully",
                     "data": {
-                        "records": data,
-                        "unique_segments": unique_segments,
-                        "total_records": len(data),
+                        "records": records,
+                        "unique_segments": enriched_unique_segments,
+                        "total_records": len(records),
                     },
                 },
                 status=status.HTTP_200_OK,
@@ -1862,11 +2137,16 @@ class ActiveProjectsWithEnvelopeView(APIView):
                 {"message": "project_code query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        project = XX_Project.objects.get(pk=project_code)
+        if project is None:
+            return Response(
+                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+            )
         year = request.query_params.get("year", None)
         month = request.query_params.get("month", None)
 
         results = EnvelopeManager.Get_Current_Envelope_For_Project(
-            project_code=project_code, year=year, month=month
+            project_code=project.project, year=year, month=month
         )
 
         if results and "project_totals" in results:

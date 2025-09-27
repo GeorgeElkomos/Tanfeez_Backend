@@ -4,7 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import xx_TransactionTransfer
-from account_and_entitys.models import XX_Entity, XX_PivotFund, XX_ACCOUNT_ENTITY_LIMIT
+from account_and_entitys.models import (
+    XX_Entity,
+    XX_Account,
+    XX_Project,
+    XX_PivotFund,
+    XX_ACCOUNT_ENTITY_LIMIT,
+)
 from budget_management.models import xx_BudgetTransfer
 from .serializers import TransactionTransferSerializer
 from decimal import Decimal
@@ -32,9 +38,11 @@ from test_upload_fbdi.upload_soap_fbdi import (
     upload_fbdi_to_oracle,
 )
 from account_and_entitys.utils import get_oracle_report_data
-from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload 
+from test_upload_fbdi.utility.creat_and_upload import submint_journal_and_upload
 from test_upload_fbdi.utility.submit_budget_and_upload import submit_budget_and_upload
 from test_upload_fbdi.automatic_posting import submit_automatic_posting
+
+
 def validate_transaction(data, code=None):
     """
     Validate ADJD transaction transfer data against 10 business rules
@@ -380,9 +388,37 @@ class TransactionTransferListView(APIView):
                 transfer.initial_budget = 0.0
                 transfer.obligations = 0.0
                 transfer.other_consumption = 0.0
-                
 
             transfer.save()
+
+        # Build alias maps for names to avoid N+1 queries
+        try:
+            cost_center_codes = set(
+                [str(item.get("cost_center_code")) for item in serializer.data if item.get("cost_center_code") is not None]
+            )
+            account_codes = set(
+                [str(item.get("account_code")) for item in serializer.data if item.get("account_code") is not None]
+            )
+            project_codes = set(
+                [str(item.get("project_code")) for item in serializer.data if item.get("project_code") is not None]
+            )
+
+            entity_alias_map = {
+                str(e.entity): (e.alias_default or str(e.entity))
+                for e in XX_Entity.objects.filter(entity__in=cost_center_codes)
+            }
+            account_alias_map = {
+                str(a.account): (a.alias_default or str(a.account))
+                for a in XX_Account.objects.filter(account__in=account_codes)
+            }
+            project_alias_map = {
+                str(p.project): (p.alias_default or str(p.project))
+                for p in XX_Project.objects.filter(project__in=project_codes)
+            }
+        except Exception:
+            entity_alias_map = {}
+            account_alias_map = {}
+            project_alias_map = {}
 
         # Create response with validation for each transfer
         response_data = []
@@ -400,7 +436,7 @@ class TransactionTransferListView(APIView):
             available_budget = float(transfer_data.get("available_budget", 0))
             encumbrance = float(transfer_data.get("encumbrance", 0))
             actual = float(transfer_data.get("actual", 0))
-
+            
             # Prepare data for validation function
             validation_data = {
                 "transaction_id": transaction_id,
@@ -427,6 +463,20 @@ class TransactionTransferListView(APIView):
             transfer_result = transfer_data.copy()
             if validation_errors:
                 transfer_result["validation_errors"] = validation_errors
+
+            # Overwrite names with aliases when available; fallback to code
+            if cost_center_code is not None:
+                transfer_result["cost_center_name"] = entity_alias_map.get(
+                    str(cost_center_code), str(cost_center_code)
+                )
+            if account_code is not None:
+                transfer_result["account_name"] = account_alias_map.get(
+                    str(account_code), str(account_code)
+                )
+            if project_code is not None:
+                transfer_result["project_name"] = project_alias_map.get(
+                    str(project_code), str(project_code)
+                )
 
             response_data.append(transfer_result)
 
@@ -640,15 +690,19 @@ class transcationtransferSubmit(APIView):
                     )
 
                 if code[0:3] != "AFR":
-                    csv_upload_result,result=submint_journal_and_upload(transfers=transfers,transaction_id=transaction_id,type="submit")
+                    csv_upload_result, result = submint_journal_and_upload(
+                        transfers=transfers,
+                        transaction_id=transaction_id,
+                        type="submit",
+                    )
                     time.sleep(90)
                     submit_automatic_posting("300000306553329")
                     response_data = {
-                    "message": "Transfers submitted for approval successfully",
-                    "transaction_id": transaction_id,
-                    "pivot_updates": pivot_updates,
-                    "journal_file": result if result else None,
-                     }
+                        "message": "Transfers submitted for approval successfully",
+                        "transaction_id": transaction_id,
+                        "pivot_updates": pivot_updates,
+                        "journal_file": result if result else None,
+                    }
                     if csv_upload_result:
                         response_data["fbdi_upload"] = csv_upload_result
 
@@ -658,7 +712,7 @@ class transcationtransferSubmit(APIView):
                         "transaction_id": transaction_id,
                         "pivot_updates": pivot_updates,
                         "journal_file": None,
-                }
+                    }
 
                     # csv_upload_result,result=submit_budget_and_upload(transfers=transfers,transaction_id=transaction_id)
 

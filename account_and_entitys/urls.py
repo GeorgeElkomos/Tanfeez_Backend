@@ -36,6 +36,8 @@ from .views import (
     BalanceReportFinancialDataView,
     Single_BalanceReportView,
     Upload_ProjectsView,
+    Upload_AccountsView,
+    Upload_EntitiesView,
     # UploadMappingExcelView,
     # AccountMappingListView,
     # EntityMappingListView,
@@ -69,6 +71,16 @@ urlpatterns = [
         "projects/upload/",
         Upload_ProjectsView.as_view(),
         name="upload-projects",
+    ),
+    path(
+        "accounts/upload/",
+        Upload_AccountsView.as_view(),
+        name="upload-accounts",
+    ),
+    path(
+        "entities/upload/",
+        Upload_EntitiesView.as_view(),
+        name="upload-entities",
     ),
     path(
         "projects/envelope/upload/",
