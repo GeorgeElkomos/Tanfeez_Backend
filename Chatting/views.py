@@ -52,7 +52,7 @@ class ChatParticipantsView(APIView):
                     "detail": "You are not a participant in any chats for this transaction.",
                     "participants": [],
                 },
-                status=status.HTTP_403_FORBIDDEN,
+                status=status.HTTP_200_OK,
             )
 
         # The set of counterpart user IDs the requester chatted with in this transaction
