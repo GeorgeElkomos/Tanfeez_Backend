@@ -2505,22 +2505,25 @@ class ActiveProjectsWithEnvelopeView(APIView):
 
     def get(self, request):
         # Query params: year, month, IsApproved
-        project_code = request.query_params.get("project_code", None)
-        if project_code is None:
-            return Response(
-                {"message": "project_code query parameter is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        project = XX_Project.objects.get(pk=project_code)
-        if project is None:
-            return Response(
-                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
-            )
-        year = request.query_params.get("year", None)
-        month = request.query_params.get("month", None)
-
+        # project_code = request.query_params.get("project_code", None)
+        # if project_code is None:
+        #     return Response(
+        #         {"message": "project_code query parameter is required."},
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
+        # project = XX_Project.objects.get(pk=project_code)
+        # if project is None:
+        #     return Response(
+        #         {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+        #     )
+        # year = request.query_params.get("year", None)
+        # month = request.query_params.get("month", None)
+        if not request.user.projects.exists():
+            project_code = "9000000"
+        else:
+            project_code = request.user.projects.first().project
         results = EnvelopeManager.Get_Current_Envelope_For_Project(
-            project_code=project.project, year=year, month=month
+            project_code=project_code
         )
 
         if results and "project_totals" in results:

@@ -336,8 +336,10 @@ class EnvelopeManager:
                 all_accounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(
                     accounts
                 )
+                # Filter to keep only numeric accounts
+                numeric_accounts = EnvelopeManager.__filter_numeric_accounts(all_accounts)
                 base_transactions = xx_TransactionTransfer.objects.filter(
-                    project_code=project_code, account_code__in=all_accounts
+                    project_code=project_code, account_code__in=numeric_accounts
                 )
                 # Start with base filter for project code
             else:

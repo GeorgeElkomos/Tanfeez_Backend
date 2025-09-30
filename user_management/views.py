@@ -132,6 +132,9 @@ class LoginView(APIView):
                     "user_level": (
                         user.user_level.level_order if user.user_level else None
                     ),
+                    "user_level_name": (
+                        user.user_level.name if user.user_level else None
+                    ),
                     "message": "Login successful.",
                     "token": str(refresh.access_token),
                     "refresh": str(refresh),
