@@ -44,9 +44,8 @@ from .views import (
     UploadAccountMappingView,
     UploadBudgetDataView,
     UploadMappingExcelView,
-    EntityMappingListView,
     # AccountMappingListView,
-    # EntityMappingListView,
+    EntityMappingListView,
     # AccountMappingDetailView,
     # EntityMappingDetailView
 )
@@ -222,9 +221,14 @@ urlpatterns = [
         name="upload-mapping-excel",
     ),
     path(
+        "account-wise-dashboard/",
+        AccountWiseDashboardView.as_view(),
+        name="account-wise-dashboard",
+    ),
+    path(
         "entities/mapping/list/",
         EntityMappingListView.as_view(),
-        name="account-wise-dashboard",
+        name="mapping-for-fusion",
     ),
     # path(
     #     "mappings/accounts/",
