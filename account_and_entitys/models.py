@@ -74,6 +74,31 @@ class Project_Envelope(models.Model):
         db_table = "XX_PROJECT_ENVELOPE_XX"
 
 
+class Account_Mapping(models.Model):
+    """Model representing ADJD account mappings"""
+
+    source_account = models.CharField(max_length=50, unique=False)
+    target_account = models.CharField(max_length=50, unique=False)
+
+    def __str__(self):
+        return f"{self.source_account} -> {self.target_account}"
+
+    class Meta:
+        db_table = "XX_ACCOUNT_MAPPING_XX"
+        unique_together = ("source_account", "target_account")
+
+
+class Budget_data(models.Model):
+    project = models.CharField(max_length=50, unique=False)
+    account = models.CharField(max_length=50, unique=False)
+    FY24_budget = models.DecimalField(max_digits=30, decimal_places=2)
+    FY25_budget = models.DecimalField(max_digits=30, decimal_places=2)
+
+    class Meta:
+        db_table = "BUDGET_DATA_XX"
+        unique_together = ("project", "account")
+
+
 class EnvelopeManager:
     @staticmethod
     def Has_Envelope(project_code):
@@ -123,6 +148,31 @@ class EnvelopeManager:
         return descendants
 
     @staticmethod
+    def get_all_children_for_accounts(all_accounts, curr_code, visited=None):
+        """Recursively get all descendants of an account code with cycle protection."""
+        if visited is None:
+            visited = set()
+        if curr_code in visited:
+            return []
+        visited.add(curr_code)
+
+        direct_children = list(
+            all_accounts.filter(parent=curr_code).values_list("account", flat=True)
+        )
+
+        descendants = []
+        for child in direct_children:
+            if child in visited:
+                continue
+            descendants.append(child)
+            descendants.extend(
+                EnvelopeManager.get_all_children_for_accounts(
+                    all_accounts, child, visited
+                )
+            )
+        return descendants
+
+    @staticmethod
     def __get_all_level_zero_children_code(project_code):
         """
         Get all leaf node project codes that are descendants of the given project_code.
@@ -149,7 +199,9 @@ class EnvelopeManager:
             )
 
             # Get all descendants of the given project_code
-            all_descendants = EnvelopeManager.get_all_children(all_projects, project_code)
+            all_descendants = EnvelopeManager.get_all_children(
+                all_projects, project_code
+            )
 
             # Filter to only include descendants that are not parents themselves
             leaf_nodes = [code for code in all_descendants if code not in parent_codes]
@@ -178,6 +230,7 @@ class EnvelopeManager:
             return result
         except XX_Project.DoesNotExist:
             return []
+
     @staticmethod
     def Get_First_Parent_Envelope(project_code):
         while project_code:
@@ -200,43 +253,9 @@ class EnvelopeManager:
         return 0
 
     @staticmethod
-    def Get_Total_Amount_for_Project(project_code, year=None, month=None):
-        """
-        Calculate total amounts for both approved and submitted transactions for a project.
-
-        Note: This function filters by:
-        - transaction__transaction_date: 3-character month abbreviation (e.g., 'Jan', 'Feb', 'Mar')
-        - transaction__fy: Last 2 digits of fiscal year (e.g., 25 for 2025, 24 for 2024)
-
-        Usage Cases:
-        1. Get all data without filter:
-           Get_Total_Amount_for_Project('PRJ001')
-
-        2. Get data for specific year only (using last 2 digits):
-           Get_Total_Amount_for_Project('PRJ001', year=25)  # for 2025
-
-        3. Get data for specific month only (across all years):
-           Get_Total_Amount_for_Project('PRJ001', month=9)  # All September transactions
-
-        4. Get data for specific year and month:
-           Get_Total_Amount_for_Project('PRJ001', year=25, month=9)  # September 2025
-
-        Note: Year and month parameters work independently - you can use either one or both.
-
-        Args:
-            project_code (str): Project code to filter by
-            year (int, optional): Last 2 digits of fiscal year (e.g., 25 for 2025)
-            month (int, optional): Month number (1-12, works independently of year)
-
-        Returns:
-            tuple: Six values in order:
-                - approved_total: Total amount for approved transactions
-                - approved_total_from: Total from_center (negated) for approved transactions
-                - approved_total_to: Total to_center for approved transactions
-                - submitted_total: Total amount for submitted (in progress) transactions
-                - submitted_total_from: Total from_center (negated) for submitted transactions
-                - submitted_total_to: Total to_center for submitted transactions
-        """
+    def Get_Total_Amount_for_Project(
+        project_code, year=None, month=None, FilterAccounts=True
+    ):
         try:
             from django.db.models import Sum, F, Value, Q
             from django.db.models.functions import Coalesce
@@ -245,10 +264,35 @@ class EnvelopeManager:
             # Import here to avoid circular import at module import time
             from transaction.models import xx_TransactionTransfer
 
-            # Start with base filter for project code
-            base_transactions = xx_TransactionTransfer.objects.filter(
-                project_code=project_code
-            )
+            if FilterAccounts:
+                accounts = [
+                    "TC11100T",  # Men Power
+                    "TC11200T",  # Non Men Power
+                    "TC13000T",  # Copex
+                ]
+                all_accounts = []
+                for account in accounts:
+                    all_accounts.append(account)
+                    all_accounts.extend(
+                        EnvelopeManager.get_all_children_for_accounts(
+                            XX_Account.objects.all(), account
+                        )
+                    )
+                for account in all_accounts:
+                    if Account_Mapping.objects.filter(target_account=account).exists():
+                        mapped_accounts = Account_Mapping.objects.filter(
+                            target_account=account
+                        ).values_list("source_account", flat=True)
+                        all_accounts.extend(list(mapped_accounts))
+                base_transactions = xx_TransactionTransfer.objects.filter(
+                    project_code=project_code, account_code__in=all_accounts
+                )
+                # Start with base filter for project code
+            else:
+                base_transactions = xx_TransactionTransfer.objects.filter(
+                    project_code=project_code
+                )
+
             print(
                 f"Base transactions count for project {project_code}: {base_transactions.count()}"
             )
@@ -443,6 +487,86 @@ class EnvelopeManager:
             }
         except Project_Envelope.DoesNotExist:
             return None
+
+    @staticmethod
+    def Get_Budget_for_Project(project_code):
+        from django.db.models import Sum
+
+        budget_totals = Budget_data.objects.filter(project=project_code).aggregate(
+            FY24_total=Sum("FY24_budget"), FY25_total=Sum("FY25_budget")
+        )
+        return {
+            "FY24_budget": budget_totals["FY24_total"] or 0,
+            "FY25_budget_initial": budget_totals["FY25_total"] or 0,
+        }
+
+    @staticmethod
+    def Get_Total_Amount_for_Entity(entity_code):
+        try:
+            from django.db.models import Sum, F, Value, Q
+            from django.db.models.functions import Coalesce
+            import calendar
+
+            # Import here to avoid circular import at module import time
+            from transaction.models import xx_TransactionTransfer
+
+            base_transactions = xx_TransactionTransfer.objects.filter(
+                cost_center_code=entity_code,
+            )
+            project_codes = list(
+                base_transactions.values_list("project_code", flat=True).distinct()
+            )
+
+            data = {}
+            for proj in project_codes:
+                # Get transaction totals
+                approved, submitted = EnvelopeManager.Get_Total_Amount_for_Project(
+                    proj, FilterAccounts=False
+                )
+                if approved is None or submitted is None:
+                    continue
+
+                # Get budget data
+                budget_data = EnvelopeManager.Get_Budget_for_Project(proj)
+
+                data[proj] = {
+                    # FY24 data
+                    "FY24_budget": budget_data.get("FY24_budget", 0),
+                    # FY25 data
+                    "FY25_budget_current": budget_data.get("FY25_budget_initial", 0)
+                    + approved["total"],
+                    "variances": budget_data.get("FY24_budget", 0)
+                    - (budget_data.get("FY25_budget_initial", 0)
+                     + approved["total"]),
+                }
+            return data
+
+        except Exception as e:
+            print(f"Error calculating total amount for entity {entity_code}: {e}")
+            return None, None
+
+    @staticmethod
+    def Get_Dashboard_Data_For_Entity(entity_code):
+        result = EnvelopeManager.Get_Total_Amount_for_Entity(entity_code)
+        if not result:
+            return []
+
+        dashboard_data = []
+        for project_code, project_data in result.items():
+            dashboard_data.append(
+                {
+                    "project_code": project_code,
+                    "project_name": XX_Project.objects.get(
+                        project=project_code
+                    ).alias_default
+                    or project_code,
+                    "FY24_budget": project_data["FY24_budget"],
+                    "FY25_budget_current": project_data["FY25_budget_current"],
+                    "variances": project_data["variances"],
+                }
+            )
+
+        return dashboard_data
 
 
 class XX_PivotFund(models.Model):

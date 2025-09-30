@@ -19,6 +19,8 @@ from .models import (
     XX_TransactionAudit,
     XX_ACCOUNT_ENTITY_LIMIT,
     XX_BalanceReport,
+    Account_Mapping,
+    Budget_data,
     # XX_ACCOUNT_mapping,
     # XX_Entity_mapping,
     EnvelopeManager,
@@ -487,6 +489,109 @@ class Upload_EntitiesView(APIView):
             )
 
 
+
+
+class UploadAccountMappingView(APIView):
+    """Upload account mapping entries via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        """Handle file upload and persist account mappings"""
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from openpyxl import load_workbook
+            import math
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            duplicates = 0
+            skipped = 0
+            errors = []
+
+            def normalize(value):
+                if value is None:
+                    return None
+                if isinstance(value, float):
+                    if math.isnan(value):
+                        return None
+                    if value.is_integer():
+                        return str(int(value))
+                return str(value).strip()
+
+            with transaction.atomic():
+                first_row = True
+                for idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+                    if not row or all(
+                        cell is None or (isinstance(cell, str) and cell.strip() == "")
+                        for cell in row
+                    ):
+                        continue
+
+                    source_account = normalize(row[0]) if len(row) > 0 else None
+                    target_account = normalize(row[1]) if len(row) > 1 else None
+
+                    if first_row:
+                        first_row = False
+                        lower_source = (source_account or "").lower()
+                        lower_target = (target_account or "").lower()
+                        if (
+                            lower_source in {"source", "source_account"}
+                            or lower_target in {"target", "target_account"}
+                        ):
+                            continue
+
+                    if not source_account or not target_account:
+                        skipped += 1
+                        continue
+
+                    try:
+                        _, created_flag = Account_Mapping.objects.get_or_create(
+                            source_account=source_account,
+                            target_account=target_account,
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            duplicates += 1
+                    except Exception as row_err:
+                        errors.append(
+                            {
+                                "row": idx,
+                                "source_account": source_account,
+                                "target_account": target_account,
+                                "error": str(row_err),
+                            }
+                        )
+
+            summary = {
+                "created": created,
+                "duplicates": duplicates,
+                "skipped": skipped,
+                "errors": errors,
+            }
+
+            return Response(
+                {"status": "ok", "summary": summary},
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
 class ProjectListView(APIView):
     """List all Projects with optional search"""
 
@@ -505,6 +610,54 @@ class ProjectListView(APIView):
             for proj in projects:
                 all_projects.extend(EnvelopeManager.get_all_children(XX_Project.objects.all(), proj.project))
             projects = XX_Project.objects.filter(project__in=all_projects)
+        # projects = get_zero_level_projects(projects)
+
+        if search_query:
+            # Cast project (int) to string for filtering
+            projects = projects.filter(
+                Q(
+                    project__icontains=search_query
+                )  # works because Django auto casts to text in SQL
+            )
+
+        serializer = ProjectSerializer(projects, many=True)
+
+        return Response(
+            {"message": "Projects retrieved successfully.", "data": serializer.data}
+        )
+
+
+class ProjectEnvelopeListView(APIView):
+    """List all Projects with optional search"""
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = EntityPagination
+
+    def get(self, request):
+        search_query = request.query_params.get("search", None)
+
+        if not request.user.projects.exists():
+            projects = XX_Project.objects.all().order_by("project")
+            envelope_projects = []
+            for proj in projects:
+                if EnvelopeManager.Has_Envelope(proj.project):
+                    envelope_projects.append(proj.project)
+            projects = XX_Project.objects.filter(project__in=envelope_projects)
+        else:
+            projects = request.user.projects.all().order_by("project")
+            all_projects = []
+            all_projects.extend([proj.project for proj in projects])
+            for proj in projects:
+                all_projects.extend(
+                    EnvelopeManager.get_all_children(
+                        XX_Project.objects.all(), proj.project
+                    )
+                )
+            envelope_projects = []
+            for proj in all_projects:
+                if EnvelopeManager.Has_Envelope(proj):
+                    envelope_projects.append(proj)
+            projects = XX_Project.objects.filter(project__in=envelope_projects)
         # projects = get_zero_level_projects(projects)
 
         if search_query:
@@ -2004,7 +2157,7 @@ class Upload_ProjectEnvelopeView(APIView):
         """Handle file upload and process project envelopes
 
         Expects an Excel file where the first sheet has rows like:
-        ProjectCode | EnvelopeNumber
+        ProjectCodeWithAlias | EnvelopeNumber
 
         The view will upsert each row into `Project_Envelope`.
         """
@@ -2019,9 +2172,9 @@ class Upload_ProjectEnvelopeView(APIView):
             from openpyxl import load_workbook
             from django.db import transaction
             from decimal import Decimal, InvalidOperation
+            import math
             import re
 
-            # Import model locally to avoid top-level circular import issues
             from .models import Project_Envelope
 
             wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
@@ -2032,56 +2185,55 @@ class Upload_ProjectEnvelopeView(APIView):
             skipped = 0
             errors = []
 
+            def extract_project_code(raw_value):
+                """Return the leading numeric project code from the provided cell."""
+                if raw_value is None:
+                    return None
+                if isinstance(raw_value, int):
+                    return str(raw_value)
+                if isinstance(raw_value, float):
+                    if math.isnan(raw_value):
+                        return None
+                    if raw_value.is_integer():
+                        return str(int(raw_value))
+                    return str(raw_value)
+                value_str = str(raw_value).strip()
+                match = re.match(r"^\s*(\d+)", value_str)
+                return match.group(1) if match else None
+
             with transaction.atomic():
-                first = True
-                for row in sheet.iter_rows(values_only=True):
-                    # Skip empty rows
+                for idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
                     if not row or all(
-                        [
-                            c is None or (isinstance(c, str) and c.strip() == "")
-                            for c in row
-                        ]
+                        cell is None or (isinstance(cell, str) and cell.strip() == "")
+                        for cell in row
                     ):
                         continue
 
-                    project_code = str(row[0]).strip() if row[0] is not None else None
+                    project_code = extract_project_code(row[0] if len(row) > 0 else None)
                     envelope_raw = row[1] if len(row) > 1 else None
-
-                    # Header detection: skip header-like first row
-                    if first:
-                        first = False
-                        header_like = False
-                        if project_code and not any(
-                            ch.isdigit() for ch in project_code
-                        ):
-                            header_like = True
-                        if header_like:
-                            continue
 
                     if not project_code:
                         skipped += 1
                         continue
 
-                    # Parse envelope value
                     if envelope_raw is None or (
                         isinstance(envelope_raw, str) and envelope_raw.strip() == ""
                     ):
-                        # If no envelope provided, skip this row
                         skipped += 1
                         continue
 
                     try:
                         if isinstance(envelope_raw, str):
-                            # Remove commas and non-numeric characters except dot and minus
                             cleaned = re.sub(
                                 r"[^0-9.\-]", "", envelope_raw.replace(",", "")
                             )
                             envelope_val = Decimal(cleaned) if cleaned != "" else None
                         else:
                             envelope_val = Decimal(envelope_raw)
-                    except (InvalidOperation, TypeError) as parse_err:
+                    except (InvalidOperation, TypeError):
                         errors.append(
                             {
+                                "row": idx,
                                 "project_code": project_code,
                                 "error": f"Invalid envelope value: {envelope_raw}",
                             }
@@ -2092,9 +2244,8 @@ class Upload_ProjectEnvelopeView(APIView):
                         skipped += 1
                         continue
 
-                    # Upsert into Project_Envelope
                     try:
-                        obj, created_flag = Project_Envelope.objects.update_or_create(
+                        _, created_flag = Project_Envelope.objects.update_or_create(
                             project=project_code,
                             defaults={"envelope": envelope_val},
                         )
@@ -2104,7 +2255,11 @@ class Upload_ProjectEnvelopeView(APIView):
                             updated += 1
                     except Exception as row_err:
                         errors.append(
-                            {"project_code": project_code, "error": str(row_err)}
+                            {
+                                "row": idx,
+                                "project_code": project_code,
+                                "error": str(row_err),
+                            }
                         )
 
             summary = {
@@ -2115,6 +2270,161 @@ class Upload_ProjectEnvelopeView(APIView):
             }
             return Response(
                 {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UploadBudgetDataView(APIView):
+    """Upload budget data via Excel file"""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        """Handle file upload and upsert budget data rows."""
+        uploaded_file = request.FILES.get("file")
+
+        if not uploaded_file:
+            return Response(
+                {"message": "No file uploaded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from openpyxl import load_workbook
+            from django.db import transaction
+            from decimal import Decimal, InvalidOperation
+            import math
+            import re
+
+            wb = load_workbook(filename=uploaded_file, read_only=True, data_only=True)
+            sheet = wb.active
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+
+            def extract_project_code(raw_value):
+                """Return the leading numeric project code from the provided cell."""
+                if raw_value is None:
+                    return None
+                if isinstance(raw_value, int):
+                    return str(raw_value)
+                if isinstance(raw_value, float):
+                    if math.isnan(raw_value):
+                        return None
+                    if raw_value.is_integer():
+                        return str(int(raw_value))
+                    return str(raw_value)
+                value_str = str(raw_value).strip()
+                match = re.match(r"^\s*(\d+)", value_str)
+                return match.group(1) if match else None
+
+            def normalize_account(raw_value):
+                if raw_value is None:
+                    return None
+                if isinstance(raw_value, float):
+                    if math.isnan(raw_value):
+                        return None
+                    if raw_value.is_integer():
+                        return str(int(raw_value))
+                    return str(raw_value)
+                value_str = str(raw_value).strip()
+                return value_str or None
+
+            def parse_budget(raw_value, label):
+                if raw_value is None:
+                    return Decimal("0")
+                if isinstance(raw_value, int):
+                    return Decimal(raw_value)
+                if isinstance(raw_value, float):
+                    if math.isnan(raw_value):
+                        return Decimal("0")
+                    return Decimal(str(raw_value))
+                value_str = str(raw_value).strip()
+                if not value_str:
+                    return Decimal("0")
+                cleaned = re.sub(r"[^0-9.\-]", "", value_str)
+                if cleaned in {"", "-", ".", "-.", ".-"}:
+                    return Decimal("0")
+                try:
+                    return Decimal(cleaned)
+                except InvalidOperation as exc:
+                    raise ValueError(f"Invalid {label} value: {raw_value}") from exc
+
+            with transaction.atomic():
+                for idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+                    if not row or all(
+                        cell is None or (isinstance(cell, str) and cell.strip() == "")
+                        for cell in row
+                    ):
+                        continue
+
+                    project_code = extract_project_code(row[0] if len(row) > 0 else None)
+                    account_code = normalize_account(row[1] if len(row) > 1 else None)
+
+                    if not project_code or not account_code:
+                        skipped += 1
+                        continue
+
+                    try:
+                        fy24_budget = parse_budget(
+                            row[2] if len(row) > 2 else None,
+                            "FY24 budget",
+                        )
+                        fy25_budget = parse_budget(
+                            row[3] if len(row) > 3 else None,
+                            "FY25 budget",
+                        )
+                    except ValueError as budget_err:
+                        errors.append(
+                            {
+                                "row": idx,
+                                "project": project_code,
+                                "account": account_code,
+                                "error": str(budget_err),
+                            }
+                        )
+                        continue
+
+                    try:
+                        _, created_flag = Budget_data.objects.update_or_create(
+                            project=project_code,
+                            account=account_code,
+                            defaults={
+                                "FY24_budget": fy24_budget,
+                                "FY25_budget": fy25_budget,
+                            },
+                        )
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                    except Exception as row_err:
+                        errors.append(
+                            {
+                                "row": idx,
+                                "project": project_code,
+                                "account": account_code,
+                                "error": str(row_err),
+                            }
+                        )
+
+            summary = {
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+            return Response(
+                {"status": "ok", "summary": summary},
+                status=status.HTTP_200_OK,
             )
 
         except Exception as e:
@@ -2177,6 +2487,43 @@ class ActiveProjectsWithEnvelopeView(APIView):
                 }
             )
 
+
+class ProjectWiseDashboardView(APIView):
+    """Project-wise dashboard data"""
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        entity_code = request.query_params.get("entity_code", None)
+        if entity_code is None:
+            return Response(
+                {"message": "entity_code query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        results = EnvelopeManager.Get_Dashboard_Data_For_Entity(entity_code)
+        return Response(
+            {
+                "message": "Project-wise dashboard data.",
+                "data": results,
+            }
+        )
+
+
+class AccountWiseDashboardView(APIView):
+    """Account-wise dashboard data"""
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        project_code = request.query_params.get("project_code", None)
+        if project_code is None:
+            return Response(
+                {"message": "project_code query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        results = EnvelopeManager.Get_Dashboard_Data_For_Project(project_code)
+        return Response(
+            {
+                "message": "Project-wise dashboard data.",
+                "data": results,
+            }
+        )
 
 # Mapping
 
@@ -2585,3 +2932,7 @@ class ActiveProjectsWithEnvelopeView(APIView):
 #                 {"status": "error", "message": str(e)},
 #                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
 #             )
+
+
+
+

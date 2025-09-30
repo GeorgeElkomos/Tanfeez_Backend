@@ -15,6 +15,8 @@ from .views import (
     PivotFundDetailView,
     PivotFundUpdateView,
     PivotFundDeleteView,
+    ProjectEnvelopeListView,
+    ProjectWiseDashboardView,
     TransactionAuditListView,
     TransactionAuditCreateView,
     TransactionAuditDetailView,
@@ -38,6 +40,8 @@ from .views import (
     Upload_ProjectsView,
     Upload_AccountsView,
     Upload_EntitiesView,
+    UploadAccountMappingView,
+    UploadBudgetDataView,
     # UploadMappingExcelView,
     # AccountMappingListView,
     # EntityMappingListView,
@@ -59,6 +63,9 @@ urlpatterns = [
     ),
     # Project URLs
     path("projects/", ProjectListView.as_view(), name="project-list"),
+    path(
+        "projects/envelope/", ProjectEnvelopeListView.as_view(), name="project-envelope"
+    ),
     path("projects/create/", ProjectCreateView.as_view(), name="project-create"),
     path("projects/<int:pk>/", ProjectDetailView.as_view(), name="project-detail"),
     path(
@@ -188,7 +195,23 @@ urlpatterns = [
         Single_BalanceReportView.as_view(),
         name="balance-report",
     ),
+    path(
+        "budget-data/upload/",
+        UploadBudgetDataView.as_view(),
+        name="upload-budget-data",
+    ),
     # Mapping URLs
+    path(
+        "account-mapping/upload/",
+        UploadAccountMappingView.as_view(),
+        name="upload-account-mapping",
+    ),
+    # Mapping URLs
+    path(
+        "project-wise-dashboard/",
+        ProjectWiseDashboardView.as_view(),
+        name="project-wise-dashboard",
+    ),
     # path(
     #     "mappings/upload-excel/",
     #     UploadMappingExcelView.as_view(),

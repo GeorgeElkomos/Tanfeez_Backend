@@ -14,3 +14,4 @@ django_extensions
 celery
 psutil
 django-filter
+xlrd
