@@ -342,22 +342,31 @@ class Upload_AccountsView(APIView):
                 first = True
                 for row in sheet.iter_rows(values_only=True):
                     if not row or all(
-                        [c is None or (isinstance(c, str) and c.strip() == "") for c in row]
+                        [
+                            c is None or (isinstance(c, str) and c.strip() == "")
+                            for c in row
+                        ]
                     ):
                         continue
 
                     account_code = str(row[0]).strip() if row[0] is not None else None
                     parent_code = (
-                        str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
+                        str(row[1]).strip()
+                        if len(row) > 1 and row[1] is not None
+                        else None
                     )
                     alias_default = (
-                        str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+                        str(row[2]).strip()
+                        if len(row) > 2 and row[2] is not None
+                        else None
                     )
 
                     if first:
                         first = False
                         header_like = False
-                        if account_code and not any(ch.isdigit() for ch in account_code):
+                        if account_code and not any(
+                            ch.isdigit() for ch in account_code
+                        ):
                             header_like = True
                         if header_like:
                             continue
@@ -379,7 +388,9 @@ class Upload_AccountsView(APIView):
                         else:
                             updated += 1
                     except Exception as row_err:
-                        errors.append({"account_code": account_code, "error": str(row_err)})
+                        errors.append(
+                            {"account_code": account_code, "error": str(row_err)}
+                        )
 
             summary = {
                 "created": created,
@@ -388,7 +399,9 @@ class Upload_AccountsView(APIView):
                 "errors": errors,
             }
 
-            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+            return Response(
+                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return Response(
@@ -434,16 +447,23 @@ class Upload_EntitiesView(APIView):
                 first = True
                 for row in sheet.iter_rows(values_only=True):
                     if not row or all(
-                        [c is None or (isinstance(c, str) and c.strip() == "") for c in row]
+                        [
+                            c is None or (isinstance(c, str) and c.strip() == "")
+                            for c in row
+                        ]
                     ):
                         continue
 
                     entity_code = str(row[0]).strip() if row[0] is not None else None
                     parent_code = (
-                        str(row[1]).strip() if len(row) > 1 and row[1] is not None else None
+                        str(row[1]).strip()
+                        if len(row) > 1 and row[1] is not None
+                        else None
                     )
                     alias_default = (
-                        str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
+                        str(row[2]).strip()
+                        if len(row) > 2 and row[2] is not None
+                        else None
                     )
 
                     if first:
@@ -471,7 +491,9 @@ class Upload_EntitiesView(APIView):
                         else:
                             updated += 1
                     except Exception as row_err:
-                        errors.append({"entity_code": entity_code, "error": str(row_err)})
+                        errors.append(
+                            {"entity_code": entity_code, "error": str(row_err)}
+                        )
 
             summary = {
                 "created": created,
@@ -480,15 +502,15 @@ class Upload_EntitiesView(APIView):
                 "errors": errors,
             }
 
-            return Response({"status": "ok", "summary": summary}, status=status.HTTP_200_OK)
+            return Response(
+                {"status": "ok", "summary": summary}, status=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return Response(
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
 
 
 class UploadAccountMappingView(APIView):
@@ -545,10 +567,10 @@ class UploadAccountMappingView(APIView):
                         first_row = False
                         lower_source = (source_account or "").lower()
                         lower_target = (target_account or "").lower()
-                        if (
-                            lower_source in {"source", "source_account"}
-                            or lower_target in {"target", "target_account"}
-                        ):
+                        if lower_source in {
+                            "source",
+                            "source_account",
+                        } or lower_target in {"target", "target_account"}:
                             continue
 
                     if not source_account or not target_account:
@@ -592,6 +614,7 @@ class UploadAccountMappingView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
 class ProjectListView(APIView):
     """List all Projects with optional search"""
 
@@ -608,7 +631,11 @@ class ProjectListView(APIView):
             all_projects = []
             all_projects.extend([proj.project for proj in projects])
             for proj in projects:
-                all_projects.extend(EnvelopeManager.get_all_children(XX_Project.objects.all(), proj.project))
+                all_projects.extend(
+                    EnvelopeManager.get_all_children(
+                        XX_Project.objects.all(), proj.project
+                    )
+                )
             projects = XX_Project.objects.filter(project__in=all_projects)
         # projects = get_zero_level_projects(projects)
 
@@ -1577,7 +1604,11 @@ class BalanceReportListView(APIView):
 
             # Validate Oracle response structure
             if not isinstance(data, dict) or not data.get("success"):
-                message = data.get("message") if isinstance(data, dict) else "Unexpected response"
+                message = (
+                    data.get("message")
+                    if isinstance(data, dict)
+                    else "Unexpected response"
+                )
                 return Response(
                     {
                         "success": False,
@@ -1613,19 +1644,30 @@ class BalanceReportListView(APIView):
 
                 enriched = {
                     "Cost_Center": [
-                        {"code": str(code), "name": entity_alias_map.get(str(code), str(code))}
+                        {
+                            "code": str(code),
+                            "name": entity_alias_map.get(str(code), str(code)),
+                        }
                         for code in cost_centers
                     ],
                     "Account": [
-                        {"code": str(code), "name": account_alias_map.get(str(code), str(code))}
+                        {
+                            "code": str(code),
+                            "name": account_alias_map.get(str(code), str(code)),
+                        }
                         for code in accounts
                     ],
                     "Project": [
-                        {"code": str(code), "name": project_alias_map.get(str(code), str(code))}
+                        {
+                            "code": str(code),
+                            "name": project_alias_map.get(str(code), str(code)),
+                        }
                         for code in projects
                     ],
                     "total_records": unique_segments.get("total_records", 0),
-                    "unique_combinations": unique_segments.get("unique_combinations", 0),
+                    "unique_combinations": unique_segments.get(
+                        "unique_combinations", 0
+                    ),
                 }
                 return Response(
                     {
@@ -1659,15 +1701,24 @@ class BalanceReportListView(APIView):
 
             enriched_unique_segments = {
                 "Cost_Center": [
-                    {"code": str(code), "name": entity_alias_map.get(str(code), str(code))}
+                    {
+                        "code": str(code),
+                        "name": entity_alias_map.get(str(code), str(code)),
+                    }
                     for code in cost_centers
                 ],
                 "Account": [
-                    {"code": str(code), "name": account_alias_map.get(str(code), str(code))}
+                    {
+                        "code": str(code),
+                        "name": account_alias_map.get(str(code), str(code)),
+                    }
                     for code in accounts
                 ],
                 "Project": [
-                    {"code": str(code), "name": project_alias_map.get(str(code), str(code))}
+                    {
+                        "code": str(code),
+                        "name": project_alias_map.get(str(code), str(code)),
+                    }
                     for code in projects
                 ],
                 "total_records": unique_segments.get("total_records", 0),
@@ -2209,7 +2260,9 @@ class Upload_ProjectEnvelopeView(APIView):
                     ):
                         continue
 
-                    project_code = extract_project_code(row[0] if len(row) > 0 else None)
+                    project_code = extract_project_code(
+                        row[0] if len(row) > 0 else None
+                    )
                     envelope_raw = row[1] if len(row) > 1 else None
 
                     if not project_code:
@@ -2366,7 +2419,9 @@ class UploadBudgetDataView(APIView):
                     ):
                         continue
 
-                    project_code = extract_project_code(row[0] if len(row) > 0 else None)
+                    project_code = extract_project_code(
+                        row[0] if len(row) > 0 else None
+                    )
                     account_code = normalize_account(row[1] if len(row) > 1 else None)
 
                     if not project_code or not account_code:
@@ -2490,7 +2545,9 @@ class ActiveProjectsWithEnvelopeView(APIView):
 
 class ProjectWiseDashboardView(APIView):
     """Project-wise dashboard data"""
+
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         entity_code = request.query_params.get("entity_code", None)
         if entity_code is None:
@@ -2509,7 +2566,9 @@ class ProjectWiseDashboardView(APIView):
 
 class AccountWiseDashboardView(APIView):
     """Account-wise dashboard data"""
+
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         project_code = request.query_params.get("project_code", None)
         if project_code is None:
@@ -2524,6 +2583,7 @@ class AccountWiseDashboardView(APIView):
                 "data": results,
             }
         )
+
 
 # Mapping
 
@@ -2932,7 +2992,3 @@ class AccountWiseDashboardView(APIView):
 #                 {"status": "error", "message": str(e)},
 #                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
 #             )
-
-
-
-
