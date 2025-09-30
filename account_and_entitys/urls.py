@@ -48,6 +48,8 @@ from .views import (
     # AccountMappingDetailView,
     # EntityMappingDetailView
 )
+
+from .views_copy import UploadMappingExcelView
 from .views import ActiveProjectsWithEnvelopeView
 
 urlpatterns = [
@@ -212,11 +214,11 @@ urlpatterns = [
         ProjectWiseDashboardView.as_view(),
         name="project-wise-dashboard",
     ),
-    # path(
-    #     "mappings/upload-excel/",
-    #     UploadMappingExcelView.as_view(),
-    #     name="upload-mapping-excel",
-    # ),
+    path(
+        "mappings/upload-excel/",
+        UploadMappingExcelView.as_view(),
+        name="upload-mapping-excel",
+    ),
     # path(
     #     "mappings/accounts/",
     #     AccountMappingListView.as_view(),

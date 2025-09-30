@@ -12,7 +12,11 @@ from .models import XX_BalanceReport
 import json
 import io
 
+from .models import XX_Entity_mapping
 
+
+
+######################################################### Oracle Fsuion Balance Report Integration #########################################################
 def safe_decimal_convert(value):
     """Safely convert value to Decimal, handling various input types"""
     if pd.isna(value) or value is None or value == '':
@@ -555,3 +559,109 @@ def extract_unique_segments_from_data(balance_data):
             'segment3': [],
             'error': f'Error extracting segments: {str(e)}'
         }
+
+
+########################################################## End of Oracle Fusion Balance Report Integration #########################################################
+
+
+
+########################################################### Other Utility Functions #########################################################
+
+def get_mapping_for_fusion_data():
+    """
+    Get mapping for Oracle Fusion data fields to internal fields.
+
+    Returns:
+        dict: Mapping of Oracle Fusion fields to internal fields.
+    """
+
+    Fusion_data = get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name='sep-25')
+    
+    # Extract segment1 values from the data
+    segment1_values = []
+    segment2_values = []
+    segment3_values = []
+    
+    if Fusion_data.get('success') and Fusion_data.get('data'):
+        print(f"Total records found: {len(Fusion_data['data'])}")
+        
+        for item in Fusion_data['data']:
+            # Get segment1 value
+            segment1 = item.get('segment1')
+            if segment1:
+                segment1_values.append(segment1)
+                
+            # Get segment2 value
+            segment2 = item.get('segment2') 
+            if segment2:
+                segment2_values.append(segment2)
+                
+            # Get segment3 value
+            segment3 = item.get('segment3')
+            if segment3:
+                segment3_values.append(segment3)
+                
+            # Print first few items for debugging
+            if len(segment1_values) <= 5:
+                print(f"Item {len(segment1_values)}: segment1={segment1}, segment2={segment2}, segment3={segment3}")
+        
+        # Get unique values
+        unique_segment1 = list(set(segment1_values))
+        unique_segment2 = list(set(segment2_values))
+        unique_segment3 = list(set(segment3_values))
+
+
+        list_of_mappings = []
+
+        for unique in unique_segment1:
+
+                data=XX_Entity_mapping.objects.filter(source_entity=int(unique))
+                if data:
+                    if data.Target_entity == "IGNORE":
+                        return_data={
+                            'source_entity': unique,
+                            'Target_entity': unique,
+                        }
+                    elif data.Target_entity != "IGNORE":
+                        return_data={
+                            'source_entity': unique,
+                            'Target_entity': data.target_entity,
+                        }
+                    list_of_mappings.append(return_data)
+
+                else:
+                        return_data={
+                            'entity_code': unique,
+                            'entity_name': "AbuDhabi",
+                        }
+                        list_of_mappings.append(return_data)
+                
+
+       
+                
+        
+
+        
+        
+        
+        return {
+            'success': True,
+            'data': list_of_mappings,
+            'total_records': len(list_of_mappings),
+
+        }
+    else:
+        print("No data found or request failed")
+        return {
+            'success': False,
+            'message': Fusion_data.get('message', 'No data available'),
+            'segment1_values': [],
+            'segment2_values': [],
+            'segment3_values': []
+        }
+    
+
+
+
+
+########################################################### End of Other Utility Functions #########################################################

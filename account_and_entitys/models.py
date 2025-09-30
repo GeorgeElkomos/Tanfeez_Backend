@@ -84,7 +84,7 @@ class Account_Mapping(models.Model):
         return f"{self.source_account} -> {self.target_account}"
 
     class Meta:
-        db_table = "XX_ACCOUNT_MAPPING_XX"
+        db_table = "XX_ACCOUNT_MAPPING_LEGACY_XX"
         unique_together = ("source_account", "target_account")
 
 
@@ -724,31 +724,31 @@ class XX_BalanceReport(models.Model):
         ]
 
 
-# class XX_ACCOUNT_mapping(models.Model):
-#     """Model representing ADJD account mappings"""
-#     id = models.AutoField(primary_key=True)
-#     source_account = models.CharField(max_length=50)
-#     target_account = models.CharField(max_length=50)
-#     is_active = models.BooleanField(default=True)
+class XX_ACCOUNT_mapping(models.Model):
+    """Model representing ADJD account mappings"""
+    id = models.AutoField(primary_key=True)
+    source_account = models.CharField(max_length=50)
+    target_account = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
 
-#     def __str__(self):
-#         return f"Account Mapping {self.id}: {self.source_account} -> {self.target_account}"
+    def __str__(self):
+        return f"Account Mapping {self.id}: {self.source_account} -> {self.target_account}"
 
-#     class Meta:
-#         db_table = 'XX_ACCOUNT_MAPPING_XX'
-#         unique_together = ('source_account', 'target_account')
+    class Meta:
+        db_table = 'XX_ACCOUNT_MAPPING__elies_XX'
+        unique_together = ('source_account', 'target_account')
 
 
-# class XX_Entity_mapping(models.Model):
-#     """Model representing ADJD entity mappings"""
-#     id = models.AutoField(primary_key=True)
-#     source_entity = models.CharField(max_length=50)
-#     target_entity = models.CharField(max_length=50)
-#     is_active = models.BooleanField(default=True)
+class XX_Entity_mapping(models.Model):
+    """Model representing ADJD entity mappings"""
+    id = models.AutoField(primary_key=True)
+    source_entity = models.CharField(max_length=50)
+    target_entity = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
 
-#     def __str__(self):
-#         return f"Entity Mapping {self.id}: {self.source_entity} -> {self.target_entity}"
+    def __str__(self):
+        return f"Entity Mapping {self.id}: {self.source_entity} -> {self.target_entity}"
 
-#     class Meta:
-#         db_table = 'XX_ENTITY_MAPPING_XX'
-#         unique_together = ('source_entity', 'target_entity')
+    class Meta:
+        db_table = 'XX_ENTITY_MAPPING__elies_XX'
+        unique_together = ('source_entity', 'target_entity')
