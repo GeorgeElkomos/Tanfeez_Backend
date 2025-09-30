@@ -1,6 +1,7 @@
 from django.db import models
 
 from approvals.models import ApprovalWorkflowInstance
+from transaction.models import xx_TransactionTransfer
 
 # Removed encrypted fields import - using standard Django fields now
 
@@ -253,12 +254,74 @@ class EnvelopeManager:
         return 0
 
     @staticmethod
+    def Get_All_Children_Accounts_with_Mapping(accounts):
+        all_accounts = []
+        for account in accounts:
+            all_accounts.append(account)
+            all_accounts.extend(
+                EnvelopeManager.get_all_children_for_accounts(
+                    XX_Account.objects.all(), account
+                )
+            )
+        for account in all_accounts:
+            if Account_Mapping.objects.filter(target_account=account).exists():
+                mapped_accounts = Account_Mapping.objects.filter(
+                    target_account=account
+                ).values_list("source_account", flat=True)
+                all_accounts.extend(list(mapped_accounts))
+        return list(set(all_accounts))
+
+    @staticmethod
+    def Calculate_Transactions_total(base_transactions):
+        from django.db.models import Sum, F, Value, Q
+        from django.db.models.functions import Coalesce
+
+        # Get approved transactions
+        approved_transactions = base_transactions.filter(
+            transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_APPROVED
+        )
+        print(f"Approved transactions: {approved_transactions.count()}")
+        # Get submitted (in progress) transactions
+        submitted_transactions = base_transactions.filter(
+            transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+        )
+        print(f"Submitted transactions: {submitted_transactions.count()}")
+        # Calculate totals for approved transactions
+        approved_result = approved_transactions.aggregate(
+            total_from=Coalesce(
+                Sum("from_center"), Value(0, output_field=models.DecimalField())
+            ),
+            total_to=Coalesce(
+                Sum("to_center"), Value(0, output_field=models.DecimalField())
+            ),
+        )
+        approved = {}
+        approved["total_from"] = approved_result["total_from"] * -1
+        approved["total_to"] = approved_result["total_to"]
+        approved["total"] = approved["total_from"] + approved["total_to"]
+
+        # Calculate totals for submitted transactions
+        submitted_result = submitted_transactions.aggregate(
+            total_from=Coalesce(
+                Sum("from_center"), Value(0, output_field=models.DecimalField())
+            ),
+            total_to=Coalesce(
+                Sum("to_center"), Value(0, output_field=models.DecimalField())
+            ),
+        )
+        submitted = {}
+        submitted["total_from"] = submitted_result["total_from"] * -1
+        submitted["total_to"] = submitted_result["total_to"]
+        submitted["total"] = submitted["total_from"] + submitted["total_to"]
+
+        return approved, submitted
+
+    @staticmethod
     def Get_Total_Amount_for_Project(
         project_code, year=None, month=None, FilterAccounts=True
     ):
         try:
-            from django.db.models import Sum, F, Value, Q
-            from django.db.models.functions import Coalesce
+
             import calendar
 
             # Import here to avoid circular import at module import time
@@ -270,20 +333,9 @@ class EnvelopeManager:
                     "TC11200T",  # Non Men Power
                     "TC13000T",  # Copex
                 ]
-                all_accounts = []
-                for account in accounts:
-                    all_accounts.append(account)
-                    all_accounts.extend(
-                        EnvelopeManager.get_all_children_for_accounts(
-                            XX_Account.objects.all(), account
-                        )
-                    )
-                for account in all_accounts:
-                    if Account_Mapping.objects.filter(target_account=account).exists():
-                        mapped_accounts = Account_Mapping.objects.filter(
-                            target_account=account
-                        ).values_list("source_account", flat=True)
-                        all_accounts.extend(list(mapped_accounts))
+                all_accounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(
+                    accounts
+                )
                 base_transactions = xx_TransactionTransfer.objects.filter(
                     project_code=project_code, account_code__in=all_accounts
                 )
@@ -308,50 +360,7 @@ class EnvelopeManager:
                     transaction__transaction_date=month_abbr
                 )
 
-            # Get approved transactions
-            approved_transactions = base_transactions.filter(
-                transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_APPROVED
-            )
-            print(
-                f"Approved transactions count for project {project_code}: {approved_transactions.count()}"
-            )
-            # Get submitted (in progress) transactions
-            submitted_transactions = base_transactions.filter(
-                transaction__workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
-            )
-            print(
-                f"Submitted transactions count for project {project_code}: {submitted_transactions.count()}"
-            )
-            # Calculate totals for approved transactions
-            approved_result = approved_transactions.aggregate(
-                total_from=Coalesce(
-                    Sum("from_center"), Value(0, output_field=models.DecimalField())
-                ),
-                total_to=Coalesce(
-                    Sum("to_center"), Value(0, output_field=models.DecimalField())
-                ),
-            )
-            approved = {}
-            approved["total_from"] = approved_result["total_from"] * -1
-            approved["total_to"] = approved_result["total_to"]
-            approved["total"] = approved["total_from"] + approved["total_to"]
-
-            # Calculate totals for submitted transactions
-            submitted_result = submitted_transactions.aggregate(
-                total_from=Coalesce(
-                    Sum("from_center"), Value(0, output_field=models.DecimalField())
-                ),
-                total_to=Coalesce(
-                    Sum("to_center"), Value(0, output_field=models.DecimalField())
-                ),
-            )
-            submitted = {}
-            submitted["total_from"] = submitted_result["total_from"] * -1
-            submitted["total_to"] = submitted_result["total_to"]
-            submitted["total"] = submitted["total_from"] + submitted["total_to"]
-
-            return approved, submitted
-
+            return EnvelopeManager.Calculate_Transactions_total(base_transactions)
         except Exception as e:
             print(f"Error calculating total amount for project {project_code}: {e}")
             return None, None
@@ -536,8 +545,7 @@ class EnvelopeManager:
                     "FY25_budget_current": budget_data.get("FY25_budget_initial", 0)
                     + approved["total"],
                     "variances": budget_data.get("FY24_budget", 0)
-                    - (budget_data.get("FY25_budget_initial", 0)
-                     + approved["total"]),
+                    - (budget_data.get("FY25_budget_initial", 0) + approved["total"]),
                 }
             return data
 
@@ -553,13 +561,17 @@ class EnvelopeManager:
 
         dashboard_data = []
         for project_code, project_data in result.items():
+            # Try to get project name, fallback to project code if not found
+            try:
+                project = XX_Project.objects.get(project=project_code)
+                project_name = project.alias_default or project_code
+            except XX_Project.DoesNotExist:
+                project_name = project_code
+
             dashboard_data.append(
                 {
                     "project_code": project_code,
-                    "project_name": XX_Project.objects.get(
-                        project=project_code
-                    ).alias_default
-                    or project_code,
+                    "project_name": project_name,
                     "FY24_budget": project_data["FY24_budget"],
                     "FY25_budget_current": project_data["FY25_budget_current"],
                     "variances": project_data["variances"],
@@ -567,6 +579,126 @@ class EnvelopeManager:
             )
 
         return dashboard_data
+
+    @staticmethod
+    def Get_Dashboard_Data_For_Account(transfers_for_project, project_code, Accounts):
+        result = []
+        total_submitted = 0
+        total_approved = 0
+        total_fy25_budget = 0
+        total_fy24_budget = 0
+        for acc in Accounts:
+            Transfers_for_projects_and_accounts = transfers_for_project.filter(
+                account_code=acc
+            )
+            approved, submitted = EnvelopeManager.Calculate_Transactions_total(
+                Transfers_for_projects_and_accounts
+            )
+            mapped_acc = Account_Mapping.objects.filter(source_account=acc).first()
+            if mapped_acc:
+                acc = mapped_acc.target_account
+            from django.db.models import Sum
+
+            budget_data = Budget_data.objects.filter(
+                project=project_code, account=acc
+            ).aggregate(fy24_total=Sum("FY24_budget"), fy25_total=Sum("FY25_budget"))
+            print(
+                f"Budget data for project {project_code}, account {acc}: {budget_data}"
+            )
+
+            fy24_budget = budget_data["fy24_total"] or 0
+            fy25_budget = budget_data["fy25_total"] or 0
+            result.append(
+                {
+                    "account": acc,
+                    "account_name": (
+                        XX_Account.objects.filter(account=acc).first().alias_default
+                        if XX_Account.objects.filter(account=acc).first()
+                        else acc
+                    ),
+                    "approved_total": approved["total"] if approved else 0,
+                    "FY24_budget": fy24_budget,
+                    "FY25_budget": fy25_budget + approved["total"] if approved else 0,
+                }
+            )
+            total_submitted += submitted["total"] if submitted else 0
+            total_approved += approved["total"] if approved else 0
+            total_fy25_budget += fy25_budget + approved["total"] if approved else 0
+            total_fy24_budget += fy24_budget
+        return (
+            total_approved,
+            total_submitted,
+            total_fy25_budget,
+            total_fy24_budget,
+            result,
+        )
+
+    @staticmethod
+    def __filter_numeric_accounts(accounts):
+        """Helper function to filter accounts that contain only numbers"""
+        return [acc for acc in accounts if acc.isdigit()]
+
+    @staticmethod
+    def Get_Dashboard_Data_For_Project(project_code):
+        MenPowerAccounts = EnvelopeManager.__filter_numeric_accounts(
+            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC11100T"])
+        )
+        NonMenPowerAccounts = EnvelopeManager.__filter_numeric_accounts(
+            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC11200T"])
+        )
+        CopexAccounts = EnvelopeManager.__filter_numeric_accounts(
+            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC13000T"])
+        )
+        transfers_for_project = xx_TransactionTransfer.objects.filter(
+            project_code=project_code
+        )
+        MenPowerActiveAccounts = (
+            transfers_for_project.filter(account_code__in=MenPowerAccounts)
+            .values_list("account_code", flat=True)
+            .distinct()
+        )
+        NonMenPowerActiveAccounts = (
+            transfers_for_project.filter(account_code__in=NonMenPowerAccounts)
+            .values_list("account_code", flat=True)
+            .distinct()
+        )
+        CopexActiveAccounts = (
+            transfers_for_project.filter(account_code__in=CopexAccounts)
+            .values_list("account_code", flat=True)
+            .distinct()
+        )
+        MenPowerData = EnvelopeManager.Get_Dashboard_Data_For_Account(
+            transfers_for_project, project_code, MenPowerActiveAccounts
+        )
+        NonMenPowerData = EnvelopeManager.Get_Dashboard_Data_For_Account(
+            transfers_for_project, project_code, NonMenPowerActiveAccounts
+        )
+        CopexData = EnvelopeManager.Get_Dashboard_Data_For_Account(
+            transfers_for_project, project_code, CopexActiveAccounts
+        )
+
+        def format_category_data(data_tuple):
+            (
+                total_approved,
+                total_submitted,
+                total_fy25_budget,
+                total_fy24_budget,
+                accounts_list,
+            ) = data_tuple
+            return {
+                "summary": {
+                    "total_approved_transfers": total_approved,
+                    "total_fy25_budget": total_fy25_budget,
+                    "total_fy24_budget": total_fy24_budget,
+                },
+                "accounts": accounts_list,
+            }
+
+        return {
+            "MenPower": format_category_data(MenPowerData),
+            "NonMenPower": format_category_data(NonMenPowerData),
+            "Copex": format_category_data(CopexData),
+        }
 
 
 class XX_PivotFund(models.Model):

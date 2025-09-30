@@ -5,6 +5,7 @@ from .views import (
     AccountDetailView,
     AccountUpdateView,
     AccountDeleteView,
+    AccountWiseDashboardView,
     EntityListView,
     EntityCreateView,
     EntityDetailView,
@@ -211,6 +212,11 @@ urlpatterns = [
         "project-wise-dashboard/",
         ProjectWiseDashboardView.as_view(),
         name="project-wise-dashboard",
+    ),
+    path(
+        "account-wise-dashboard/",
+        AccountWiseDashboardView.as_view(),
+        name="account-wise-dashboard",
     ),
     # path(
     #     "mappings/upload-excel/",
