@@ -652,31 +652,31 @@ class EnvelopeManager:
         transfers_for_project = xx_TransactionTransfer.objects.filter(
             project_code=project_code
         )
-        MenPowerActiveAccounts = (
-            transfers_for_project.filter(account_code__in=MenPowerAccounts)
-            .values_list("account_code", flat=True)
-            .distinct()
-        )
-        NonMenPowerActiveAccounts = (
-            transfers_for_project.filter(account_code__in=NonMenPowerAccounts)
-            .values_list("account_code", flat=True)
-            .distinct()
-        )
-        CopexActiveAccounts = (
-            transfers_for_project.filter(account_code__in=CopexAccounts)
-            .values_list("account_code", flat=True)
-            .distinct()
-        )
+        # MenPowerActiveAccounts = (
+        #     transfers_for_project.filter(account_code__in=MenPowerAccounts)
+        #     .values_list("account_code", flat=True)
+        #     .distinct()
+        # )
+        # NonMenPowerActiveAccounts = (
+        #     transfers_for_project.filter(account_code__in=NonMenPowerAccounts)
+        #     .values_list("account_code", flat=True)
+        #     .distinct()
+        # )
+        # CopexActiveAccounts = (
+        #     transfers_for_project.filter(account_code__in=CopexAccounts)
+        #     .values_list("account_code", flat=True)
+        #     .distinct()
+        # )
         MenPowerData = EnvelopeManager.Get_Dashboard_Data_For_Account(
-            transfers_for_project, project_code, MenPowerActiveAccounts
+            transfers_for_project, project_code, MenPowerAccounts
         )
         NonMenPowerData = EnvelopeManager.Get_Dashboard_Data_For_Account(
-            transfers_for_project, project_code, NonMenPowerActiveAccounts
+            transfers_for_project, project_code, NonMenPowerAccounts
         )
         CopexData = EnvelopeManager.Get_Dashboard_Data_For_Account(
-            transfers_for_project, project_code, CopexActiveAccounts
+            transfers_for_project, project_code, CopexAccounts
         )
-
+ 
         def format_category_data(data_tuple):
             (
                 total_approved,
@@ -693,7 +693,7 @@ class EnvelopeManager:
                 },
                 "accounts": accounts_list,
             }
-
+ 
         return {
             "MenPower": format_category_data(MenPowerData),
             "NonMenPower": format_category_data(NonMenPowerData),

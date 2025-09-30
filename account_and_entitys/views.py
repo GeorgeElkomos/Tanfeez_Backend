@@ -21,8 +21,8 @@ from .models import (
     XX_BalanceReport,
     Account_Mapping,
     Budget_data,
-    # XX_ACCOUNT_mapping,
-    # XX_Entity_mapping,
+    XX_ACCOUNT_mapping,
+    XX_Entity_mapping,
     EnvelopeManager,
 )
 from .serializers import (
@@ -46,7 +46,7 @@ from .serializers import AccountEntityLimitSerializer
 from django.db.models import CharField
 from django.db.models.functions import Cast
 from django.db.models import Q
-from .utils import get_oracle_report_data
+from .utils import get_oracle_report_data,get_mapping_for_fusion_data
 
 
 class EntityPagination(PageNumberPagination):
@@ -844,6 +844,17 @@ class EntityListView(APIView):
         return Response(
             {"message": "Accounts retrieved successfully.", "data": serializer.data}
         )
+
+
+class EntityMappingListView(APIView):
+    """List all entity mappings"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Implement logic to retrieve and return entity mappings
+        data = get_mapping_for_fusion_data()
+        return Response({"message": "Entity mappings retrieved successfully.", "data": data})
 
 
 class EntityCreateView(APIView):
@@ -2587,207 +2598,216 @@ class AccountWiseDashboardView(APIView):
 
 # Mapping
 
-# class UploadMappingExcelView(APIView):
-#     """
-#     Upload Excel file with Account and Entity mapping data.
-#     Expected sheets:
-#     - 'Account' sheet with columns: source_account, target_account
-#     - 'Entity' sheet with columns: source_entity, target_entity
-#     """
+class UploadMappingExcelView(APIView):
+    """
+    Upload Excel file with Account and Entity mapping data.
+    Expected sheets:
+    - 'Account' sheet with columns: source_account, target_account
+    - 'Entity' sheet with columns: source_entity, target_entity
+    """
 
-#     permission_classes = [IsAuthenticated]
-#     parser_classes = [MultiPartParser]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
 
-#     def post(self, request):
-#         try:
-#             # Check if file is provided
-#             if "file" not in request.FILES:
-#                 return Response(
-#                     {"status": "error", "message": "No file provided"},
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
+    def get(self, request):
 
-#             uploaded_file = request.FILES["file"]
+        data = get_mapping_for_fusion_data()
+        return Response(
+            {
+                "data": data
+            }
+        )
 
-#             # Validate file extension
-#             if not uploaded_file.name.endswith((".xlsx", ".xls")):
-#                 return Response(
-#                     {
-#                         "status": "error",
-#                         "message": "File must be Excel format (.xlsx or .xls)",
-#                     },
-#                     status=status.HTTP_400_BAD_REQUEST,
-#                 )
+    def post(self, request):
+        try:
+            # Check if file is provided
+            if "file" not in request.FILES:
+                return Response(
+                    {"status": "error", "message": "No file provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-#             # Read Excel file
-#             excel_file = pd.ExcelFile(uploaded_file)
-#             sheet_names = excel_file.sheet_names
+            uploaded_file = request.FILES["file"]
 
-#             results = {
-#                 "account_mappings": {
-#                     "created": 0,
-#                     "updated": 0,
-#                     "skipped": 0,
-#                     "errors": [],
-#                 },
-#                 "entity_mappings": {
-#                     "created": 0,
-#                     "updated": 0,
-#                     "skipped": 0,
-#                     "errors": [],
-#                 },
-#             }
+            # Validate file extension
+            if not uploaded_file.name.endswith((".xlsx", ".xls")):
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "File must be Excel format (.xlsx or .xls)",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-#             # Process Account sheet
-#             if "Account" in sheet_names:
-#                 try:
-#                     account_df = pd.read_excel(uploaded_file, sheet_name="Account")
+            # Read Excel file
+            excel_file = pd.ExcelFile(uploaded_file)
+            sheet_names = excel_file.sheet_names
 
-#                     # Validate required columns
-#                     required_cols = ["source_account", "target_account"]
-#                     missing_cols = [
-#                         col for col in required_cols if col not in account_df.columns
-#                     ]
+            results = {
+                "account_mappings": {
+                    "created": 0,
+                    "updated": 0,
+                    "skipped": 0,
+                    "errors": [],
+                },
+                "entity_mappings": {
+                    "created": 0,
+                    "updated": 0,
+                    "skipped": 0,
+                    "errors": [],
+                },
+            }
 
-#                     if missing_cols:
-#                         results["account_mappings"]["errors"].append(
-#                             f"Missing columns in Account sheet: {', '.join(missing_cols)}"
-#                         )
-#                     else:
-#                         # Process each row
-#                         with transaction.atomic():
-#                             for index, row in account_df.iterrows():
-#                                 try:
-#                                     source_account = str(row["source_account"]).strip()
-#                                     target_account = str(row["target_account"]).strip()
+            # Process Account sheet
+            if "Account" in sheet_names:
+                try:
+                    account_df = pd.read_excel(uploaded_file, sheet_name="Account")
 
-#                                     # Skip rows with empty values
-#                                     if (
-#                                         pd.isna(row["source_account"])
-#                                         or pd.isna(row["target_account"])
-#                                         or source_account == ""
-#                                         or target_account == ""
-#                                     ):
-#                                         results["account_mappings"]["skipped"] += 1
-#                                         continue
+                    # Validate required columns
+                    required_cols = ["Source", "Target"]
+                    missing_cols = [
+                        col for col in required_cols if col not in account_df.columns
+                    ]
 
-#                                     # Create or update account mapping
-#                                     obj, created = (
-#                                         XX_ACCOUNT_mapping.objects.update_or_create(
-#                                             source_account=source_account,
-#                                             target_account=target_account,
-#                                             defaults={"is_active": True},
-#                                         )
-#                                     )
+                    if missing_cols:
+                        results["account_mappings"]["errors"].append(
+                            f"Missing columns in Account sheet: {', '.join(missing_cols)}"
+                        )
+                    else:
+                        # Process each row
+                        with transaction.atomic():
+                            for index, row in account_df.iterrows():
+                                try:
+                                    source_account = str(row["Source"]).strip()
+                                    target_account = str(row["Target"]).strip()
 
-#                                     if created:
-#                                         results["account_mappings"]["created"] += 1
-#                                     else:
-#                                         results["account_mappings"]["updated"] += 1
+                                    # Skip rows with empty values
+                                    if (
+                                        pd.isna(row["Source"])
+                                        or pd.isna(row["Target"])
+                                        or source_account == ""
+                                        or target_account == ""
+                                    ):
+                                        results["account_mappings"]["skipped"] += 1
+                                        continue
 
-#                                 except Exception as row_err:
-#                                     results["account_mappings"]["errors"].append(
-#                                         f"Row {index + 2}: {str(row_err)}"
-#                                     )
+                                    # Create or update account mapping
+                                    obj, created = (
+                                        XX_ACCOUNT_mapping.objects.update_or_create(
+                                            source_account=source_account,
+                                            target_account=target_account,
+                                            defaults={"is_active": True},
+                                        )
+                                    )
 
-#                 except Exception as sheet_err:
-#                     results["account_mappings"]["errors"].append(
-#                         f"Error processing Account sheet: {str(sheet_err)}"
-#                     )
-#             else:
-#                 results["account_mappings"]["errors"].append(
-#                     "Account sheet not found in Excel file"
-#                 )
+                                    if created:
+                                        results["account_mappings"]["created"] += 1
+                                    else:
+                                        results["account_mappings"]["updated"] += 1
 
-#             # Process Entity sheet
-#             if "Entity" in sheet_names:
-#                 try:
-#                     entity_df = pd.read_excel(uploaded_file, sheet_name="Entity")
+                                except Exception as row_err:
+                                    results["account_mappings"]["errors"].append(
+                                        f"Row {index + 2}: {str(row_err)}"
+                                    )
 
-#                     # Validate required columns
-#                     required_cols = ["source_entity", "target_entity"]
-#                     missing_cols = [
-#                         col for col in required_cols if col not in entity_df.columns
-#                     ]
+                except Exception as sheet_err:
+                    results["account_mappings"]["errors"].append(
+                        f"Error processing Account sheet: {str(sheet_err)}"
+                    )
+            else:
+                results["account_mappings"]["errors"].append(
+                    "Account sheet not found in Excel file"
+                )
 
-#                     if missing_cols:
-#                         results["entity_mappings"]["errors"].append(
-#                             f"Missing columns in Entity sheet: {', '.join(missing_cols)}"
-#                         )
-#                     else:
-#                         # Process each row
-#                         with transaction.atomic():
-#                             for index, row in entity_df.iterrows():
-#                                 try:
-#                                     source_entity = str(row["source_entity"]).strip()
-#                                     target_entity = str(row["target_entity"]).strip()
+            # Process Entity sheet
+            if "Entity" in sheet_names:
+                try:
+                    entity_df = pd.read_excel(uploaded_file, sheet_name="Entity")
 
-#                                     # Skip rows with empty values
-#                                     if (
-#                                         pd.isna(row["source_entity"])
-#                                         or pd.isna(row["target_entity"])
-#                                         or source_entity == ""
-#                                         or target_entity == ""
-#                                     ):
-#                                         results["entity_mappings"]["skipped"] += 1
-#                                         continue
+                    # Validate required columns
+                    required_cols = ["Source", "Target"]
+                    missing_cols = [
+                        col for col in required_cols if col not in entity_df.columns
+                    ]
 
-#                                     # Create or update entity mapping
-#                                     obj, created = (
-#                                         XX_Entity_mapping.objects.update_or_create(
-#                                             source_entity=source_entity,
-#                                             target_entity=target_entity,
-#                                             defaults={"is_active": True},
-#                                         )
-#                                     )
+                    if missing_cols:
+                        results["entity_mappings"]["errors"].append(
+                            f"Missing columns in Entity sheet: {', '.join(missing_cols)}"
+                        )
+                    else:
+                        # Process each row
+                        with transaction.atomic():
+                            for index, row in entity_df.iterrows():
+                                try:
+                                    source_entity = str(row["Source"]).strip()
+                                    target_entity = str(row["Target"]).strip()
 
-#                                     if created:
-#                                         results["entity_mappings"]["created"] += 1
-#                                     else:
-#                                         results["entity_mappings"]["updated"] += 1
+                                    # Skip rows with empty values
+                                    if (
+                                        pd.isna(row["Source"])
+                                        or pd.isna(row["Target"])
+                                        or source_entity == ""
+                                        or target_entity == ""
+                                    ):
+                                        results["entity_mappings"]["skipped"] += 1
+                                        continue
 
-#                                 except Exception as row_err:
-#                                     results["entity_mappings"]["errors"].append(
-#                                         f"Row {index + 2}: {str(row_err)}"
-#                                     )
+                                    # Create or update entity mapping
+                                    obj, created = (
+                                        XX_Entity_mapping.objects.update_or_create(
+                                            source_entity=source_entity,
+                                            target_entity=target_entity,
+                                            defaults={"is_active": True},
+                                        )
+                                    )
 
-#                 except Exception as sheet_err:
-#                     results["entity_mappings"]["errors"].append(
-#                         f"Error processing Entity sheet: {str(sheet_err)}"
-#                     )
-#             else:
-#                 results["entity_mappings"]["errors"].append(
-#                     "Entity sheet not found in Excel file"
-#                 )
+                                    if created:
+                                        results["entity_mappings"]["created"] += 1
+                                    else:
+                                        results["entity_mappings"]["updated"] += 1
 
-#             # Determine overall status
-#             has_errors = (
-#                 len(results["account_mappings"]["errors"]) > 0
-#                 or len(results["entity_mappings"]["errors"]) > 0
-#             )
+                                except Exception as row_err:
+                                    results["entity_mappings"]["errors"].append(
+                                        f"Row {index + 2}: {str(row_err)}"
+                                    )
 
-#             response_status = (
-#                 status.HTTP_207_MULTI_STATUS if has_errors else status.HTTP_200_OK
-#             )
+                except Exception as sheet_err:
+                    results["entity_mappings"]["errors"].append(
+                        f"Error processing Entity sheet: {str(sheet_err)}"
+                    )
+            else:
+                results["entity_mappings"]["errors"].append(
+                    "Entity sheet not found in Excel file"
+                )
 
-#             return Response(
-#                 {
-#                     "status": "completed_with_errors" if has_errors else "success",
-#                     "message": (
-#                         "File processed successfully"
-#                         if not has_errors
-#                         else "File processed with some errors"
-#                     ),
-#                     "results": results,
-#                 },
-#                 status=response_status,
-#             )
+            # Determine overall status
+            has_errors = (
+                len(results["account_mappings"]["errors"]) > 0
+                or len(results["entity_mappings"]["errors"]) > 0
+            )
 
-#         except Exception as e:
-#             return Response(
-#                 {"status": "error", "message": f"Unexpected error: {str(e)}"},
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
+            response_status = (
+                status.HTTP_207_MULTI_STATUS if has_errors else status.HTTP_200_OK
+            )
+
+            return Response(
+                {
+                    "status": "completed_with_errors" if has_errors else "success",
+                    "message": (
+                        "File processed successfully"
+                        if not has_errors
+                        else "File processed with some errors"
+                    ),
+                    "results": results,
+                },
+                status=response_status,
+            )
+
+        except Exception as e:
+            return Response(
+                {"status": "error", "message": f"Unexpected error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # class AccountMappingListView(APIView):
