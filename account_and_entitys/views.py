@@ -2375,7 +2375,7 @@ class UploadBudgetDataView(APIView):
             errors = []
 
             def extract_project_code(raw_value):
-                """Return the leading numeric project code from the provided cell."""
+                """Return the project code from the provided cell."""
                 if raw_value is None:
                     return None
                 if isinstance(raw_value, int):
@@ -2386,9 +2386,7 @@ class UploadBudgetDataView(APIView):
                     if raw_value.is_integer():
                         return str(int(raw_value))
                     return str(raw_value)
-                value_str = str(raw_value).strip()
-                match = re.match(r"^\s*(\d+)", value_str)
-                return match.group(1) if match else None
+                return str(raw_value).strip() or None
 
             def normalize_account(raw_value):
                 if raw_value is None:

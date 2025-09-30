@@ -608,6 +608,8 @@ class EnvelopeManager:
 
             fy24_budget = budget_data["fy24_total"] or 0
             fy25_budget = budget_data["fy25_total"] or 0
+            if approved["total"] == 0 and fy24_budget == 0 and fy25_budget == 0:
+                continue
             result.append(
                 {
                     "account": acc,
@@ -649,8 +651,10 @@ class EnvelopeManager:
         CopexAccounts = EnvelopeManager.__filter_numeric_accounts(
             EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC13000T"])
         )
+        projects = EnvelopeManager.get_all_children(XX_Project.objects.all(), project_code)
+        projects.append(project_code)
         transfers_for_project = xx_TransactionTransfer.objects.filter(
-            project_code=project_code
+            project_code__in=projects
         )
         # MenPowerActiveAccounts = (
         #     transfers_for_project.filter(account_code__in=MenPowerAccounts)
