@@ -2587,7 +2587,12 @@ class AccountWiseDashboardView(APIView):
                 {"message": "project_code query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        results = EnvelopeManager.Get_Dashboard_Data_For_Project(project_code)
+        project = XX_Project.objects.get(pk=project_code)
+        if project is None:
+            return Response(
+                {"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        results = EnvelopeManager.Get_Dashboard_Data_For_Project(project.project)
         return Response(
             {
                 "message": "Project-wise dashboard data.",
