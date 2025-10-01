@@ -46,7 +46,7 @@ from .serializers import AccountEntityLimitSerializer
 from django.db.models import CharField
 from django.db.models.functions import Cast
 from django.db.models import Q
-from .utils import get_oracle_report_data,get_mapping_for_fusion_data
+from .utils import get_oracle_report_data, get_mapping_for_fusion_data
 
 
 class EntityPagination(PageNumberPagination):
@@ -854,7 +854,9 @@ class EntityMappingListView(APIView):
     def get(self, request):
         # Implement logic to retrieve and return entity mappings
         data = get_mapping_for_fusion_data()
-        return Response({"message": "Entity mappings retrieved successfully.", "data": data})
+        return Response(
+            {"message": "Entity mappings retrieved successfully.", "data": data}
+        )
 
 
 class EntityCreateView(APIView):
@@ -2549,7 +2551,19 @@ class ActiveProjectsWithEnvelopeView(APIView):
                     "message": "Active projects with envelope.",
                     "initial_envelope": results["initial_envelope"],
                     "current_envelope": results["current_envelope"],
+                    "current_envelope_change_percentage": (
+                        (results["current_envelope"] - results["initial_envelope"])
+                        / results["initial_envelope"]
+                        if results["initial_envelope"] != 0
+                        else 0
+                    ),
                     "estimated_envelope": results["estimated_envelope"],
+                    "estimated_envelope_change_percentage": (
+                        (results["estimated_envelope"] - results["initial_envelope"])
+                        / results["initial_envelope"]
+                        if results["initial_envelope"] != 0
+                        else 0
+                    ),
                     "data": transformed_data,
                 }
             )
@@ -2604,6 +2618,7 @@ class AccountWiseDashboardView(APIView):
 
 # Mapping
 
+
 class UploadMappingExcelView(APIView):
     """
     Upload Excel file with Account and Entity mapping data.
@@ -2618,11 +2633,7 @@ class UploadMappingExcelView(APIView):
     def get(self, request):
 
         data = get_mapping_for_fusion_data()
-        return Response(
-            {
-                "data": data
-            }
-        )
+        return Response({"data": data})
 
     def post(self, request):
         try:
