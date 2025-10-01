@@ -337,7 +337,9 @@ class EnvelopeManager:
                     accounts
                 )
                 # Filter to keep only numeric accounts
-                numeric_accounts = EnvelopeManager.__filter_numeric_accounts(all_accounts)
+                numeric_accounts = EnvelopeManager.__filter_numeric_accounts(
+                    all_accounts
+                )
                 base_transactions = xx_TransactionTransfer.objects.filter(
                     project_code=project_code, account_code__in=numeric_accounts
                 )
@@ -589,13 +591,18 @@ class EnvelopeManager:
         total_approved = 0
         total_fy25_budget = 0
         total_fy24_budget = 0
+        print(
+            f"Calculating dashboard data for project {project_code} and accounts: {Accounts}"
+        )
         for acc in Accounts:
-            Transfers_for_projects_and_accounts = transfers_for_project.filter(
-                account_code=acc
-            )
-            approved, submitted = EnvelopeManager.Calculate_Transactions_total(
-                Transfers_for_projects_and_accounts
-            )
+            approved, submitted = ({"total": 0}, {"total": 0})
+            if acc.isdigit():
+                Transfers_for_projects_and_accounts = transfers_for_project.filter(
+                    account_code=acc
+                )
+                approved, submitted = EnvelopeManager.Calculate_Transactions_total(
+                    Transfers_for_projects_and_accounts
+                )
             mapped_acc = Account_Mapping.objects.filter(source_account=acc).first()
             if mapped_acc:
                 acc = mapped_acc.target_account
@@ -644,16 +651,21 @@ class EnvelopeManager:
 
     @staticmethod
     def Get_Dashboard_Data_For_Project(project_code):
-        MenPowerAccounts = EnvelopeManager.__filter_numeric_accounts(
-            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC11100T"])
+        MenPowerAccounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(
+            ["TC11100T"]
         )
-        NonMenPowerAccounts = EnvelopeManager.__filter_numeric_accounts(
-            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC11200T"])
+
+        NonMenPowerAccounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(
+            ["TC11200T"]
         )
-        CopexAccounts = EnvelopeManager.__filter_numeric_accounts(
-            EnvelopeManager.Get_All_Children_Accounts_with_Mapping(["TC13000T"])
+
+        CopexAccounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(
+            ["TC13000T"]
         )
-        projects = EnvelopeManager.get_all_children(XX_Project.objects.all(), project_code)
+
+        projects = EnvelopeManager.get_all_children(
+            XX_Project.objects.all(), project_code
+        )
         projects.append(project_code)
         transfers_for_project = xx_TransactionTransfer.objects.filter(
             project_code__in=projects
@@ -682,7 +694,7 @@ class EnvelopeManager:
         CopexData = EnvelopeManager.Get_Dashboard_Data_For_Account(
             transfers_for_project, project_code, CopexAccounts
         )
- 
+
         def format_category_data(data_tuple):
             (
                 total_approved,
@@ -699,7 +711,7 @@ class EnvelopeManager:
                 },
                 "accounts": accounts_list,
             }
- 
+
         return {
             "MenPower": format_category_data(MenPowerData),
             "NonMenPower": format_category_data(NonMenPowerData),
@@ -864,21 +876,25 @@ class XX_BalanceReport(models.Model):
 
 class XX_ACCOUNT_mapping(models.Model):
     """Model representing ADJD account mappings"""
+
     id = models.AutoField(primary_key=True)
     source_account = models.CharField(max_length=50)
     target_account = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Account Mapping {self.id}: {self.source_account} -> {self.target_account}"
+        return (
+            f"Account Mapping {self.id}: {self.source_account} -> {self.target_account}"
+        )
 
     class Meta:
-        db_table = 'XX_ACCOUNT_MAPPING__elies_XX'
-        unique_together = ('source_account', 'target_account')
+        db_table = "XX_ACCOUNT_MAPPING__elies_XX"
+        unique_together = ("source_account", "target_account")
 
 
 class XX_Entity_mapping(models.Model):
     """Model representing ADJD entity mappings"""
+
     id = models.AutoField(primary_key=True)
     source_entity = models.CharField(max_length=50)
     target_entity = models.CharField(max_length=50)
@@ -888,5 +904,5 @@ class XX_Entity_mapping(models.Model):
         return f"Entity Mapping {self.id}: {self.source_entity} -> {self.target_entity}"
 
     class Meta:
-        db_table = 'XX_ENTITY_MAPPING__elies_XX'
-        unique_together = ('source_entity', 'target_entity')
+        db_table = "XX_ENTITY_MAPPING__elies_XX"
+        unique_together = ("source_entity", "target_entity")
