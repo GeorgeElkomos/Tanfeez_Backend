@@ -613,7 +613,40 @@ class transcationtransferapprovel_reject(APIView):
             )
         # Convert single item to list for consistent handling
         items_to_process = []
-        if isinstance(request.data, list):
+
+        # Map new format (single object with arrays) to old format (array of individual objects)
+        if isinstance(request.data, dict) and all(
+            isinstance(v, list) for v in request.data.values()
+        ):
+            transaction_ids = request.data.get("transaction_id", [])
+            decide = (
+                request.data.get("decide", [])[0]
+                if request.data.get("decide")
+                else None
+            )
+            reason = (
+                request.data.get("reason", [])[0]
+                if request.data.get("reason")
+                else None
+            )
+            other_user_id = (
+                request.data.get("other_user_id", [])[0]
+                if request.data.get("other_user_id")
+                else None
+            )
+
+            # Create an object for each transaction_id
+            for tid in transaction_ids:
+                item = {
+                    "transaction_id": [str(tid)],
+                    "decide": [decide] if decide else None,
+                }
+                if reason:
+                    item["reason"] = [reason]
+                if other_user_id:
+                    item["other_user_id"] = [str(other_user_id)]
+                items_to_process.append(item)
+        elif isinstance(request.data, list):
             items_to_process = request.data
         else:
             # Handle single transaction case
