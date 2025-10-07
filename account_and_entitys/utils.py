@@ -56,44 +56,41 @@ def download_oracle_report(control_budget_name="MIC_HQ_MONTHLY", period_name="se
         escaped_param = escape(control_budget_name)
         escaped_param2 = escape(period_name)
 
-        
-
-
         soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
-                       xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">
-           <soap12:Header/>
-           <soap12:Body>
-              <pub:runReport>
-                 <pub:reportRequest>
-                    <pub:reportAbsolutePath>/API/period_balance_report.xdo</pub:reportAbsolutePath>
-                    <pub:attributeFormat>xlsx</pub:attributeFormat>
-                    <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
-                    <pub:parameterNameValues>
-                       <pub:item>
-                          <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_param}</pub:item>
-                          </pub:values>
-                       </pub:item>
-                       <pub:item>
-                          <pub:name>P_PERIOD_NAME</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_param2}</pub:item>
-                          </pub:values>
-                       </pub:item>
-                    </pub:parameterNameValues>
-                 </pub:reportRequest>
-              </pub:runReport>
-           </soap12:Body>
-        </soap12:Envelope>
-        """
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
+               xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">
+   <soap12:Header/>
+   <soap12:Body>
+      <pub:runReport>
+         <pub:reportRequest>
+            <pub:reportAbsolutePath>/API/period_balance_report.xdo</pub:reportAbsolutePath>
+            <pub:attributeFormat>xlsx</pub:attributeFormat>
+            <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
+            <pub:parameterNameValues>
+               <pub:item>
+                  <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_param}</pub:item>
+                  </pub:values>
+               </pub:item>
+               <pub:item>
+                  <pub:name>P_PERIOD_NAME</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_param2}</pub:item>
+                  </pub:values>
+               </pub:item>
+            </pub:parameterNameValues>
+         </pub:reportRequest>
+      </pub:runReport>
+   </soap12:Body>
+</soap12:Envelope>
+"""
 
         headers = {
            "Content-Type": "application/soap+xml;charset=UTF-8"
         }
 
-        response = requests.post(url, data=soap_body, headers=headers, auth=(username, password))
+        response = requests.post(url, data=soap_body.encode('utf-8'), headers=headers, auth=(username, password))
 
         if response.status_code == 200:
            ns = {
@@ -163,78 +160,78 @@ def get_oracle_report_data(control_budget_name="MIC_HQ_MONTHLY", period_name="se
         
         # Always include the main parameters
         parameters.append(f"""
-                       <pub:item>
-                          <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_param}</pub:item>
-                          </pub:values>
-                       </pub:item>""")
+               <pub:item>
+                  <pub:name>P_CONTROL_BUDGET_NAME</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_param}</pub:item>
+                  </pub:values>
+               </pub:item>""")
         
         parameters.append(f"""
-                       <pub:item>
-                          <pub:name>P_PERIOD_NAME</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_param2}</pub:item>
-                          </pub:values>
-                       </pub:item>""")
+               <pub:item>
+                  <pub:name>P_PERIOD_NAME</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_param2}</pub:item>
+                  </pub:values>
+               </pub:item>""")
         
         # Add segment filters if provided
         if segment1:
             escaped_segment1 = escape(str(segment1))
             parameters.append(f"""
-                       <pub:item>
-                          <pub:name>P_SEGMENT1</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_segment1}</pub:item>
-                          </pub:values>
-                       </pub:item>""")
+               <pub:item>
+                  <pub:name>P_SEGMENT1</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_segment1}</pub:item>
+                  </pub:values>
+               </pub:item>""")
         
         if segment2:
             escaped_segment2 = escape(str(segment2))
             parameters.append(f"""
-                       <pub:item>
-                          <pub:name>P_SEGMENT2</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_segment2}</pub:item>
-                          </pub:values>
-                       </pub:item>""")
+               <pub:item>
+                  <pub:name>P_SEGMENT2</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_segment2}</pub:item>
+                  </pub:values>
+               </pub:item>""")
         
         if segment3:
             escaped_segment3 = escape(str(segment3))
             parameters.append(f"""
-                       <pub:item>
-                          <pub:name>P_SEGMENT3</pub:name>
-                          <pub:values>
-                             <pub:item>{escaped_segment3}</pub:item>
-                          </pub:values>
-                       </pub:item>""")
+               <pub:item>
+                  <pub:name>P_SEGMENT3</pub:name>
+                  <pub:values>
+                     <pub:item>{escaped_segment3}</pub:item>
+                  </pub:values>
+               </pub:item>""")
 
         parameters_xml = "".join(parameters)
 
         soap_body = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
-                       xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">
-           <soap12:Header/>
-           <soap12:Body>
-              <pub:runReport>
-                 <pub:reportRequest>
-                    <pub:reportAbsolutePath>/Custom/API/get_Ava_Fund_report.xdo</pub:reportAbsolutePath>
-                    <pub:attributeFormat>xlsx</pub:attributeFormat>
-                    <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
-                    <pub:parameterNameValues>{parameters_xml}
-                    </pub:parameterNameValues>
-                 </pub:reportRequest>
-              </pub:runReport>
-           </soap12:Body>
-        </soap12:Envelope>
-        """
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"
+               xmlns:pub="http://xmlns.oracle.com/oxp/service/PublicReportService">
+   <soap12:Header/>
+   <soap12:Body>
+      <pub:runReport>
+         <pub:reportRequest>
+            <pub:reportAbsolutePath>API/get_Ava_Fund_report.xdo</pub:reportAbsolutePath>
+            <pub:attributeFormat>xlsx</pub:attributeFormat>
+            <pub:sizeOfDataChunkDownload>-1</pub:sizeOfDataChunkDownload>
+            <pub:parameterNameValues>{parameters_xml}
+            </pub:parameterNameValues>
+         </pub:reportRequest>
+      </pub:runReport>
+   </soap12:Body>
+</soap12:Envelope>
+"""
 
         headers = {
            "Content-Type": "application/soap+xml;charset=UTF-8"
         }
 
         print(f"🔍 Fetching Oracle report data for segments: {segment1}, {segment2}, {segment3}")
-        response = requests.post(url, data=soap_body, headers=headers, auth=(username, password))
+        response = requests.post(url, data=soap_body.encode('utf-8'), headers=headers, auth=(username, password))
 
         if response.status_code == 200:
            ns = {
