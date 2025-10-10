@@ -13,7 +13,8 @@ class xx_Invoice(models.Model):
     Invoice_Number = models.CharField(max_length=100, unique=True)
     Invoice_Data = models.JSONField()
     uploaded_by = models.ForeignKey(xx_User, on_delete=models.CASCADE)
-
+    base64_file = models.TextField(default="")
+    file_name= models.CharField(max_length=255, null=True, blank=True)
     class Meta:
         db_table = "XX_INVOICE_XX"
 

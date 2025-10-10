@@ -3,11 +3,79 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+import json
+import re
+import base64
 
 from .models import xx_Invoice as Invoice
 from .serializers import InvoiceSerializer
-from .AI.Gemini_model import  extract_invoice_with_gemini
-from .AI.Own_model import extract_invoice_with_deepseek 
+from .AI.Gemini_model import extract_invoice_with_gemini
+from .AI.Own_model import extract_invoice_with_deepseek
+from .utility import send_request
+
+def clean_and_parse_json_response(response_text):
+    """
+    Clean and parse JSON response that may contain markdown code blocks.
+    Preserves decimal precision (e.g., 300.20 stays as "300.20" string).
+    
+    Args:
+        response_text (str): Raw response text that may contain ```json...``` blocks
+        
+    Returns:
+        dict: Parsed JSON as dictionary with Decimal strings preserved, or None if parsing fails
+        
+    Example:
+        Input: "```json\\n{\"amount\": 300.20}\\n```"
+        Output: {"amount": "300.20"}  # Preserved as string to keep trailing zeros
+    """
+    if not response_text:
+        return None
+    
+    try:
+        from decimal import Decimal
+        
+        # Remove markdown code blocks (```json and ```)
+        cleaned_text = response_text.strip()
+        
+        # Pattern to match ```json...``` or ```...```
+        json_pattern = r'```(?:json)?\s*\n(.*?)\n```'
+        match = re.search(json_pattern, cleaned_text, re.DOTALL)
+        
+        if match:
+            # Extract JSON from code block
+            json_str = match.group(1).strip()
+        else:
+            # No code block, use the whole text
+            json_str = cleaned_text
+        
+        # Remove any leading/trailing whitespace
+        json_str = json_str.strip()
+        
+        # Parse JSON with parse_float to preserve decimal precision
+        parsed_json = json.loads(json_str, parse_float=Decimal)
+        
+        # Convert Decimals to strings to preserve trailing zeros
+        def convert_decimals(obj):
+            if isinstance(obj, dict):
+                return {key: convert_decimals(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_decimals(item) for item in obj]
+            elif isinstance(obj, Decimal):
+                # Convert Decimal to string, preserving format
+                return str(obj)
+            else:
+                return obj
+        
+        result = convert_decimals(parsed_json)
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON parsing error: {e}")
+        print(f"Attempted to parse: {json_str[:200]}...")
+        return None
+    except Exception as e:
+        print(f"❌ Unexpected error cleaning JSON: {e}")
+        return None
 
 
 class InvoicePagination(PageNumberPagination):
@@ -25,7 +93,7 @@ class Invoice_extraction(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Placeholder for extraction logic
+        """Extract invoice data from PDF using AI models"""
 
         file = request.FILES.get("file")
         model_choice = request.data.get("model", "own")  # Default to own model if not provided
@@ -35,25 +103,112 @@ class Invoice_extraction(APIView):
                 {"message": "No file uploaded."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+        # Extract data using selected model
         if model_choice == "gemini":
-            extracted_data = extract_invoice_with_gemini(file)
+            raw_response = extract_invoice_with_gemini(file)
         elif model_choice == "own":
-            extracted_data = extract_invoice_with_deepseek(file)
-
-        if not extracted_data:
+            raw_response = extract_invoice_with_deepseek(file)
+        else:
             return Response(
-                {"message": "Invoice extraction failed."},
+                {"message": f"Invalid model choice: {model_choice}. Use 'gemini' or 'own'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if not raw_response:
+            return Response(
+                {"message": "Invoice extraction failed. No response from AI model."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         
+        # Clean and parse the JSON response
+        parsed_data = clean_and_parse_json_response(raw_response)
+        
+        if not parsed_data:
+            return Response(
+                {
+                    "message": "Failed to parse AI response as JSON.",
+                    "raw_response": raw_response[:500]  # Return first 500 chars for debugging
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+        # Convert PDF to base64
+        try:
+            #read file name
+            file_name = file.name
+            # Reset file pointer to beginning
+            file.seek(0)
+            # Read file content
+            pdf_content = file.read()
+
+            # Encode to base64
+            base64_encoded = base64.b64encode(pdf_content).decode('utf-8')
+            
+            # Get invoice number from parsed data
+            Invoice_Number = parsed_data.get("InvoiceNumber", "UNKNOWN")
+            
+        except Exception as e:
+            return Response(
+                {
+                    "message": f"Failed to encode PDF to base64: {str(e)}",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(
-            {"message": "Invoice extraction logic not implemented."},
-            status=status.HTTP_501_NOT_IMPLEMENTED,
+            {
+                "message": "Invoice extracted successfully.",
+                "model_used": model_choice,
+                "invoice_number": Invoice_Number,
+                "pdf_base64": base64_encoded,
+                "file_name": file_name,
+                "data": parsed_data  # Now returns clean parsed JSON
+            },
+            status=status.HTTP_200_OK
         )
 
 
 
+class Invoice_submit(APIView):
+     permission_classes = [IsAuthenticated]
+
+     def post(self, request): 
+            """Submit extracted invoice data to create an invoice record"""
+            
+            Invoice_Number = request.data.get("InvoiceNumber")
+
+            if not Invoice_Number:
+                return Response(
+                    {
+                        "message": " 'InvoiceNumber' are required fields.",
+                        "errors": {
+                            "InvoiceNumber": "This field is required." if not Invoice_Number else None,
+                        },
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            Invoice_data = Invoice.objects.filter(Invoice_Number=Invoice_Number).first()
+            if Invoice_data:
+                oracle_response = send_request(base64_content=Invoice_data.base64_file, filename=Invoice_data.file_name, json_data=Invoice_data.Invoice_Data, category="From Supplier")
+
+                return Response(
+                    {
+                        "message": "Invoice submitted successfully.",
+                        "oracle_response": oracle_response
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    {
+                        "message": "Invoice not found.",
+                    },
+                    status=status.HTTP_204_NO_CONTENT,
+                )
+
+           
 
 
 class Invoice_Crud(APIView):
@@ -77,11 +232,16 @@ class Invoice_Crud(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
         Invoice_details=request.data.get("Invoice_Data")
+        Invoice_file_name = request.data.get("file_name")
+        Invoice_base64_file = request.data.get("base64_file")
         serializer = InvoiceSerializer(data={
             "Invoice_Data": Invoice_details,
             "Invoice_Number": request.data.get("Invoice_Number"),
-            "uploaded_by": request.user.id
+            "uploaded_by": request.user.id,
+            "file_name": Invoice_file_name,
+            "base64_file": Invoice_base64_file
         })
 
         if serializer.is_valid():

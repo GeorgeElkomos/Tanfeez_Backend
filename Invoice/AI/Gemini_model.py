@@ -71,7 +71,7 @@ def extract_text_from_pdf(pdf_file) -> str:
         return None
 
 
-def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemini-2.0-flash-exp"):
+def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemini-2.5-pro"):
     """
     Process PDF using Google Gemini 2.0 Flash model
     
@@ -150,9 +150,9 @@ def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemin
         return None
 
 
-def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.0-flash-exp"): 
+def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.5-pro"): 
     """
-    Extract structured invoice data using Google Gemini 2.0 Flash
+    Extract structured invoice data using Google Gemini 2.5 Pro
     
     Args:
         pdf_file: Can be either:
@@ -300,6 +300,7 @@ Before returning the JSON:
 9. All numeric fields (totals, taxes, lines) must have **no spaces** inside numbers or decimals.
 10. Dates must appear as **YYYY-MM-DD**.
 11- "DistributionAmount value is same as LineAmount value.
+12. Dont ignore any 0 like if 300.20 keep keep it 300.20 not 300.2
 
 ==============================
 🚫 OUTPUT RESTRICTIONS
@@ -316,7 +317,7 @@ Before returning the JSON:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("PDF Processing: Google Gemini 2.0 Flash")
+    print("PDF Processing: Google Gemini 2.5 Pro")
     print("=" * 60)
     print()
 
