@@ -25,6 +25,8 @@ urlpatterns = [
     path("api/admin_panel/", include("Admin_Panel.urls")),  # Add the new app's URLs
     path("api/approvals/", include("approvals.urls")),  # Add the new app's URLs
     path("api/chat/", include("Chatting.urls")),  # Add the new app's URLs
+    path("api/Invoice/", include("Invoice.urls")),  # Add the new app's URLs
+
 ]
 from django.urls import path
 from .consumers import NotificationConsumer

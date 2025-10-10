@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "approvals",
     "Chatting",
+    "Invoice",
 ]
 
 AUTH_USER_MODEL = "user_management.xx_User"

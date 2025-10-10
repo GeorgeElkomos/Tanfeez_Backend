@@ -1,0 +1,59 @@
+```json
+{
+  "InvoiceNumber": "INVABU -0000 -2025",
+  "InvoiceCurrency": "AED",
+  "InvoiceAmount": 58423.20,
+  "InvoiceDate": "2024-02-00",
+  "BusinessUnit": "MIC Headquarter BU",
+  "Supplier": "Lightidea",
+  "SupplierSite": "Not Found",
+  "InvoiceGroup": "Not Found",
+  "Description": "Not Found",
+  "PONumber": "FD-PO-0000",
+  "PaymentTerm": "Net 15 Days",
+  "VendorTRN": "00000",
+
+  "invoiceDff": [{
+    "__FLEX_Context": "MIC_HQ"
+  }],
+
+  "invoiceLines": [{
+    "LineNumber": 1,
+    "LineAmount": 56423.20,
+    "Description": "Project implement",
+    "Quantity": "1.00",
+    "UnitPrice": "00,000.00",
+    "TaxRate": "5%",
+
+    "invoiceLineDff": [{
+      "__FLEX_Context": "MIC_HQ"
+    }],
+
+    "invoiceDistributions": [{
+      "DistributionLineNumber": 1,
+      "DistributionLineType": "Item",
+      "DistributionAmount": 56423.20,
+      "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
+    }]
+  },
+  {
+    "LineNumber": 2,
+    "LineAmount": 2000.20,
+    "Description": "Project fix",
+    "Quantity": "1.00",
+    "UnitPrice": "00,000.00",
+    "TaxRate": "5%",
+
+    "invoiceLineDff": [{
+      "__FLEX_Context": "MIC_HQ"
+    }],
+
+    "invoiceDistributions": [{
+      "DistributionLineNumber": 2,
+      "DistributionLineType": "Item",
+      "DistributionAmount": 2000.20,
+      "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
+    }]
+  }]
+}
+```
