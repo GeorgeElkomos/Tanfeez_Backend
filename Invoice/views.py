@@ -85,8 +85,6 @@ class InvoicePagination(PageNumberPagination):
     page_size_query_param = "page_size"
     max_page_size = 100
 
-
-
 class Invoice_extraction(APIView):
     """Extract invoices"""
 
@@ -168,8 +166,6 @@ class Invoice_extraction(APIView):
             status=status.HTTP_200_OK
         )
 
-
-
 class Invoice_submit(APIView):
      permission_classes = [IsAuthenticated]
 
@@ -207,9 +203,6 @@ class Invoice_submit(APIView):
                     },
                     status=status.HTTP_204_NO_CONTENT,
                 )
-
-           
-
 
 class Invoice_Crud(APIView):
     """Create invoices"""
