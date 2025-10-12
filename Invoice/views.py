@@ -94,7 +94,7 @@ class Invoice_extraction(APIView):
         """Extract invoice data from PDF using AI models"""
 
         file = request.FILES.get("file")
-        model_choice = request.data.get("model", "own")  # Default to own model if not provided
+        model_choice = request.data.get("model", "gemini")  # Default to gemini model if not provided
         
         if not file:
             return Response(
