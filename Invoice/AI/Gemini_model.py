@@ -150,7 +150,7 @@ def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemin
         return None
 
 
-def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.5-pro"): 
+def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.0-flash"): 
     """
     Extract structured invoice data using Google Gemini 2.5 Pro
     

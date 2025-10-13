@@ -15,6 +15,7 @@ class xx_Invoice(models.Model):
     uploaded_by = models.ForeignKey(xx_User, on_delete=models.CASCADE)
     base64_file = models.TextField(default="")
     file_name= models.CharField(max_length=255, null=True, blank=True)
+    status = models.CharField(max_length=50, default="Pending")  # e.g., Pending, Processed, Error
     class Meta:
         db_table = "XX_INVOICE_XX"
 
