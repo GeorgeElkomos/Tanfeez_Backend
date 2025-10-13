@@ -300,7 +300,8 @@ Before returning the JSON:
 9. All numeric fields (totals, taxes, lines) must have **no spaces** inside numbers or decimals.
 10. Dates must appear as **YYYY-MM-DD**.
 11- "DistributionAmount value is same as LineAmount value.
-12. Dont ignore any 0 like if 300.20 keep keep it 300.20 not 300.2
+12. Dont ignore any 0 like if 300.20 keep keep it 300.20 not 300.
+13. InvoiceAmount should = the total of all LineAmount values. 
 
 ==============================
 🚫 OUTPUT RESTRICTIONS
@@ -309,6 +310,58 @@ Before returning the JSON:
 - Do **not** infer or enrich missing data.  
 - Maintain all explicitly provided fixed values exactly as stated.  
 - `"InvoiceAmount"` must always equal the total of all line item `"LineAmount"` values (verbatim).
+-  "data": {
+        "InvoiceNumber": "INVABU -0000 -2025",
+        "InvoiceCurrency": "AED",
+        "InvoiceAmount": "76423.4",
+        "InvoiceDate": "2024-09-01",
+        "BusinessUnit": "MIC Headquarter BU",
+        "Supplier": "ABEER SHEIKH",
+        "SupplierSite": "DUBAI",
+        "InvoiceGroup": "01Feb2019",
+        "Description": "Not Found",
+        "invoiceDff": [
+            {
+                "__FLEX_Context": "MIC_HQ"
+            }
+        ],
+        "invoiceLines": [
+            {
+                "LineNumber": 1,
+                "LineAmount": "56423.20",
+                "invoiceLineDff": [
+                    {
+                        "__FLEX_Context": "MIC_HQ"
+                    }
+                ],
+                "invoiceDistributions": [
+                    {
+                        "DistributionLineNumber": 1,
+                        "DistributionLineType": "Item",
+                        "DistributionAmount": "56423.20",
+                        "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
+                    }
+                ]
+            },
+            {
+                "LineNumber": 2,
+                "LineAmount": "2000.20",
+                "invoiceLineDff": [
+                    {
+                        "__FLEX_Context": "MIC_HQ"
+                    }
+                ],
+                "invoiceDistributions": [
+                    {
+                        "DistributionLineNumber": 2,
+                        "DistributionLineType": "Item",
+                        "DistributionAmount": "2000.20",
+                        "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
+                    }
+                ]
+            }
+        ]
+    } this is wrong because InvoiceAmount not equal the total of all LineAmount values. it should be 58423.40
 """
 
     
