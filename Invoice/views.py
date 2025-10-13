@@ -260,8 +260,63 @@ class Invoice_Crud(APIView):
             
         paginator = InvoicePagination()
         paginated_invoices = paginator.paginate_queryset(invoices, request)
-        serializer = InvoiceSerializer(paginated_invoices, many=True)
-        return paginator.get_paginated_response(serializer.data)
+
+        if not Invoice_Number:
+            data = []
+            for invoice in paginated_invoices:
+                # Handle both string and dict types for Invoice_Data
+                invoice_data = invoice.Invoice_Data if invoice.Invoice_Data else {}
+                
+                # If it's a string, parse it as JSON
+                if isinstance(invoice_data, str):
+                    try:
+                        invoice_data = json.loads(invoice_data)
+                    except json.JSONDecodeError:
+                        invoice_data = {}
+                
+                # Extract only the required fields
+                extracted_data = {
+                    'status': invoice.status,
+                    # 'file_name': invoice.file_name,
+                    'InvoiceNumber': invoice_data.get('InvoiceNumber'),
+                    'InvoiceCurrency': invoice_data.get('InvoiceCurrency'),
+                    'InvoiceAmount': invoice_data.get('InvoiceAmount'),
+                    'InvoiceDate': invoice_data.get('InvoiceDate'),
+                    'BusinessUnit': invoice_data.get('BusinessUnit'),
+                    'Supplier': invoice_data.get('Supplier'),
+                    'SupplierSite': invoice_data.get('SupplierSite')
+                }
+                data.append(extracted_data)
+            return paginator.get_paginated_response(data)
+        else:
+            # When Invoice_Number is provided, parse the Invoice_Data
+            data = []
+            for invoice in paginated_invoices:
+                # Handle both string and dict types for Invoice_Data
+                invoice_data = invoice.Invoice_Data if invoice.Invoice_Data else {}
+                
+                # If it's a string, parse it as JSON
+                if isinstance(invoice_data, str):
+                    try:
+                        invoice_data = json.loads(invoice_data)
+                    except json.JSONDecodeError:
+                        invoice_data = {}
+                
+                # Return all fields with parsed Invoice_Data
+                extracted_data = {
+                    'Invoice_ID': invoice.Invoice_ID,
+                    'Invoice_Number': invoice.Invoice_Number,
+                    'Invoice_Data': invoice_data,  # Parsed JSON instead of string
+                    'uploaded_by': invoice.uploaded_by.id if invoice.uploaded_by else None,
+                    'base64_file': invoice.base64_file,
+                    'file_name': invoice.file_name,
+                    'status': invoice.status
+                }
+                data.append(extracted_data)
+            
+            return paginator.get_paginated_response(data)
+
+
     
     def delete(self, request):
         """Delete an invoice by ID"""

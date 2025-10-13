@@ -696,7 +696,7 @@ class transcationtransferSubmit(APIView):
                         type="submit",
                     )
                     time.sleep(90)
-                    submit_automatic_posting("300000306553329")
+                    submit_automatic_posting("300000312635883")
                     response_data = {
                         "message": "Transfers submitted for approval successfully",
                         "transaction_id": transaction_id,

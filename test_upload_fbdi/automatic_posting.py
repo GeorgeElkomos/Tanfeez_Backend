@@ -101,12 +101,12 @@ def parse_fault_and_vals(resp_text: str):
     return None, vals
 
 
-def submit_automatic_posting(ledger_id: str = "300000306553329") -> str:
+def submit_automatic_posting(ledger_id: str = "300000312635883") -> str:
     """
     Submit Automatic Posting job for General Ledger
 
     Args:
-        ledger_id: The ledger ID to post to (default: 300000306553329)
+        ledger_id: The ledger ID to post to (default: 300000312635883)
 
     Returns:
         str: JobRequestId of the submitted job

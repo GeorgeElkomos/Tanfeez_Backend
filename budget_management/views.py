@@ -769,7 +769,7 @@ class transcationtransferapprovel_reject(APIView):
                                     90
                                 )  # wait for 90 seconds before submitting budget
                                 print("wait for 90 seconds")
-                            submit_automatic_posting("300000306553329")
+                            submit_automatic_posting("300000312635883")
                             time.sleep(
                                 10
                             )  # wait for 10 seconds before submitting budget
@@ -788,7 +788,7 @@ class transcationtransferapprovel_reject(APIView):
                                     type="reject",
                                 )
                                 time.sleep(90)
-                                submit_automatic_posting("300000306553329")
+                                submit_automatic_posting("300000312635883")
                                 response_data = {
                                     "message": "Transfers submitted for approval successfully",
                                     "transaction_id": transaction_id,
