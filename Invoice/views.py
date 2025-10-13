@@ -188,21 +188,60 @@ class Invoice_submit(APIView):
             Invoice_data = Invoice.objects.filter(Invoice_Number=Invoice_Number).first()
             if Invoice_data:
                 oracle_response = send_request(base64_content=Invoice_data.base64_file, filename=Invoice_data.file_name, json_data=Invoice_data.Invoice_Data, category="From Supplier")
-                Invoice_data.status = "Submitted" if oracle_response else "Error"
-                Invoice_data.save()
-                return Response(
-                    {
-                        "message": "Invoice submitted successfully.",
-                        "oracle_response": oracle_response
-                    },
-                    status=status.HTTP_200_OK,
-                )
+                
+                # Check if oracle_response indicates an error
+                if oracle_response and isinstance(oracle_response, dict):
+                    # Check for error indicators in the response
+                    if oracle_response.get('status') == 'error':
+                        Invoice_data.status = "Error"
+                        Invoice_data.save()
+                        return Response(
+                            {
+                                "message": "Invoice submission failed.",
+                                "status_code": oracle_response.get('status_code'),
+                                "error": oracle_response.get('error') or oracle_response.get('response_body'),
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    elif oracle_response.get('status') == 'success':
+                        Invoice_data.status = "Submitted"
+                        Invoice_data.save()
+                        return Response(
+                            {
+                                "message": "Invoice submitted successfully.",
+                                "status_code": oracle_response.get('status_code'),
+                                "response_body": oracle_response.get('response_body'),
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    else:
+                        # Unknown status
+                        Invoice_data.status = "Error"
+                        Invoice_data.save()
+                        return Response(
+                            {
+                                "message": "Invoice submission returned unknown status.",
+                                "oracle_response": oracle_response
+                            },
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        )
+                else:
+                    # If oracle_response is None or unexpected format
+                    Invoice_data.status = "Error"
+                    Invoice_data.save()
+                    return Response(
+                        {
+                            "message": "Invoice submission failed - No response from Oracle.",
+                            "oracle_response": oracle_response
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
             else:
                 return Response(
                     {
                         "message": "Invoice not found.",
                     },
-                    status=status.HTTP_204_NO_CONTENT,
+                    status=status.HTTP_404_NOT_FOUND,
                 )
 
 class Invoice_Crud(APIView):

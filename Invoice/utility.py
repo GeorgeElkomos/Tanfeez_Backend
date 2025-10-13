@@ -44,14 +44,29 @@ def send_with_basic_auth(json_data):
         
         if response.status_code in [200, 201]:
             print("\n✓ Success! Invoice created successfully.")
-            return response.json()
+            return {
+                "status": "success",
+                "status_code": response.status_code,
+                "response_body": response.json(),
+                "response_headers": dict(response.headers)
+            }
         else:
             print(f"\n✗ Error: Request failed with status {response.status_code}")
-            return None
+            return {
+                "status": "error",
+                "status_code": response.status_code,
+                "response_body": response.text,
+                "response_headers": dict(response.headers),
+                "error": response.text
+            }
             
     except requests.exceptions.RequestException as e:
         print(f"\n✗ Exception occurred: {e}")
-        return None
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Network or connection error occurred"
+        }
 
 
 def add_base64_attachment_to_invoice(base64_content, filename, invoice_json, category="From Supplier"):
