@@ -188,7 +188,8 @@ class Invoice_submit(APIView):
             Invoice_data = Invoice.objects.filter(Invoice_Number=Invoice_Number).first()
             if Invoice_data:
                 oracle_response = send_request(base64_content=Invoice_data.base64_file, filename=Invoice_data.file_name, json_data=Invoice_data.Invoice_Data, category="From Supplier")
-
+                Invoice_data.status = "Submitted" if oracle_response else "Error"
+                Invoice_data.save()
                 return Response(
                     {
                         "message": "Invoice submitted successfully.",
