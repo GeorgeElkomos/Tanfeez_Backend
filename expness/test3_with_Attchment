@@ -1,0 +1,150 @@
+import requests
+import json
+import base64
+import os
+import mimetypes
+from datetime import date
+
+BASE = "https://hcbg-dev4.fa.ocs.oraclecloud.com"
+USERNAME = "BCARSE"
+PASSWORD = "123456789"
+
+HEADERS = {
+    "Content-Type": "application/vnd.oracle.adf.resourceitem+json",
+    "Accept": "application/json",
+    "REST-Framework-Version": "2"
+}
+
+def _link(body, rel):
+    for l in body.get("links", []):
+        if l.get("rel") == rel:
+            return l.get("href")
+    return None
+
+def _guess_content_type(path):
+    ctype, _ = mimetypes.guess_type(path)
+    return ctype or "application/octet-stream"
+
+def _b64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8"), os.path.basename(path), os.path.getsize(path)
+
+def create_full_expense(cfg: dict):
+    # 1) CREATE EXPENSE
+    expense_payload = cfg["expense"].copy()
+    url = f"{BASE}/fscmRestApi/resources/11.13.18.05/expenses"
+    r = requests.post(url, auth=(USERNAME, PASSWORD),
+                      headers=HEADERS, data=json.dumps(expense_payload))
+    if r.status_code not in (200, 201):
+        raise RuntimeError(f"[Create Expense] {r.status_code} {r.text}")
+
+    expense = r.json()
+    expense_self = _link(expense, "self")
+    expense_id = expense.get("ExpenseId")
+    org_id = expense.get("OrgId")
+    out = {"expense": expense}
+
+    # 2) ADD DISTRIBUTION + PJCDFF (Project/Task/Expenditure Org)
+    dist_cfg = cfg.get("distribution")
+    if dist_cfg:
+        dist_payload = {
+            "ExpenseId": expense_id,
+            "OrgId": org_id
+        }
+        if dist_cfg.get("reimbursable_amount") is not None:
+            dist_payload["ReimbursableAmount"] = dist_cfg["reimbursable_amount"]
+
+        pjcdff = {"__FLEX_Context": dist_cfg.get("flex_context", "EXM_Expense_Report_Line")}
+        if dist_cfg.get("project_number"):
+            pjcdff["_PROJECT_ID_Display"] = dist_cfg["project_number"]
+        if dist_cfg.get("task_number"):
+            pjcdff["_TASK_ID_Display"] = dist_cfg["task_number"]
+        if dist_cfg.get("expenditure_org_name"):
+            pjcdff["_ORGANIZATION_ID_Display"] = dist_cfg["expenditure_org_name"]
+
+        if any(k in pjcdff for k in ("_PROJECT_ID_Display","_TASK_ID_Display","_ORGANIZATION_ID_Display")):
+            dist_payload["PJCDFF"] = [pjcdff]
+
+        dist_url = f"{expense_self}/child/ExpenseDistribution"
+        r2 = requests.post(dist_url, auth=(USERNAME, PASSWORD),
+                           headers=HEADERS, data=json.dumps(dist_payload))
+        if r2.status_code not in (200, 201):
+            raise RuntimeError(f"[Add Distribution] {r2.status_code} {r2.text}")
+        out["distribution"] = r2.json()
+
+    # 3) OPTIONAL: EXPENSE-LEVEL DFF (non-project flex)
+    exp_dff = cfg.get("expense_dff")
+    if exp_dff:
+        dff_payload = exp_dff.copy()
+        dff_payload["ExpenseId"] = expense_id
+        dff_url = f"{expense_self}/child/ExpenseDff"
+        r3 = requests.post(dff_url, auth=(USERNAME, PASSWORD),
+                           headers=HEADERS, data=json.dumps(dff_payload))
+        if r3.status_code not in (200, 201):
+            raise RuntimeError(f"[Expense DFF] {r3.status_code} {r3.text}")
+        out["expense_dff"] = r3.json()
+
+    # 4) OPTIONAL: ATTACHMENTS (receipts)
+    # Endpoint per Oracle docs: /expenses/{expensesUniqID}/child/Attachments
+    # Required fields: FileContents (base64), UploadedFileName, UploadedFileContentType, DatatypeCode='FILE'
+    # Optional: Title, Description, CategoryName (e.g., 'ExpenseReceipt')
+    for att in cfg.get("attachments", []):
+        fpath = att["path"]
+        b64, fname, flen = _b64(fpath)
+        payload = {
+            "DatatypeCode": "FILE",
+            "Title": att.get("title", fname),
+            "Description": att.get("description"),
+            "CategoryName": att.get("category", "ExpenseReceipt"),
+            "UploadedFileName": fname,
+            "UploadedFileContentType": att.get("content_type", _guess_content_type(fpath)),
+            "UploadedFileLength": flen,
+            "FileContents": b64
+        }
+        att_url = f"{expense_self}/child/Attachments"
+        r4 = requests.post(att_url, auth=(USERNAME, PASSWORD),
+                           headers=HEADERS, data=json.dumps(payload))
+        if r4.status_code not in (200, 201):
+            raise RuntimeError(f"[Add Attachment] {r4.status_code} {r4.text}")
+        out.setdefault("attachments", []).append(r4.json())
+
+    return out
+
+
+if __name__ == "__main__":
+    cfg = {
+        "expense": {
+            "Description": "Flight to Dubai (with receipt)",
+            "ReceiptDate": str(date.today()),
+            "ExpenseTemplate": "MIC HQ Regular Expenses",
+            "ExpenseType": "Airfare",
+            "ReceiptAmount": 1200.00,
+            "ReceiptCurrencyCode": "AED",
+            "ReimbursableAmount": 1200.00,
+            "ExpenseSource": "CASH",
+            "AssignmentId": 300000123456789  # <-- real HCM AssignmentId
+        },
+        "distribution": {
+            "reimbursable_amount": 1200.00,
+            "flex_context": "EXM_Expense_Report_Line",
+            "project_number": "HQIACE001",
+            "task_number": "1.01",
+            "expenditure_org_name": "Internal Audit"
+        },
+        "attachments": [
+            {
+                "path": r"expness\INVABU-0000-2025 (2).pdf",
+                "title": "Airfare Receipt",
+                "description": "Dubai client meeting",
+                "category": "ExpenseReceipt",         # category name in your instance
+                # "content_type": "application/pdf"    # optional; auto-guessed if omitted
+            }
+        ]
+        # "expense_dff": { "__FLEX_Context": "YOUR_EXPENSE_DFF_CONTEXT", "Attribute1": "Value1" }
+    }
+
+    try:
+        result = create_full_expense(cfg)
+        print(json.dumps(result, indent=2))
+    except Exception as e:
+        print("❌ Error:", e)
