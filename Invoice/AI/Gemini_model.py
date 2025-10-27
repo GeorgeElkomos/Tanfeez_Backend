@@ -71,7 +71,7 @@ def extract_text_from_pdf(pdf_file) -> str:
         return None
 
 
-def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemini-2.5-pro"):
+def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemini-2.0-flash-exp"):
     """
     Process PDF using Google Gemini 2.0 Flash model
     
@@ -99,7 +99,7 @@ def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemin
     print(f"STEP 2: Processing with Google Gemini ({model_name})")
     print("=" * 60)
     
-    api_key = "AIzaSyCOH5doSg_YSyAr8V5RSHAp0R5YbsNRP6g"
+    api_key = "AIzaSyCn41qN4bXyq5C0mUSojeJeJZ_eKZDe7q8"
     if not api_key:
         print("Error: GEMINI_API_KEY not found in environment variables")
         print("Please add GEMINI_API_KEY to your .env file")
@@ -152,7 +152,7 @@ def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemin
 
 def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.0-flash"): 
     """
-    Extract structured invoice data using Google Gemini 2.5 Pro
+    Extract structured invoice data using Google Gemini 2.5 Pro with Account Code Prediction
     
     Args:
         pdf_file: Can be either:
@@ -162,7 +162,95 @@ def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.0-flash"):
     """
     
     invoice_prompt = """
-You are a PROFESSIONAL INVOICE DATA EXTRACTION SPECIALIST operating in **STRICT VALUE PRESERVATION MODE**.
+You are a PROFESSIONAL INVOICE DATA EXTRACTION AND CLASSIFICATION SPECIALIST operating in **STRICT VALUE PRESERVATION MODE**.
+
+==============================
+📊 ACCOUNT CODE CLASSIFICATION
+==============================
+You have access to the following Chart of Accounts. You must:
+1. Analyze the OVERALL invoice description and purpose
+2. Match it to the MOST APPROPRIATE account code from the list below
+3. Add the "AccountCode" field ONLY at the invoice header level (NOT in line items)
+4. Add the "AccountDescription" field ONLY at the invoice header level (NOT in line items)
+
+
+**AVAILABLE ACCOUNT CODES:**
+
+5000000 - Expenses (General business operating expense)
+5010000 - Cost Of Sales (General business operating expense)
+5010001 - Salaries Eng Staff (Employee-related operational expense)
+5010002 - Depreciation Charges To Cost Of Sales (Asset wear and tear) 
+5010003 - Inventory - NRV Adjustment to PL (Inventory adjustments)
+5010004 - FM Service Charges (Facility management services)
+5010005 - Community Service Charges (Shared facility costs)
+5010006 - Chilled Water Consumption Charges (Utility costs - water/cooling)
+5010007 - Broker comission (Broker/agent fees)
+5010008 - Development Fee (Development-related costs)
+5010015 - Other Cost of Sales (Miscellaneous operational costs)
+5010016 - Other Cost of Sales - RP (Miscellaneous operational costs)
+5040000 - General And Administrative Expenses (General overhead)
+5040100 - G&A - Staff Costs (General staff-related costs)
+5040101 - Basic Salary (Employee base pay)
+5040102 - Children Allowance (Employee family benefits)
+5040103 - Social Allowance (Employee social benefits)
+5040104 - Special Allowance (Special employee benefits)
+5040105 - Airfare Allowance (Travel/airfare benefits)
+5040106 - Consolidated Allowance (Combined employee benefits)
+5040107 - Overtime Expenses (Overtime pay)
+5040108 - Education Assistance (Training/education)
+5040109 - Life Insurance Expense (Life insurance premiums)
+5040111 - Health Insurance Expense (Health insurance premiums)
+5040112 - Leave Provision (Leave liability provision)
+5040113 - Expatriates EOSB (End of service benefits - expats)
+5040114 - UAE Nationals EOSB Non Pensionable (UAE end of service)
+5040115 - Defined Benefit Contribution (Pension/retirement contributions)
+5040116 - UAE Nationals Pension (UAE pension)
+5040117 - Employee Relocation Expenses (Relocation costs)
+5040118 - Repatriation Expense (Repatriation costs)
+5040119 - Non UAE Employee Pension (Non-UAE pension)
+5040121 - Special Needs Assistance (Special needs support)
+5040122 - Payroll Taxes Employer (Payroll taxes)
+5040123 - Workers Compensation Expense (Workers compensation)
+5040124 - Visa Expenses (Visa/immigration fees)
+5040125 - Professional Membership Fees (Professional memberships)
+5040126 - International Assignment Allowance (International assignment pay)
+5040127 - Outward Secondee Compensation Recharges (Secondment costs)
+5040128 - Inward Secondee Compensation Recharges (Secondment costs)
+5040129 - Secondee Employee Tax Expense (Secondment taxes)
+5040131 - Long-Term Contractors (Contractor costs)
+5040132 - Recruitment Expenses (Hiring/recruitment costs)
+5040133 - Training Expenses Fees (Training/development)
+5040134 - Lump Sum Adjustments (Adjustment entries)
+5040135 - Ex Gratia Payment (Discretionary payments)
+5040136 - Discretionary Bonus (Performance bonuses)
+5040137 - Board And Committee Membership Fee (Board/committee fees)
+5040138 - Long-Term Incentive Plan Expense (Long-term incentives)
+5040141 - Special Compensation Payment (Special compensation)
+5040200 - G&A - Depreciation Of Property, Plant And Equipment (Asset depreciation)
+5040201 - Depreciation Expense Buildings (Building depreciation)
+5040202 - Depreciation Expense Machinery And Equipment (Equipment depreciation)
+5040203 - Depreciation Expense Transportation Equipment (Vehicle depreciation)
+5040204 - Depreciation Expense Furniture And Fixtures (Furniture depreciation)
+5040205 - Depreciation Expense Office Equipment (Office equipment depreciation)
+5040206 - Depreciation Expense Computers And Software (IT/software depreciation)
+5040207 - Depreciation Expense Leasehold Improvements (Leasehold improvement depreciation)
+8888888 - Dummy Account (General/test expense)
+
+**CLASSIFICATION RULES:**
+- Analyze the overall invoice purpose and description
+- Match based on primary expense category (e.g., "salary" → 5040101, "insurance" → 5040111, "office supplies" → 5040000)
+- If description mentions specific categories like "airfare", "visa", "recruitment", use that specific account
+- For general office/administrative items, use 5040000 (General And Administrative Expenses)
+- For cost of goods/sales items, use 5010000 or 5010015
+- If completely unclear, use 5000000 (General Expenses) as fallback
+- **IMPORTANT:** Add "AccountCode" field ONLY at invoice header level (top), NOT in each line item
+
+==============================
+🎯 CORE OBJECTIVE
+==============================
+Your objectives are:
+1. EXTRACT DATA **EXACTLY AS IT APPEARS** in the invoice
+2. CLASSIFY the invoice with ONE appropriate AccountCode at the header level
 
 ==============================
 🎯 CORE OBJECTIVE
@@ -258,6 +346,8 @@ Return exactly this JSON structure (no additional or missing fields):
   "SupplierSite": "DUBAI",
   "InvoiceGroup": "01Feb2019",
   "Description": "Office Supplies",
+  "AccountCode": "5040000",
+  "Account Description": "General And Administrative Expenses",
 
   "invoiceDff": [{
     "__FLEX_Context": "MIC_HQ"
@@ -299,9 +389,11 @@ Before returning the JSON:
    - `"SupplierSite": "DUBAI"`
 9. All numeric fields (totals, taxes, lines) must have **no spaces** inside numbers or decimals.
 10. Dates must appear as **YYYY-MM-DD**.
-11- "DistributionAmount value is same as LineAmount value.
+11. "DistributionAmount value is same as LineAmount value.
 12. Dont ignore any 0 like if 300.20 keep keep it 300.20 not 300.
-13. InvoiceAmount should = the total of all LineAmount values. 
+13. InvoiceAmount should = the total of all LineAmount values.
+14. **Add "AccountCode" field at invoice header level ONLY** - analyze the overall invoice description/purpose and assign the most appropriate account code from the provided list.
+15. Do NOT add AccountCode to individual line items.
 
 ==============================
 🚫 OUTPUT RESTRICTIONS
@@ -310,16 +402,19 @@ Before returning the JSON:
 - Do **not** infer or enrich missing data.  
 - Maintain all explicitly provided fixed values exactly as stated.  
 - `"InvoiceAmount"` must always equal the total of all line item `"LineAmount"` values (verbatim).
+- AccountCode appears ONLY at the invoice header level (top), NOT in line items.
 -  "data": {
         "InvoiceNumber": "INVABU -0000 -2025",
         "InvoiceCurrency": "AED",
-        "InvoiceAmount": "76423.4",
+        "InvoiceAmount": "58423.40",
         "InvoiceDate": "2024-09-01",
         "BusinessUnit": "MIC Headquarter BU",
         "Supplier": "ABEER SHEIKH",
         "SupplierSite": "DUBAI",
         "InvoiceGroup": "01Feb2019",
-        "Description": "Not Found",
+        "Description": "Office Supplies",
+        "AccountCode": "5040000",
+        "Account Description": "General And Administrative Expenses",
         "invoiceDff": [
             {
                 "__FLEX_Context": "MIC_HQ"
@@ -374,4 +469,5 @@ if __name__ == "__main__":
     print("=" * 60)
     print()
 
-    extract_invoice_with_gemini(r"INVABU-0000-2025 copy.pdf")
+    extract_invoice_with_gemini(r"Invoice\AI\Invoice - 1000015371z.pdf")
+
