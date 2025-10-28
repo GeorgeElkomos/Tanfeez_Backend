@@ -164,8 +164,6 @@ class Invoice_extraction(APIView):
                 "pdf_base64": base64_encoded,
                 "file_name": file_name,
                 "data": parsed_data,  # Now returns clean parsed JSON
-                "code_combination": Code_Combination,
-                "code_description": Code_Description
             },
             status=status.HTTP_200_OK
         )
@@ -189,16 +187,21 @@ class Invoice_submit(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            Invoice_data = Invoice.objects.filter(Invoice_Number=Invoice_Number).first()
-            if Invoice_data:
-                oracle_response = send_request(base64_content=Invoice_data.base64_file, filename=Invoice_data.file_name, json_data=Invoice_data.Invoice_Data, category="From Supplier")
+            Invoice_Object = Invoice.objects.filter(Invoice_Number=Invoice_Number).first()
+            
+            
+            if Invoice_Object:
+
+                Invoice_data=Invoice_Object.Invoice_Data
+
+                oracle_response = send_request(base64_content=Invoice_Object.base64_file, filename=Invoice_Object.file_name, json_data=Invoice_data, category="From Supplier")
                 
                 # Check if oracle_response indicates an error
                 if oracle_response and isinstance(oracle_response, dict):
                     # Check for error indicators in the response
                     if oracle_response.get('status') == 'error':
-                        Invoice_data.status = "Error"
-                        Invoice_data.save()
+                        Invoice_Object.status = "Error"
+                        Invoice_Object.save()
                         return Response(
                             {
                                 "message": "Invoice submission failed.",
@@ -208,8 +211,8 @@ class Invoice_submit(APIView):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
                     elif oracle_response.get('status') == 'success':
-                        Invoice_data.status = "Submitted"
-                        Invoice_data.save()
+                        Invoice_Object.status = "Submitted"
+                        Invoice_Object.save()
                         return Response(
                             {
                                 "message": "Invoice submitted successfully.",
@@ -220,8 +223,8 @@ class Invoice_submit(APIView):
                         )
                     else:
                         # Unknown status
-                        Invoice_data.status = "Error"
-                        Invoice_data.save()
+                        Invoice_Object.status = "Error"
+                        Invoice_Object.save()
                         return Response(
                             {
                                 "message": "Invoice submission returned unknown status.",
@@ -231,8 +234,8 @@ class Invoice_submit(APIView):
                         )
                 else:
                     # If oracle_response is None or unexpected format
-                    Invoice_data.status = "Error"
-                    Invoice_data.save()
+                    Invoice_Object.status = "Error"
+                    Invoice_Object.save()
                     return Response(
                         {
                             "message": "Invoice submission failed - No response from Oracle.",
@@ -255,14 +258,14 @@ class Invoice_Crud(APIView):
 
     def post(self, request):
 
-        if not request.data.get("Invoice_Data") and request.data.get("Invoice_Number") != []:
+        if not request.data.get("Invoice_Object") and request.data.get("Invoice_Number") != []:
             return Response(
                 {
                     "message": "Invoice date is a required field.",
                     "errors": {
-                        "Invoice_Data": (
+                        "Invoice_Object": (
                             "This field is required."
-                            if not request.data.get("Invoice_Data")
+                            if not request.data.get("Invoice_Object")
                             else None
                         )
                     },
@@ -270,21 +273,17 @@ class Invoice_Crud(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
-        Invoice_details=request.data.get("Invoice_Data")
+        Invoice_details=request.data.get("Invoice_Object")
         Invoice_file_name = request.data.get("file_name")
         Invoice_base64_file = request.data.get("base64_file")
-        Invoice_code_combination = request.data.get("code_combination")
-        Invoice_code_description = request.data.get("code_description")
 
         serializer = InvoiceSerializer(data={
 
-            "Invoice_Data": Invoice_details,
+            "Invoice_Object": Invoice_details,
             "Invoice_Number": request.data.get("Invoice_Number"),
             "uploaded_by": request.user.id,
             "file_name": Invoice_file_name,
             "base64_file": Invoice_base64_file,
-            "account_code_combination": Invoice_code_combination,
-            "account_code_description": Invoice_code_description
         })
 
         if serializer.is_valid():
@@ -314,53 +313,49 @@ class Invoice_Crud(APIView):
         if not Invoice_Number:
             data = []
             for invoice in paginated_invoices:
-                # Handle both string and dict types for Invoice_Data
-                invoice_data = invoice.Invoice_Data if invoice.Invoice_Data else {}
+                # Handle both string and dict types for Invoice_Object
+                Invoice_Object = invoice.Invoice_Object if invoice.Invoice_Object else {}
                 
                 # If it's a string, parse it as JSON
-                if isinstance(invoice_data, str):
+                if isinstance(Invoice_Object, str):
                     try:
-                        invoice_data = json.loads(invoice_data)
+                        Invoice_Object = json.loads(Invoice_Object)
                     except json.JSONDecodeError:
-                        invoice_data = {}
+                        Invoice_Object = {}
                 
                 # Extract only the required fields
                 extracted_data = {
                     'status': invoice.status,
                     # 'file_name': invoice.file_name,
-                    'InvoiceNumber': invoice_data.get('InvoiceNumber'),
-                    'InvoiceCurrency': invoice_data.get('InvoiceCurrency'),
-                    'InvoiceAmount': invoice_data.get('InvoiceAmount'),
-                    'InvoiceDate': invoice_data.get('InvoiceDate'),
-                    'BusinessUnit': invoice_data.get('BusinessUnit'),
-                    'Supplier': invoice_data.get('Supplier'),
-                    'SupplierSite': invoice_data.get('SupplierSite'),
-                    'AccountCode': invoice.code_combination,
-                    'AccountDescription': invoice.code_description
+                    'InvoiceNumber': Invoice_Object.get('InvoiceNumber'),
+                    'InvoiceCurrency': Invoice_Object.get('InvoiceCurrency'),
+                    'InvoiceAmount': Invoice_Object.get('InvoiceAmount'),
+                    'InvoiceDate': Invoice_Object.get('InvoiceDate'),
+                    'BusinessUnit': Invoice_Object.get('BusinessUnit'),
+                    'Supplier': Invoice_Object.get('Supplier'),
+                    'SupplierSite': Invoice_Object.get('SupplierSite'),
                 }
                 data.append(extracted_data)
             return paginator.get_paginated_response(data)
         else:
-            # When Invoice_Number is provided, parse the Invoice_Data
+            # When Invoice_Number is provided, parse the Invoice_Object
             data = []
             for invoice in paginated_invoices:
-                # Handle both string and dict types for Invoice_Data
-                invoice_data = invoice.Invoice_Data if invoice.Invoice_Data else {}
+                # Handle both string and dict types for Invoice_Object
+                Invoice_Object = invoice.Invoice_Object if invoice.Invoice_Object else {}
                 
                 # If it's a string, parse it as JSON
-                if isinstance(invoice_data, str):
+                if isinstance(Invoice_Object, str):
                     try:
-                        invoice_data = json.loads(invoice_data)
+                        Invoice_Object = json.loads(Invoice_Object)
                     except json.JSONDecodeError:
-                        invoice_data = {}
+                        Invoice_Object = {}
                 
-                # Return all fields with parsed Invoice_Data
+                # Return all fields with parsed Invoice_Object
                 extracted_data = {
                     'Invoice_ID': invoice.Invoice_ID,
                     'Invoice_Number': invoice.Invoice_Number,
-                    'AccountCode': invoice.code_combination,
-                    'AccountDescription': invoice.code_description,
-                    'Invoice_Data': invoice_data,  # Parsed JSON instead of string
+                    'Invoice_Object': Invoice_Object,  # Parsed JSON instead of string
                     'uploaded_by': invoice.uploaded_by.id if invoice.uploaded_by else None,
                     'base64_file': invoice.base64_file,
                     'file_name': invoice.file_name,
@@ -410,7 +405,7 @@ class Invoice_Crud(APIView):
             # Create new invoice with the provided data
             new_data = {
                 "Invoice_Number": Invoice_Number,
-                "Invoice_Data": request.data.get("Invoice_Data"),
+                "Invoice_Object": request.data.get("Invoice_Object"),
                 "uploaded_by": request.user.id
             }
             
