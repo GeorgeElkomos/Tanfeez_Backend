@@ -192,6 +192,10 @@ class Invoice_submit(APIView):
             if Invoice_Object:
 
                 Invoice_data=Invoice_Object.Invoice_Data
+                Invoice_data.pop("AccountCode", None)  # Remove existing attachments if any
+                Invoice_data.pop("Account Description", None)  # Remove existing attachments if any
+
+                
 
                 oracle_response = send_request(base64_content=Invoice_Object.base64_file, filename=Invoice_Object.file_name, json_data=Invoice_data, category="From Supplier")
                 
