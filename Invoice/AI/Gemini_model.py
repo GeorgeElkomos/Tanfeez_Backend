@@ -185,7 +185,6 @@ You have access to the following Chart of Accounts. You must:
 3. Add the "AccountCode" field ONLY at the invoice header level (NOT in line items)
 4. Add the "AccountDescription" field ONLY at the invoice header level (NOT in line items)
 
-
 **AVAILABLE ACCOUNT CODES:**
 
 5000000 - Expenses (General business operating expense)
@@ -265,16 +264,6 @@ Your objectives are:
 2. CLASSIFY the invoice with ONE appropriate AccountCode at the header level
 
 ==============================
-🎯 CORE OBJECTIVE
-==============================
-Your sole objective is to EXTRACT DATA **EXACTLY AS IT APPEARS** in the provided invoice document.
-
-- Copy all text verbatim — preserving **case, spacing, punctuation, currency symbols, minus signs, separators, and decimals**.  
-- **NEVER** guess, normalize, reformat, calculate, or infer EXCEPT for verifying that the InvoiceAmount equals the total of line item amounts (see rules below).  
-- If a value does not explicitly appear, return `"Not Found"` (or `"N/A"` only if the invoice literally shows `"N/A"`).  
-- Output must be **syntactically valid JSON** — no extra text, markdown, or explanation.
-
-==============================
 📜 SOURCE-OF-TRUTH
 ==============================
 - Use ONLY the contents of the provided invoice (all pages).  
@@ -326,7 +315,7 @@ If duplicates conflict, choose the **most prominent or final payable** one. Neve
 2. **Amounts & Numbers:**  
    - Preserve original format, including symbols and separators.  
    - **Never include spaces inside numeric values** — `"56423. 20"` → ❌ must be `"56423.20"` ✅.  
-   - Apply this rule to all numeric fields (totals, taxes, line items, etc.).
+   - Apply this rule to all numeric fields (totals, taxes, line items, etc.).  
    - make sure "DistributionLineNumber" is incremented by 1 for each line item, starting from 1.
 
 3. **InvoiceAmount Rule:**  
@@ -399,13 +388,27 @@ Before returning the JSON:
    - `"BusinessUnit": "MIC Headquarter BU"`
    - `"Supplier": "ABEER SHEIKH"`
    - `"SupplierSite": "DUBAI"`
+   - `"InvoiceGroup": "01Feb2019"`
+   - `"Description": "Office Supplies"`
 9. All numeric fields (totals, taxes, lines) must have **no spaces** inside numbers or decimals.
 10. Dates must appear as **YYYY-MM-DD**.
-11. "DistributionAmount value is same as LineAmount value.
-12. Dont ignore any 0 like if 300.20 keep keep it 300.20 not 300.
-13. InvoiceAmount should = the total of all LineAmount values.
-14. **Add "AccountCode" field at invoice header level ONLY** - analyze the overall invoice description/purpose and assign the most appropriate account code from the provided list.
+11. "DistributionAmount" value must match the "LineAmount" value.
+12. Do not ignore any trailing zeros (e.g., keep "300.20" not "300").
+13. InvoiceAmount must equal the total of all LineAmount values.
+14. Add "AccountCode" field ONLY at invoice header level (not line items).
 15. Do NOT add AccountCode to individual line items.
+
+==============================
+🚫 FIXED FIELD VALUES (DO NOT CHANGE)
+==============================
+The following fields are ABSOLUTELY FIXED and must NEVER be altered, removed, or replaced under ANY circumstances — even if the invoice shows different information.  
+They must appear **exactly as written below** in the final JSON output:
+
+"BusinessUnit": "MIC Headquarter BU",
+"Supplier": "ABEER SHEIKH",
+"SupplierSite": "DUBAI",
+"InvoiceGroup": "01Feb2019",
+"Description": "Office Supplies"
 
 ==============================
 🚫 OUTPUT RESTRICTIONS
@@ -415,60 +418,11 @@ Before returning the JSON:
 - Maintain all explicitly provided fixed values exactly as stated.  
 - `"InvoiceAmount"` must always equal the total of all line item `"LineAmount"` values (verbatim).
 - AccountCode appears ONLY at the invoice header level (top), NOT in line items.
--  "data": {
-        "InvoiceNumber": "INVABU -0000 -2025",
-        "InvoiceCurrency": "AED",
-        "InvoiceAmount": "58423.40",
-        "InvoiceDate": "2024-09-01",
-        "BusinessUnit": "MIC Headquarter BU",
-        "Supplier": "ABEER SHEIKH",
-        "SupplierSite": "DUBAI",
-        "InvoiceGroup": "01Feb2019",
-        "Description": "Office Supplies",
-        "AccountCode": "5040000",
-        "Account Description": "General And Administrative Expenses",
-        "invoiceDff": [
-            {
-                "__FLEX_Context": "MIC_HQ"
-            }
-        ],
-        "invoiceLines": [
-            {
-                "LineNumber": 1,
-                "LineAmount": "56423.20",
-                "invoiceLineDff": [
-                    {
-                        "__FLEX_Context": "MIC_HQ"
-                    }
-                ],
-                "invoiceDistributions": [
-                    {
-                        "DistributionLineNumber": 1,
-                        "DistributionLineType": "Item",
-                        "DistributionAmount": "56423.20",
-                        "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
-                    }
-                ]
-            },
-            {
-                "LineNumber": 2,
-                "LineAmount": "2000.20",
-                "invoiceLineDff": [
-                    {
-                        "__FLEX_Context": "MIC_HQ"
-                    }
-                ],
-                "invoiceDistributions": [
-                    {
-                        "DistributionLineNumber": 2,
-                        "DistributionLineType": "Item",
-                        "DistributionAmount": "2000.20",
-                        "DistributionCombination": "10001-B030001-5010015-M0000-UAECE01-00000-000000-000000-000000"
-                    }
-                ]
-            }
-        ]
-    } this is wrong because InvoiceAmount not equal the total of all LineAmount values. it should be 58423.40
+- Example error to avoid:  
+  "data": { "InvoiceNumber": "INVABU -0000 -2025", "InvoiceCurrency": "AED", "InvoiceAmount": "58423.40", ... }  
+  ❌ Wrong because InvoiceAmount must equal the total of all LineAmount values.  
+  ✅ Correct if InvoiceAmount = 58423.40 and sum(LineAmounts) = 58423.40.
+
 """
 
     

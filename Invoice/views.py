@@ -258,12 +258,12 @@ class Invoice_Crud(APIView):
 
     def post(self, request):
 
-        if not request.data.get("Invoice_Object") and request.data.get("Invoice_Number") != []:
+        if not request.data.get("Invoice_Data") and request.data.get("Invoice_Number") != []:
             return Response(
                 {
                     "message": "Invoice date is a required field.",
                     "errors": {
-                        "Invoice_Object": (
+                        "Invoice_Data": (
                             "This field is required."
                             if not request.data.get("Invoice_Object")
                             else None
@@ -273,13 +273,13 @@ class Invoice_Crud(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
-        Invoice_details=request.data.get("Invoice_Object")
+        Invoice_details=request.data.get("Invoice_Data")
         Invoice_file_name = request.data.get("file_name")
         Invoice_base64_file = request.data.get("base64_file")
 
         serializer = InvoiceSerializer(data={
 
-            "Invoice_Object": Invoice_details,
+            "Invoice_Data": Invoice_details,
             "Invoice_Number": request.data.get("Invoice_Number"),
             "uploaded_by": request.user.id,
             "file_name": Invoice_file_name,
