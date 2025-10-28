@@ -283,8 +283,8 @@ class Invoice_Crud(APIView):
             "uploaded_by": request.user.id,
             "file_name": Invoice_file_name,
             "base64_file": Invoice_base64_file,
-            "code_combination": Invoice_code_combination,
-            "code_description": Invoice_code_description
+            "account_code_combination": Invoice_code_combination,
+            "account_code_description": Invoice_code_description
         })
 
         if serializer.is_valid():
