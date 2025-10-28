@@ -121,8 +121,7 @@ class Invoice_extraction(APIView):
         
         # Clean and parse the JSON response
         parsed_data = clean_and_parse_json_response(raw_response)# Get invoice number from parsed data
-        Code_Combination = parsed_data.pop("AccountCode", "UNKNOWN")
-        Code_Description = parsed_data.pop("AccountDescription", "UNKNOWN")
+ 
         
         if not parsed_data:
             return Response(

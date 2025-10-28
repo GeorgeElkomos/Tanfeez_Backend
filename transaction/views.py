@@ -996,6 +996,7 @@ class BudgetQuestionAnswerView(APIView):
 
     def post(self, request):
         question_input = request.data.get("question", "").strip()
+        time.sleep(5)
         
         if not question_input:
             return Response(

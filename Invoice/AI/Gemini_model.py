@@ -423,6 +423,27 @@ They must appear **exactly as written below** in the final JSON output:
   ❌ Wrong because InvoiceAmount must equal the total of all LineAmount values.  
   ✅ Correct if InvoiceAmount = 58423.40 and sum(LineAmounts) = 58423.40.
 
+==============================
+🧮 ACCOUNT CODE CLASSIFICATION VALIDATION (ADDED)
+==============================
+Before returning the JSON:
+- You MUST classify the invoice and include BOTH:
+  - `"AccountCode"` and  
+  - `"Account Description"`
+- These two fields are **mandatory** and must always be present at the invoice header level.
+- Determine them dynamically based on the **invoice description, purpose, and line item context**.
+- Use the classification rules and chart of accounts provided above.
+- Examples:
+  - If invoice mentions “office supplies”, “stationery”, or “printing” → use `"AccountCode": "5040000"`, `"Account Description": "General And Administrative Expenses"`.
+  - If invoice relates to “salary”, “wages”, or “employee payment” → use `"AccountCode": "5040101"`, `"Account Description": "Basic Salary"`.
+  - If invoice mentions “insurance” → `"AccountCode": "5040111"`, `"Account Description": "Health Insurance Expense"`.
+  - If invoice mentions “recruitment”, “hiring”, or “training” → `"AccountCode": "5040132"` or `"5040133"`.
+  - If invoice mentions “visa” or “immigration” → `"AccountCode": "5040124"`, `"Account Description": "Visa Expenses"`.
+  - If invoice mentions “facility”, “community”, or “service charges” → `"AccountCode": "5010004"` or `"5010005"`.
+  - If invoice relates to chilled water or utilities → `"AccountCode": "5010006"`.
+- If the invoice purpose is unclear, use `"AccountCode": "5000000"`, `"Account Description": "Expenses"`.
+- Never leave `"AccountCode"` and `"Account Description"` blank or `"Not Found"`.
+
 """
 
     
