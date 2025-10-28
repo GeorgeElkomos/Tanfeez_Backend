@@ -16,6 +16,8 @@ class xx_Invoice(models.Model):
     base64_file = models.TextField(default="")
     file_name= models.CharField(max_length=255, null=True, blank=True)
     status = models.CharField(max_length=50, default="Pending")  # e.g., Pending, Processed, Error
+    code_combination = models.CharField(max_length=100, default="UNKNOWN")
+    code_description = models.CharField(max_length=255, default="UNKNOWN")
     class Meta:
         db_table = "XX_INVOICE_XX"
 

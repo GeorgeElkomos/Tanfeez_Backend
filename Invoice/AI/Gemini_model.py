@@ -71,43 +71,30 @@ def extract_text_from_pdf(pdf_file) -> str:
         return None
 
 
-def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemini-2.0-flash-exp"):
+import os
+from openai import OpenAI
+import google.generativeai as genai
+
+def process_pdf_with_ai(pdf_file, user_prompt: str, model_choice: str = "gemini"):
     """
-    Process PDF using Google Gemini 2.0 Flash model
+    Process PDF using either Google Gemini or DeepSeek model.
     
     Args:
-        pdf_file: Can be either:
-                  - String path to PDF file
-                  - File-like object (from request.FILES, io.BytesIO, etc.)
-        user_prompt: Your custom prompt/question about the content
-        model_name: Gemini model name (default: gemini-2.0-flash-exp)
+        pdf_file: File path or file-like object (e.g., request.FILES)
+        user_prompt: Custom question or instruction for AI
+        model_choice: "gemini" or "deepseek"
     """
-    
-    # Step 1: Extract text from PDF
+    # Step 1: Extract text
     print("=" * 60)
     print("STEP 1: Extracting text from PDF")
     print("=" * 60)
     
     pdf_text = extract_text_from_pdf(pdf_file)
-    
     if not pdf_text:
-        print("Failed to extract text from PDF")
+        print("❌ Failed to extract text from PDF")
         return None
     
-    # Step 2: Configure Gemini API
-    print("\n" + "=" * 60)
-    print(f"STEP 2: Processing with Google Gemini ({model_name})")
-    print("=" * 60)
-    
-    api_key = "AIzaSyCn41qN4bXyq5C0mUSojeJeJZ_eKZDe7q8"
-    if not api_key:
-        print("Error: GEMINI_API_KEY not found in environment variables")
-        print("Please add GEMINI_API_KEY to your .env file")
-        return None
-    
-    genai.configure(api_key=api_key)
-    
-    # Combine PDF content with user's prompt
+    # Combine PDF text + user prompt
     full_prompt = f"""Here is the content extracted from a PDF document:
 
 ---PDF CONTENT START---
@@ -116,38 +103,63 @@ def process_pdf_with_gemini(pdf_file, user_prompt: str, model_name: str = "gemin
 
 {user_prompt}
 """
-    
-    print(f"\nUsing model: {model_name}")
-    print(f"User prompt: {user_prompt}")
-    print("Processing with Gemini 2.0 Flash...\n")
-    
-    try:
-        # Initialize Gemini model
-        model = genai.GenerativeModel(model_name)
-        
-        # Generate response
-        response = model.generate_content(
-            full_prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.1,
+
+    # Step 2: Choose model
+    print("\n" + "=" * 60)
+    print(f"STEP 2: Processing with model => {model_choice.upper()}")
+    print("=" * 60)
+
+    # ========== GEMINI ==========
+    if model_choice.lower() == "gemini":
+        api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyCn41qN4bXyq5C0mUSojeJeJZ_eKZDe7q8")
+        genai.configure(api_key=api_key)
+
+        model_name = "gemini-2.0-flash-exp"
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                full_prompt,
+                generation_config=genai.types.GenerationConfig(temperature=0.1)
             )
-        )
-        
-        print("Gemini Response:")
-        print("=" * 60)
-        print(response.text)
-        print("=" * 60)
-        print(f"\n✓ Processing complete!")
-        
-        return response.text
-        
-    except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        print("\nMake sure:")
-        print("1. GEMINI_API_KEY is set in your .env file")
-        print("2. You have a valid Google AI API key")
-        print("3. The API key has access to Gemini 2.0 Flash")
+            print("✅ Gemini Response:")
+            print(response.text)
+            return response.text
+        except Exception as e:
+            print(f"❌ Gemini API Error: {e}")
+            return None
+
+    # ========== DEEPSEEK ==========
+    elif model_choice.lower() == "deepseek":
+        api_key = "sk-10a67facfda84d9d9f2829e5cf9ed10f"
+        if not api_key:
+            print("❌ Error: DEEPSEEK_API_KEY not set in environment variables")
+            return None
+
+        client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
+        try:
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": full_prompt},
+                ],
+                stream=False
+            )
+
+            ai_response = response.choices[0].message.content
+            print("✅ DeepSeek Response:")
+            print(ai_response)
+            return ai_response
+        except Exception as e:
+            print(f"❌ DeepSeek API Error: {e}")
+            return None
+
+    # ========== INVALID MODEL ==========
+    else:
+        print(f"❌ Invalid model choice: {model_choice}. Use 'gemini' or 'deepseek'.")
         return None
+
 
 
 def extract_invoice_with_gemini(pdf_file, model_name: str = "gemini-2.0-flash"): 
@@ -460,7 +472,7 @@ Before returning the JSON:
 """
 
     
-    return process_pdf_with_gemini(pdf_file, invoice_prompt, model_name)
+    return process_pdf_with_ai(pdf_file, invoice_prompt, model_name)
 
 
 if __name__ == "__main__":

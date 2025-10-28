@@ -94,7 +94,7 @@ class Invoice_extraction(APIView):
         """Extract invoice data from PDF using AI models"""
 
         file = request.FILES.get("file")
-        model_choice = request.data.get("model", "gemini")  # Default to gemini model if not provided
+        model_choice = request.data.get("model", "deepseek")  # Default to deepseek model if not provided
         
         if not file:
             return Response(
@@ -103,8 +103,8 @@ class Invoice_extraction(APIView):
             )
         
         # Extract data using selected model
-        if model_choice == "gemini":
-            raw_response = extract_invoice_with_gemini(file)
+        if model_choice != "own":
+            raw_response = extract_invoice_with_gemini(file, model_name=model_choice)
         elif model_choice == "own":
             raw_response = extract_invoice_with_deepseek(file)
         else:
@@ -120,7 +120,9 @@ class Invoice_extraction(APIView):
             )
         
         # Clean and parse the JSON response
-        parsed_data = clean_and_parse_json_response(raw_response)
+        parsed_data = clean_and_parse_json_response(raw_response)# Get invoice number from parsed data
+        Code_Combination = parsed_data.pop("AccountCode", "UNKNOWN")
+        Code_Description = parsed_data.pop("AccountDescription", "UNKNOWN")
         
         if not parsed_data:
             return Response(
@@ -161,7 +163,9 @@ class Invoice_extraction(APIView):
                 "invoice_number": Invoice_Number,
                 "pdf_base64": base64_encoded,
                 "file_name": file_name,
-                "data": parsed_data  # Now returns clean parsed JSON
+                "data": parsed_data,  # Now returns clean parsed JSON
+                "code_combination": Code_Combination,
+                "code_description": Code_Description
             },
             status=status.HTTP_200_OK
         )
@@ -269,12 +273,18 @@ class Invoice_Crud(APIView):
         Invoice_details=request.data.get("Invoice_Data")
         Invoice_file_name = request.data.get("file_name")
         Invoice_base64_file = request.data.get("base64_file")
+        Invoice_code_combination = request.data.get("code_combination")
+        Invoice_code_description = request.data.get("code_description")
+
         serializer = InvoiceSerializer(data={
+
             "Invoice_Data": Invoice_details,
             "Invoice_Number": request.data.get("Invoice_Number"),
             "uploaded_by": request.user.id,
             "file_name": Invoice_file_name,
-            "base64_file": Invoice_base64_file
+            "base64_file": Invoice_base64_file,
+            "code_combination": Invoice_code_combination,
+            "code_description": Invoice_code_description
         })
 
         if serializer.is_valid():
@@ -324,7 +334,9 @@ class Invoice_Crud(APIView):
                     'InvoiceDate': invoice_data.get('InvoiceDate'),
                     'BusinessUnit': invoice_data.get('BusinessUnit'),
                     'Supplier': invoice_data.get('Supplier'),
-                    'SupplierSite': invoice_data.get('SupplierSite')
+                    'SupplierSite': invoice_data.get('SupplierSite'),
+                    'AccountCode': invoice.code_combination,
+                    'AccountDescription': invoice.code_description
                 }
                 data.append(extracted_data)
             return paginator.get_paginated_response(data)
@@ -346,6 +358,8 @@ class Invoice_Crud(APIView):
                 extracted_data = {
                     'Invoice_ID': invoice.Invoice_ID,
                     'Invoice_Number': invoice.Invoice_Number,
+                    'AccountCode': invoice.code_combination,
+                    'AccountDescription': invoice.code_description,
                     'Invoice_Data': invoice_data,  # Parsed JSON instead of string
                     'uploaded_by': invoice.uploaded_by.id if invoice.uploaded_by else None,
                     'base64_file': invoice.base64_file,
