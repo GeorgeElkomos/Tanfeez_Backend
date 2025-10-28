@@ -314,7 +314,7 @@ class Invoice_Crud(APIView):
             data = []
             for invoice in paginated_invoices:
                 # Handle both string and dict types for Invoice_Object
-                Invoice_Object = invoice.Invoice_Object if invoice.Invoice_Object else {}
+                Invoice_Object = invoice.Invoice_Data if invoice.Invoice_Data else {}
                 
                 # If it's a string, parse it as JSON
                 if isinstance(Invoice_Object, str):
@@ -330,7 +330,7 @@ class Invoice_Crud(APIView):
                     'InvoiceNumber': Invoice_Object.get('InvoiceNumber'),
                     'InvoiceCurrency': Invoice_Object.get('InvoiceCurrency'),
                     'InvoiceAmount': Invoice_Object.get('InvoiceAmount'),
-                    'InvoiceDate': Invoice_Object.get('InvoiceDate'),
+                    'InvoiceDate': Invoice_Object.get('Invoice_Data'),
                     'BusinessUnit': Invoice_Object.get('BusinessUnit'),
                     'Supplier': Invoice_Object.get('Supplier'),
                     'SupplierSite': Invoice_Object.get('SupplierSite'),
@@ -342,7 +342,7 @@ class Invoice_Crud(APIView):
             data = []
             for invoice in paginated_invoices:
                 # Handle both string and dict types for Invoice_Object
-                Invoice_Object = invoice.Invoice_Object if invoice.Invoice_Object else {}
+                Invoice_Object = invoice.Invoice_Data if invoice.Invoice_Data else {}
                 
                 # If it's a string, parse it as JSON
                 if isinstance(Invoice_Object, str):
@@ -355,7 +355,7 @@ class Invoice_Crud(APIView):
                 extracted_data = {
                     'Invoice_ID': invoice.Invoice_ID,
                     'Invoice_Number': invoice.Invoice_Number,
-                    'Invoice_Object': Invoice_Object,  # Parsed JSON instead of string
+                    'InvoiceDate': Invoice_Object.get('Invoice_Data'),
                     'uploaded_by': invoice.uploaded_by.id if invoice.uploaded_by else None,
                     'base64_file': invoice.base64_file,
                     'file_name': invoice.file_name,
