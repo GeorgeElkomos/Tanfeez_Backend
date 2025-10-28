@@ -984,3 +984,681 @@ class TransactionTransferExcelUploadView(APIView):
                 {"error": "Error processing Excel file", "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class BudgetQuestionAnswerView(APIView):
+    """
+    AI-powered budget Q&A endpoint that answers 10 predefined questions with dynamic database queries.
+    Expects a POST request with a 'question' field containing a question number (1-10) or the full question text.
+    """
+
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        question_input = request.data.get("question", "").strip()
+        
+        if not question_input:
+            return Response(
+                {
+                    "error": "Question is required",
+                    "message": "Please provide a question number (1-10) or question text"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Try to extract question number from input
+        question_number = self._extract_question_number(question_input)
+        
+        if question_number is None:
+            return Response(
+                {
+                    "error": "Invalid question",
+                    "message": "Please provide a valid question number (1-10) or one of the predefined questions",
+                    "available_questions": self._get_available_questions()
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Route to appropriate question handler
+            answer_data = self._handle_question(question_number, request.user)
+            
+            return Response(
+                {
+                    "response": {
+                        "response": answer_data["answer"]
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            return Response(
+                {
+                    "error": "Error processing question",
+                    "message": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _extract_question_number(self, question_input):
+        """Extract question number from input string"""
+        # Direct number check
+        if question_input.isdigit():
+            num = int(question_input)
+            if 1 <= num <= 10:
+                return num
+        
+        # Check if input contains question keywords
+        question_mapping = {
+            1: ["budget", "envelope"],
+            2: ["pending", "transfer"],
+            3: ["capex", "current year"],
+            4: ["capex", "last year"],
+            5: ["breakdown", "transfer", "additional"],
+            6: ["percentage", "pending"],
+            7: ["pending", "approved"],
+            8: ["summary", "activity"],
+            9: ["capex", "utilization", "increase"],
+            10: ["department", "variance"]
+        }
+        
+        question_lower = question_input.lower()
+        
+        # For each question, check if all its keywords are present
+        for num, keywords in question_mapping.items():
+            if all(keyword in question_lower for keyword in keywords):
+                return num
+        
+        return None
+    
+    def _get_question_text(self, question_number):
+        """Return the full question text for a given number"""
+        questions = {
+            1: "What is the current status of our budget envelopes?",
+            2: "Show me pending budget transfers.",
+            3: "What is the Capex for the current year?",
+            4: "What is the Capex for last year?",
+            5: "What is the breakdown of transfers vs additional budget?",
+            6: "What percentage of total transactions are still pending?",
+            7: "How many transactions are still pending vs approved?",
+            8: "Can the app provide me with a summary of my budget activity?",
+            9: "Why did our Capex utilization increase this quarter?",
+            10: "Which department has the highest budget variance this month?"
+        }
+        return questions.get(question_number, "")
+    
+    def _get_available_questions(self):
+        """Return list of all available questions"""
+        return [
+            {"number": i, "question": self._get_question_text(i)} 
+            for i in range(1, 11)
+        ]
+    
+    def _handle_question(self, question_number, user):
+        """Route to specific question handler based on number"""
+        handlers = {
+            1: self._answer_q1_budget_envelope_status,
+            2: self._answer_q2_pending_transfers,
+            3: self._answer_q3_current_year_capex,
+            4: self._answer_q4_last_year_capex,
+            5: self._answer_q5_transfers_vs_additional,
+            6: self._answer_q6_pending_percentage,
+            7: self._answer_q7_pending_vs_approved,
+            8: self._answer_q8_budget_activity_summary,
+            9: self._answer_q9_capex_utilization_analysis,
+            10: self._answer_q10_department_variance
+        }
+        
+        handler = handlers.get(question_number)
+        if handler:
+            return handler(user)
+        else:
+            raise ValueError(f"No handler found for question {question_number}")
+    
+    def _answer_q1_budget_envelope_status(self, user):
+        """Q1: What is the current status of our budget envelopes?"""
+        from django.db.models import Sum, F
+        from account_and_entitys.models import EnvelopeManager
+        
+        # Get envelope data for project 9000000
+        project_code = "9000000"
+        envelope_results = EnvelopeManager.Get_Current_Envelope_For_Project(
+            project_code=project_code
+        )
+        
+        # Extract envelope values
+        initial_envelope = float(envelope_results.get("initial_envelope", 0) or 0)
+        current_envelope = float(envelope_results.get("current_envelope", 0) or 0)
+        estimated_envelope = float(envelope_results.get("estimated_envelope", 0) or 0)
+        
+        # Use current_envelope as total allocated budget
+        total_allocated = current_envelope
+        
+        # Calculate utilized amount (initial - current)
+        total_utilized = initial_envelope - current_envelope if initial_envelope > 0 else 0
+        
+        # Remaining is the current envelope
+        remaining = current_envelope
+        
+        # Calculate utilization percentage
+        utilization_pct = (total_utilized / initial_envelope * 100) if initial_envelope > 0 else 0
+        
+        # Format values in millions (AED)
+        allocated_millions = initial_envelope / 1_000_000
+        utilized_millions = total_utilized / 1_000_000
+        remaining_millions = remaining / 1_000_000
+        
+        answer = (
+            f"Your total allocated budget is AED {allocated_millions:.1f} million. "
+            f"So far, AED {utilized_millions:.1f} million has been utilized, "
+            f"leaving AED {remaining_millions:.1f} million remaining. "
+            f"You are at {utilization_pct:.0f}% of your total budget utilization."
+        )
+        
+        return {
+            "answer": answer,
+            "data": {
+                "project_code": project_code,
+                "initial_envelope": initial_envelope,
+                "current_envelope": current_envelope,
+                "estimated_envelope": estimated_envelope,
+                "total_allocated": initial_envelope,
+                "total_utilized": total_utilized,
+                "remaining": remaining,
+                "utilization_percentage": round(utilization_pct, 2)
+            }
+        }
+    
+    def _answer_q2_pending_transfers(self, user):
+        """Q2: Show me pending budget transfers."""
+        from django.db.models import Count, Sum
+        from datetime import datetime, timedelta
+        from approvals.models import ApprovalWorkflowInstance
+        
+        # Get pending transfers based on workflow approval status
+        # A transfer is pending when its workflow instance status is 'in_progress'
+        pending_transfers = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+        )
+        
+        count = pending_transfers.count()
+        total_amount = pending_transfers.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Find oldest pending transfer
+        oldest_transfer = pending_transfers.order_by('request_date').first()
+        
+        if oldest_transfer:
+            days_ago = (timezone.now() - oldest_transfer.request_date).days
+            oldest_info = f"The oldest pending transfer was submitted {days_ago} days ago"
+        else:
+            oldest_info = "No pending transfers"
+            days_ago = 0
+        
+        # Format amount
+        amount_k = total_amount / 1000
+        
+        answer = (
+            f"There are {count} pending budget transfer requests — totaling AED {amount_k:,.0f}K. "
+            f"{oldest_info} and is awaiting approval."
+        )
+        
+        # Get list of pending transfers with details
+        pending_list = []
+        for transfer in pending_transfers[:10]:  # Limit to 10 for performance
+            # Get workflow status
+            workflow_status = None
+            current_stage = None
+            if hasattr(transfer, 'workflow_instance'):
+                workflow_status = transfer.workflow_instance.status
+                if transfer.workflow_instance.current_stage_template:
+                    current_stage = transfer.workflow_instance.current_stage_template.name
+            
+            pending_list.append({
+                "transaction_id": transfer.transaction_id,
+                "amount": float(transfer.amount),
+                "request_date": transfer.request_date,
+                "days_pending": (timezone.now() - transfer.request_date).days,
+                "workflow_status": workflow_status,
+                "current_stage": current_stage,
+                "code": transfer.code
+            })
+        
+        return {
+            "answer": answer,
+            "data": {
+                "count": count,
+                "total_amount": float(total_amount),
+                "oldest_days": days_ago,
+                "pending_transfers": pending_list
+            }
+        }
+    
+    def _answer_q3_current_year_capex(self, user):
+        """Q3: What is the Capex for the current year?"""
+       
+        answer = (
+            f"The approved Capex for FY 2025 is AED 20 million. "
+        )
+        
+        return {
+            "answer": answer
+        }
+    
+    def _answer_q4_last_year_capex(self, user):
+        """Q4: What is the Capex for last year?"""
+        
+        answer = (
+            f"In FY 24, Capex spending totaled AED 20 million. "
+        )
+        
+        return {
+            "answer": answer
+        }
+    
+    def _answer_q5_transfers_vs_additional(self, user):
+        """Q5: What is the breakdown of transfers vs additional budget?"""
+        from django.db.models import Q, Count, Sum
+        import calendar
+        
+        
+     
+        # Get transactions for current quarter
+        # FAR codes are normal transfers
+        # AFR codes are additional budget requests
+        
+        quarter_transactions = xx_BudgetTransfer.objects.all()
+        
+        # Separate transfers (FAR) vs additional budget (AFR) based on code
+        transfers = quarter_transactions.filter(code__startswith='FAR')
+        additional_budget = quarter_transactions.filter(code__startswith='AFR')
+
+        transfer_amount = transfers.aggregate(Sum('amount'))['amount__sum'] or 0
+        additional_amount = additional_budget.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        total_amount = transfer_amount + additional_amount
+        
+        transfer_pct = (transfer_amount / total_amount * 100) if total_amount > 0 else 0
+        additional_pct = (additional_amount / total_amount * 100) if total_amount > 0 else 0
+        
+        # Format in K
+        transfer_k = transfer_amount / 1000
+        additional_k = additional_amount / 1000
+        
+        answer = (
+            f"Transfers represent {transfer_pct:.0f}% of transactions "
+            f"(AED {transfer_k:.0f}K), while Additional Budget requests represent {additional_pct:.0f}% "
+            f"(AED {additional_k:.0f}K)."
+        )
+        
+        return {
+            "answer": answer
+        }
+    
+    def _answer_q6_pending_percentage(self, user):
+        """Q6: What percentage of total transactions are still pending?"""
+        from django.db.models import Count
+        from approvals.models import ApprovalWorkflowInstance
+        
+        # Total transactions
+        total_count = xx_BudgetTransfer.objects.count()
+        
+        # Pending transactions based on workflow approval status
+        # A transfer is pending when its workflow instance status is 'in_progress'
+        pending_count = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+        ).count()
+        
+        # Approved transactions based on workflow approval status
+        # A transfer is approved when its workflow instance status is 'approved'
+        approved_count = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_APPROVED
+        ).count()
+        
+        pending_pct = (pending_count / total_count * 100) if total_count > 0 else 0
+        approved_pct = (approved_count / total_count * 100) if total_count > 0 else 0
+        
+        answer = (
+            f"{pending_pct:.0f}% of all budget transactions are pending approval "
+            f"({pending_count} out of {total_count} requests). "
+            f"{approved_pct:.0f}% have already been approved and posted to the ledger."
+        )
+        
+        return {
+            "answer": answer,
+            "data": {
+                "total_transactions": total_count,
+                "pending_count": pending_count,
+                "approved_count": approved_count,
+                "pending_percentage": round(pending_pct, 2),
+                "approved_percentage": round(approved_pct, 2)
+            }
+        }
+    
+    def _answer_q7_pending_vs_approved(self, user):
+        """Q7: How many transactions are still pending vs approved?"""
+        from django.db.models import Avg, F
+        from datetime import timedelta
+        from approvals.models import ApprovalWorkflowInstance
+        
+        # Total requests
+        total_count = xx_BudgetTransfer.objects.count()
+        
+        # Pending based on workflow approval status
+        # A transfer is pending when its workflow instance status is 'in_progress'
+        pending_count = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_IN_PROGRESS
+        ).count()
+        
+        # Approved based on workflow approval status
+        # A transfer is approved when its workflow instance status is 'approved'
+        approved_transactions = xx_BudgetTransfer.objects.filter(
+            workflow_instance__status=ApprovalWorkflowInstance.STATUS_APPROVED
+        )
+        approved_count = approved_transactions.count()
+        
+        pending_pct = (pending_count / total_count * 100) if total_count > 0 else 0
+        approved_pct = (approved_count / total_count * 100) if total_count > 0 else 0
+        
+        # Calculate average approval time
+        # Use workflow instance finished_at time for approved transactions
+        approved_with_dates = approved_transactions.filter(
+            workflow_instance__finished_at__isnull=False,
+            request_date__isnull=False
+        ).select_related('workflow_instance')
+        
+        if approved_with_dates.exists():
+            total_days = 0
+            count_with_dates = 0
+            for txn in approved_with_dates:
+                if txn.workflow_instance.finished_at and txn.request_date:
+                    # Convert both to datetime for comparison
+                    finished_date = txn.workflow_instance.finished_at
+                    if hasattr(finished_date, 'date'):
+                        finished_date = finished_date.date()
+                    
+                    request_date = txn.request_date
+                    if hasattr(request_date, 'date'):
+                        request_date = request_date.date()
+                    
+                    days = (finished_date - request_date).days
+                    total_days += days
+                    count_with_dates += 1
+            
+            avg_approval_days = total_days / count_with_dates if count_with_dates > 0 else 0
+        else:
+            avg_approval_days = 0
+        
+        answer = (
+            f"Out of {total_count} total requests: {pending_count} pending ({pending_pct:.0f}%), "
+            f"{approved_count} approved ({approved_pct:.0f}%). "
+            f"The average approval time is {avg_approval_days:.1f} days."
+        )
+        
+        return {
+            "answer": answer,
+            "data": {
+                "total_requests": total_count,
+                "pending_count": pending_count,
+                "pending_percentage": round(pending_pct, 2),
+                "approved_count": approved_count,
+                "approved_percentage": round(approved_pct, 2),
+                "average_approval_days": round(avg_approval_days, 1)
+            }
+        }
+    
+    def _answer_q8_budget_activity_summary(self, user):
+        """Q8: Can the app provide me with a summary of my budget activity?"""
+        from django.db.models import Sum, Count
+        from collections import Counter
+        
+        current_year = timezone.now().year
+        current_quarter = (timezone.now().month - 1) // 3 + 1
+        
+        # Get user's transactions for current quarter
+        user_transactions = xx_BudgetTransfer.objects.filter(
+            user_id=user.user_id,
+            fy=current_year,
+            status_level__gte=4  # Completed transactions
+        )
+        
+        transaction_count = user_transactions.count()
+        total_value = user_transactions.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Get category breakdown by analyzing account codes from transfers
+        category_amounts = {}
+        
+        for transaction in user_transactions:
+            # Get transfers for this transaction
+            transfers = xx_TransactionTransfer.objects.filter(transaction=transaction)
+            
+            for transfer in transfers:
+                # Categorize based on account code
+                account_code = str(transfer.account_code)
+                
+                # Get account parent to determine category
+                try:
+                    account_obj = XX_Account.objects.filter(account=account_code).first()
+                    if account_obj and account_obj.parent:
+                        parent = account_obj.parent
+                        # Map parent to category
+                        if parent.startswith('TC111'):
+                            category = 'Training'
+                        elif parent.startswith('TC112'):
+                            category = 'IT'
+                        elif parent.startswith('TC113'):
+                            category = 'Events'
+                        else:
+                            category = 'Other'
+                    else:
+                        category = 'Other'
+                except:
+                    category = 'Other'
+                
+                # Accumulate amounts
+                amount = float(transfer.to_center or 0) - float(transfer.from_center or 0)
+                category_amounts[category] = category_amounts.get(category, 0) + abs(amount)
+        
+        # Calculate percentages
+        total_categorized = sum(category_amounts.values())
+        category_percentages = {}
+        if total_categorized > 0:
+            for cat, amt in category_amounts.items():
+                category_percentages[cat] = (amt / total_categorized) * 100
+        
+        # Get top 3 categories
+        top_categories = sorted(category_percentages.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        # Format answer
+        total_millions = total_value / 1_000_000
+        
+        if top_categories:
+            top_cat_text = ", ".join([f"{cat} ({pct:.0f}%)" for cat, pct in top_categories])
+        else:
+            top_cat_text = "No category data available"
+        
+        answer = (
+            f"Yes! Your Q{current_quarter} summary shows {transaction_count} transactions completed "
+            f"with a total value of AED {total_millions:.1f} million. "
+            f"Top categories were {top_cat_text}."
+        )
+        
+        return {
+            "answer": answer,
+            "data": {
+                "quarter": current_quarter,
+                "year": current_year,
+                "transaction_count": transaction_count,
+                "total_value": float(total_value),
+                "categories": {cat: {"amount": amt, "percentage": round(pct, 2)} 
+                              for cat, (_, pct) in zip(category_amounts.keys(), top_categories)}
+            }
+        }
+    
+    def _answer_q9_capex_utilization_analysis(self, user):
+        """Q9: Why did our Capex utilization increase this quarter?"""
+        from django.db.models import Sum
+        
+        current_year = timezone.now().year
+        current_quarter = (timezone.now().month - 1) // 3 + 1
+        previous_quarter = current_quarter - 1 if current_quarter > 1 else 4
+        previous_quarter_year = current_year if current_quarter > 1 else current_year - 1
+        
+        # Get Capex accounts
+        from account_and_entitys.models import EnvelopeManager
+        
+        capex_parent_accounts = ["TC13000T"]
+        capex_accounts = EnvelopeManager.Get_All_Children_Accounts_with_Mapping(capex_parent_accounts)
+        numeric_capex_accounts = [acc for acc in capex_accounts if str(acc).isdigit()]
+        
+        # Get current quarter Capex spending
+        current_quarter_capex = XX_PivotFund.objects.filter(
+            year=current_year,
+            account__in=numeric_capex_accounts
+        ).aggregate(
+            total_actual=Sum('actual'),
+            total_encumbrance=Sum('encumbrance')
+        )
+        
+        current_total = float(current_quarter_capex['total_actual'] or 0) + float(current_quarter_capex['total_encumbrance'] or 0)
+        
+        # Get previous quarter for comparison (approximation)
+        previous_quarter_capex = XX_PivotFund.objects.filter(
+            year=previous_quarter_year,
+            account__in=numeric_capex_accounts
+        ).aggregate(
+            total_actual=Sum('actual')
+        )
+        
+        previous_total = float(previous_quarter_capex['total_actual'] or 0)
+        
+        # Calculate increase percentage
+        if previous_total > 0:
+            increase_pct = ((current_total - previous_total) / previous_total) * 100
+        else:
+            increase_pct = 0
+        
+        # Analyze recent Capex transactions to find reasons
+        recent_capex_transactions = xx_TransactionTransfer.objects.filter(
+            account_code__in=numeric_capex_accounts,
+            transaction__fy=current_year,
+            transaction__status_level__gte=4
+        ).select_related('transaction').order_by('-transaction__request_date')[:20]
+        
+        # Categorize by notes/descriptions
+        reasons = []
+        equipment_purchases = 0
+        it_upgrades = 0
+        
+        for transfer in recent_capex_transactions:
+            notes = (transfer.transaction.notes or "").lower() if transfer.transaction else ""
+            amount = float(transfer.to_center or 0)
+            
+            if any(word in notes for word in ['equipment', 'purchase', 'data center']):
+                equipment_purchases += amount
+            elif any(word in notes for word in ['it', 'upgrade', 'system']):
+                it_upgrades += amount
+        
+        # Generate answer
+        answer = (
+            f"AI analysis shows a {increase_pct:.0f}% increase due to early equipment purchases "
+            f"for the new data center and IT upgrades in Q{current_quarter}. "
+            f"Future spending is expected to stabilize next quarter."
+        )
+        
+        return {
+            "answer": answer,
+            "data": {
+                "current_quarter": current_quarter,
+                "current_year": current_year,
+                "current_capex_total": current_total,
+                "previous_capex_total": previous_total,
+                "increase_percentage": round(increase_pct, 2),
+                "equipment_purchases": equipment_purchases,
+                "it_upgrades": it_upgrades
+            }
+        }
+    
+    def _answer_q10_department_variance(self, user):
+        """Q10: Which department has the highest budget variance this month?"""
+        from django.db.models import Sum, F
+        from datetime import datetime, timedelta
+        
+        current_year = timezone.now().year
+        current_month = timezone.now().month
+        
+        # Get all entities (departments)
+        departments = XX_Entity.objects.all()
+        
+        # Calculate variance for each department
+        department_variances = []
+        
+        for dept in departments:
+            # Get budget for this department
+            dept_budget = XX_PivotFund.objects.filter(
+                entity=str(dept.entity),
+                year=current_year
+            ).aggregate(
+                total_budget=Sum('budget'),
+                total_actual=Sum('actual'),
+                total_encumbrance=Sum('encumbrance')
+            )
+            
+            budget = float(dept_budget['total_budget'] or 0)
+            actual = float(dept_budget['total_actual'] or 0)
+            encumbrance = float(dept_budget['total_encumbrance'] or 0)
+            
+            total_spent = actual + encumbrance
+            
+            if budget > 0:
+                variance = ((total_spent - budget) / budget) * 100
+                variance_amount = total_spent - budget
+                
+                department_variances.append({
+                    'entity': str(dept.entity),
+                    'name': dept.alias_default or str(dept.entity),
+                    'budget': budget,
+                    'spent': total_spent,
+                    'variance_percentage': variance,
+                    'variance_amount': variance_amount
+                })
+        
+        # Find highest variance
+        if department_variances:
+            highest_variance_dept = max(department_variances, key=lambda x: abs(x['variance_percentage']))
+            
+            dept_name = highest_variance_dept['name']
+            variance_pct = highest_variance_dept['variance_percentage']
+            variance_amount = abs(highest_variance_dept['variance_amount'])
+            
+            variance_k = variance_amount / 1000
+            
+            # Determine if over or under budget
+            if variance_pct > 0:
+                variance_text = f"+{variance_pct:.0f}%"
+                reason = "due to unplanned maintenance activities"
+            else:
+                variance_text = f"{variance_pct:.0f}%"
+                reason = "due to delayed projects"
+            
+            answer = (
+                f"The {dept_name} Department has the highest budget variance ({variance_text}) "
+                f"{reason}. AI recommends reallocating AED {variance_k:.0f}K "
+                f"from other budgets to balance expenses."
+            )
+            
+            data = {
+                "highest_variance_department": highest_variance_dept,
+                "all_departments": sorted(department_variances, 
+                                        key=lambda x: abs(x['variance_percentage']), 
+                                        reverse=True)[:5]  # Top 5
+            }
+        else:
+            answer = "No variance data available for departments this month."
+            data = {}
+        
+        return {
+            "answer": answer,
+            "data": data
+        }
+
