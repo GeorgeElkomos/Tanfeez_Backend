@@ -1,0 +1,1330 @@
+{
+  "tables": {
+    "django_migrations": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "app",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "name",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "applied",
+        "type": "datetime"
+      }
+    ],
+    "sqlite_sequence": [
+      {
+        "name": "name",
+        "type": ""
+      },
+      {
+        "name": "seq",
+        "type": ""
+      }
+    ],
+    "MAIN_CURRENCY": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "name",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "icon",
+        "type": "varchar(255)"
+      }
+    ],
+    "MAIN_ROUTES_NAME": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "english_name",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "arabic_name",
+        "type": "varchar(255)"
+      }
+    ],
+    "XX_ACCOUNT_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "parent",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "alias_default",
+        "type": "varchar(255)"
+      }
+    ],
+    "XX_ENTITY_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "entity",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "parent",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "alias_default",
+        "type": "varchar(255)"
+      }
+    ],
+    "XX_PROJECT_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "project",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "parent",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "alias_default",
+        "type": "varchar(255)"
+      }
+    ],
+    "XX_TRANSACTION_AUDIT_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "type",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "transfer_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "transcation_code",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "cost_center_code",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "account_code",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "project_code",
+        "type": "varchar(50)"
+      }
+    ],
+    "XX_ACCOUNT_ENTITY_LIMIT_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "account_id",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "entity_id",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "project_id",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "is_transer_allowed_for_source",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "is_transer_allowed_for_target",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "is_transer_allowed",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "source_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "target_count",
+        "type": "INTEGER"
+      }
+    ],
+    "XX_PIVOTFUND_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "entity",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "project",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "year",
+        "type": "INTEGER"
+      },
+      {
+        "name": "actual",
+        "type": "decimal"
+      },
+      {
+        "name": "fund",
+        "type": "decimal"
+      },
+      {
+        "name": "budget",
+        "type": "decimal"
+      },
+      {
+        "name": "encumbrance",
+        "type": "decimal"
+      }
+    ],
+    "XX_BUDGET_TRANSFER_XX": [
+      {
+        "name": "transaction_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "transaction_date",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "amount",
+        "type": "decimal"
+      },
+      {
+        "name": "status",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "requested_by",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "request_date",
+        "type": "datetime"
+      },
+      {
+        "name": "notes",
+        "type": "TEXT"
+      },
+      {
+        "name": "code",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "gl_posting_status",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "approvel_1",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "approvel_2",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "approvel_3",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "approvel_4",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "approvel_1_date",
+        "type": "datetime"
+      },
+      {
+        "name": "approvel_2_date",
+        "type": "datetime"
+      },
+      {
+        "name": "approvel_3_date",
+        "type": "datetime"
+      },
+      {
+        "name": "approvel_4_date",
+        "type": "datetime"
+      },
+      {
+        "name": "status_level",
+        "type": "INTEGER"
+      },
+      {
+        "name": "attachment",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "fy",
+        "type": "INTEGER"
+      },
+      {
+        "name": "group_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "interface_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "reject_group_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "reject_interface_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "approve_group_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "approve_interface_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "report",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "type",
+        "type": "varchar(10)"
+      }
+    ],
+    "XX_DASHBOARD_BUDGET_TRANSFER_XX": [
+      {
+        "name": "Dashboard_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "data",
+        "type": "TEXT"
+      },
+      {
+        "name": "date",
+        "type": "datetime"
+      }
+    ],
+    "XX_BUDGET_TRANSFER_ATTACHMENT_XX": [
+      {
+        "name": "attachment_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "file_name",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "file_type",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "file_size",
+        "type": "INTEGER"
+      },
+      {
+        "name": "file_data",
+        "type": "BLOB"
+      },
+      {
+        "name": "upload_date",
+        "type": "datetime"
+      },
+      {
+        "name": "transaction_id",
+        "type": "INTEGER"
+      }
+    ],
+    "XX_BUDGET_TRANSFER_REJECT_REASON_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "reason_text",
+        "type": "TEXT"
+      },
+      {
+        "name": "reject_date",
+        "type": "datetime"
+      },
+      {
+        "name": "reject_by",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "Transcation_id_id",
+        "type": "INTEGER"
+      }
+    ],
+    "django_content_type": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "app_label",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "model",
+        "type": "varchar(100)"
+      }
+    ],
+    "auth_group_permissions": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "group_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "permission_id",
+        "type": "INTEGER"
+      }
+    ],
+    "auth_permission": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "content_type_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "codename",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "name",
+        "type": "varchar(255)"
+      }
+    ],
+    "auth_group": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "name",
+        "type": "varchar(150)"
+      }
+    ],
+    "XX_USER_LEVEL_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "name",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "level_order",
+        "type": "integer unsigned"
+      }
+    ],
+    "XX_USER_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "password",
+        "type": "varchar(128)"
+      },
+      {
+        "name": "last_login",
+        "type": "datetime"
+      },
+      {
+        "name": "is_superuser",
+        "type": "bool"
+      },
+      {
+        "name": "username",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "role",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "is_active",
+        "type": "bool"
+      },
+      {
+        "name": "is_staff",
+        "type": "bool"
+      },
+      {
+        "name": "can_transfer_budget",
+        "type": "bool"
+      },
+      {
+        "name": "user_level_id",
+        "type": "bigint"
+      }
+    ],
+    "XX_USER_XX_groups": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "xx_user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "group_id",
+        "type": "INTEGER"
+      }
+    ],
+    "XX_USER_XX_user_permissions": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "xx_user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "permission_id",
+        "type": "INTEGER"
+      }
+    ],
+    "XX_NOTIFICATION_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "message",
+        "type": "TEXT"
+      },
+      {
+        "name": "is_read",
+        "type": "bool"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "is_system_read",
+        "type": "bool"
+      },
+      {
+        "name": "is_shown",
+        "type": "bool"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      }
+    ],
+    "XX_USER_ABILITY_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Type",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "Entity_id",
+        "type": "bigint"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      }
+    ],
+    "django_admin_log": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "object_id",
+        "type": "TEXT"
+      },
+      {
+        "name": "object_repr",
+        "type": "varchar(200)"
+      },
+      {
+        "name": "action_flag",
+        "type": "smallint unsigned"
+      },
+      {
+        "name": "change_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "content_type_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "action_time",
+        "type": "datetime"
+      }
+    ],
+    "APPROVAL_WORKFLOW_TEMPLATE": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "code",
+        "type": "varchar(60)"
+      },
+      {
+        "name": "transfer_type",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "name",
+        "type": "varchar(120)"
+      },
+      {
+        "name": "description",
+        "type": "TEXT"
+      },
+      {
+        "name": "is_active",
+        "type": "bool"
+      },
+      {
+        "name": "version",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "APPROVAL_DELEGATION": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "active",
+        "type": "bool"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "deactivated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "from_user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "to_user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "stage_instance_id",
+        "type": "bigint"
+      }
+    ],
+    "APPROVAL_ASSIGNMENT": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "role_snapshot",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "level_snapshot",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "is_mandatory",
+        "type": "bool"
+      },
+      {
+        "name": "status",
+        "type": "varchar(20)"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "stage_instance_id",
+        "type": "bigint"
+      }
+    ],
+    "APPROVAL_ACTION": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "action",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "comment",
+        "type": "TEXT"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "triggers_stage_completion",
+        "type": "bool"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      },
+      {
+        "name": "assignment_id",
+        "type": "bigint"
+      },
+      {
+        "name": "stage_instance_id",
+        "type": "bigint"
+      }
+    ],
+    "APPROVAL_WORKFLOW_STAGE_INSTANCE": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "status",
+        "type": "varchar(12)"
+      },
+      {
+        "name": "activated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "completed_at",
+        "type": "datetime"
+      },
+      {
+        "name": "workflow_instance_id",
+        "type": "bigint"
+      },
+      {
+        "name": "stage_template_id",
+        "type": "bigint"
+      }
+    ],
+    "APPROVAL_WORKFLOW_STAGE_TEMPLATE": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "order_index",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "name",
+        "type": "varchar(120)"
+      },
+      {
+        "name": "decision_policy",
+        "type": "varchar(10)"
+      },
+      {
+        "name": "quorum_count",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "required_role",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "dynamic_filter_json",
+        "type": "TEXT"
+      },
+      {
+        "name": "allow_reject",
+        "type": "bool"
+      },
+      {
+        "name": "allow_delegate",
+        "type": "bool"
+      },
+      {
+        "name": "sla_hours",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "parallel_group",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      },
+      {
+        "name": "required_user_level_id",
+        "type": "bigint"
+      },
+      {
+        "name": "workflow_template_id",
+        "type": "bigint"
+      }
+    ],
+    "APPROVAL_WORKFLOW_INSTANCE": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "status",
+        "type": "varchar(15)"
+      },
+      {
+        "name": "started_at",
+        "type": "datetime"
+      },
+      {
+        "name": "finished_at",
+        "type": "datetime"
+      },
+      {
+        "name": "completed_stage_count",
+        "type": "integer unsigned"
+      },
+      {
+        "name": "transaction_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "current_stage_template_id",
+        "type": "bigint"
+      },
+      {
+        "name": "template_id",
+        "type": "bigint"
+      }
+    ],
+    "django_session": [
+      {
+        "name": "session_key",
+        "type": "varchar(40)"
+      },
+      {
+        "name": "session_data",
+        "type": "TEXT"
+      },
+      {
+        "name": "expire_date",
+        "type": "datetime"
+      }
+    ],
+    "XX_BALANCE_REPORT_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "control_budget_name",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "ledger_name",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "as_of_period",
+        "type": "varchar(20)"
+      },
+      {
+        "name": "segment1",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "segment2",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "segment3",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "encumbrance_ytd",
+        "type": "decimal"
+      },
+      {
+        "name": "other_ytd",
+        "type": "decimal"
+      },
+      {
+        "name": "actual_ytd",
+        "type": "decimal"
+      },
+      {
+        "name": "funds_available_asof",
+        "type": "decimal"
+      },
+      {
+        "name": "budget_ytd",
+        "type": "decimal"
+      },
+      {
+        "name": "created_at",
+        "type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "type": "datetime"
+      }
+    ],
+    "XX_TRANSACTION_TRANSFER_XX": [
+      {
+        "name": "transfer_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "approved_budget",
+        "type": "decimal"
+      },
+      {
+        "name": "available_budget",
+        "type": "decimal"
+      },
+      {
+        "name": "from_center",
+        "type": "decimal"
+      },
+      {
+        "name": "to_center",
+        "type": "decimal"
+      },
+      {
+        "name": "reason",
+        "type": "TEXT"
+      },
+      {
+        "name": "account_code",
+        "type": "INTEGER"
+      },
+      {
+        "name": "account_name",
+        "type": "TEXT"
+      },
+      {
+        "name": "project_code",
+        "type": "TEXT"
+      },
+      {
+        "name": "project_name",
+        "type": "TEXT"
+      },
+      {
+        "name": "cost_center_code",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cost_center_name",
+        "type": "TEXT"
+      },
+      {
+        "name": "done",
+        "type": "INTEGER"
+      },
+      {
+        "name": "encumbrance",
+        "type": "decimal"
+      },
+      {
+        "name": "actual",
+        "type": "decimal"
+      },
+      {
+        "name": "file",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "transaction_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "budget_adjustments",
+        "type": "decimal"
+      },
+      {
+        "name": "commitments",
+        "type": "decimal"
+      },
+      {
+        "name": "expenditures",
+        "type": "decimal"
+      },
+      {
+        "name": "initial_budget",
+        "type": "decimal"
+      },
+      {
+        "name": "obligations",
+        "type": "decimal"
+      },
+      {
+        "name": "other_consumption",
+        "type": "decimal"
+      }
+    ],
+    "XX_PROJECT_ENVELOPE_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "project",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "envelope",
+        "type": "decimal"
+      }
+    ],
+    "XX_USER_PROJECTS_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "project",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "user_id",
+        "type": "bigint"
+      }
+    ],
+    "Chatting_chat": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "message",
+        "type": "TEXT"
+      },
+      {
+        "name": "original_message",
+        "type": "TEXT"
+      },
+      {
+        "name": "is_edited",
+        "type": "bool"
+      },
+      {
+        "name": "is_deleted",
+        "type": "bool"
+      },
+      {
+        "name": "timestamp",
+        "type": "datetime"
+      },
+      {
+        "name": "last_modified",
+        "type": "datetime"
+      },
+      {
+        "name": "transaction_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "user_from_id",
+        "type": "bigint"
+      },
+      {
+        "name": "user_to_id",
+        "type": "bigint"
+      },
+      {
+        "name": "edit_history",
+        "type": "TEXT"
+      },
+      {
+        "name": "seen",
+        "type": "bool"
+      },
+      {
+        "name": "seen_at",
+        "type": "datetime"
+      }
+    ],
+    "XX_ACCOUNT_MAPPING_LEGACY_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "source_account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "target_account",
+        "type": "varchar(50)"
+      }
+    ],
+    "BUDGET_DATA_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "project",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "FY24_budget",
+        "type": "decimal"
+      },
+      {
+        "name": "FY25_budget",
+        "type": "decimal"
+      }
+    ],
+    "XX_ENTITY_MAPPING__elies_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "source_entity",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "target_entity",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "is_active",
+        "type": "bool"
+      }
+    ],
+    "XX_ACCOUNT_MAPPING__elies_XX": [
+      {
+        "name": "id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "source_account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "target_account",
+        "type": "varchar(50)"
+      },
+      {
+        "name": "is_active",
+        "type": "bool"
+      }
+    ],
+    "XX_INVOICE_XX": [
+      {
+        "name": "Invoice_ID",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Invoice_Number",
+        "type": "varchar(100)"
+      },
+      {
+        "name": "Invoice_Data",
+        "type": "TEXT"
+      },
+      {
+        "name": "uploaded_by_id",
+        "type": "bigint"
+      },
+      {
+        "name": "base64_file",
+        "type": "TEXT"
+      },
+      {
+        "name": "file_name",
+        "type": "varchar(255)"
+      },
+      {
+        "name": "status",
+        "type": "varchar(50)"
+      }
+    ]
+  },
+  "relationships": {
+    "XX_BUDGET_TRANSFER_XX": {
+      "transaction_id": [
+        "XX_TRANSACTION_TRANSFER_XX.transfer_id",
+        "XX_BUDGET_TRANSFER_ATTACHMENT_XX.transaction_id",
+        "XX_BUDGET_TRANSFER_REJECT_REASON_XX.Transcation_id_id",
+        "APPROVAL_WORKFLOW_INSTANCE.transaction_id"
+      ],
+      "user_id": [
+        "XX_USER_XX.id"
+      ]
+    },
+    "XX_TRANSACTION_TRANSFER_XX": {
+      "transfer_id": [
+        "XX_TRANSACTION_AUDIT_XX.transfer_id"
+      ],
+      "transaction_id": [
+        "XX_BUDGET_TRANSFER_XX.transaction_id"
+      ]
+    },
+    "XX_TRANSACTION_AUDIT_XX": {
+      "transfer_id": [
+        "XX_TRANSACTION_TRANSFER_XX.transfer_id"
+      ]
+    },
+    "XX_BUDGET_TRANSFER_ATTACHMENT_XX": {
+      "transaction_id": [
+        "XX_BUDGET_TRANSFER_XX.transaction_id"
+      ]
+    },
+    "XX_BUDGET_TRANSFER_REJECT_REASON_XX": {
+      "Transcation_id_id": [
+        "XX_BUDGET_TRANSFER_XX.transaction_id"
+      ]
+    },
+    "XX_NOTIFICATION_XX": {
+      "user_id": [
+        "XX_USER_XX.id"
+      ]
+    },
+    "XX_USER_PROJECTS_XX": {
+      "user_id": [
+        "XX_USER_XX.id"
+      ]
+    },
+    "APPROVAL_WORKFLOW_INSTANCE": {
+      "transaction_id": [
+        "XX_BUDGET_TRANSFER_XX.transaction_id"
+      ],
+      "template_id": [
+        "APPROVAL_WORKFLOW_TEMPLATE.id"
+      ]
+    },
+    "APPROVAL_WORKFLOW_STAGE_INSTANCE": {
+      "workflow_instance_id": [
+        "APPROVAL_WORKFLOW_INSTANCE.id"
+      ],
+      "stage_template_id": [
+        "APPROVAL_WORKFLOW_STAGE_TEMPLATE.id"
+      ]
+    },
+    "APPROVAL_ACTION": {
+      "user_id": [
+        "XX_USER_XX.id"
+      ],
+      "assignment_id": [
+        "APPROVAL_ASSIGNMENT.id"
+      ],
+      "stage_instance_id": [
+        "APPROVAL_WORKFLOW_STAGE_INSTANCE.id"
+      ]
+    },
+    "APPROVAL_ASSIGNMENT": {
+      "user_id": [
+        "XX_USER_XX.id"
+      ],
+      "stage_instance_id": [
+        "APPROVAL_WORKFLOW_STAGE_INSTANCE.id"
+      ]
+    },
+    "APPROVAL_DELEGATION": {
+      "from_user_id": [
+        "XX_USER_XX.id"
+      ],
+      "to_user_id": [
+        "XX_USER_XX.id"
+      ],
+      "stage_instance_id": [
+        "APPROVAL_WORKFLOW_STAGE_INSTANCE.id"
+      ]
+    }
+  }
+}

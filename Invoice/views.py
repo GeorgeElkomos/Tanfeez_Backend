@@ -192,8 +192,9 @@ class Invoice_submit(APIView):
             if Invoice_Object:
 
                 Invoice_data=Invoice_Object.Invoice_Data
-                Invoice_data.pop("AccountCode", None)  # Remove existing attachments if any
-                Invoice_data.pop("Account Description", None)  # Remove existing attachments if any
+                Invoice_data.pop("AccountCode", None)  # Remove existing AccountCode if any
+                Invoice_data.pop("Account Description", None) # Remove existing Account Description if any
+                  # Remove existing Account Description if any
 
                 
 
@@ -280,14 +281,16 @@ class Invoice_Crud(APIView):
         Invoice_file_name = request.data.get("file_name")
         Invoice_base64_file = request.data.get("base64_file")
 
-        serializer = InvoiceSerializer(data={
+        serializer = InvoiceSerializer(
+        data={
 
             "Invoice_Data": Invoice_details,
             "Invoice_Number": request.data.get("Invoice_Number"),
             "uploaded_by": request.user.id,
             "file_name": Invoice_file_name,
             "base64_file": Invoice_base64_file,
-        })
+        }
+        )
 
         if serializer.is_valid():
             invoice = serializer.save()

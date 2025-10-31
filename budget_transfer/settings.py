@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "approvals",
     "Chatting",
     "Invoice",
+    "AI"
 ]
 
 AUTH_USER_MODEL = "user_management.xx_User"
